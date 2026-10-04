@@ -27,19 +27,22 @@ import ru.projectst.rpgcore.status.StatusService;
  */
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUB = List.of("validate", "reload", "debug", "why", "cast");
+    private static final List<String> SUB = List.of("validate", "reload", "debug", "why", "cast", "class", "unlock", "bind");
 
     private final ContentService content;
     private final StatService stats;
     private final StatusService statuses;
     private final ru.projectst.rpgcore.skill.SkillRuntime runtime;
+    private final ru.projectst.rpgcore.classes.ClassService playerClasses;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
-                      ru.projectst.rpgcore.skill.SkillRuntime runtime) {
+                      ru.projectst.rpgcore.skill.SkillRuntime runtime,
+                      ru.projectst.rpgcore.classes.ClassService playerClasses) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
         this.runtime = runtime;
+        this.playerClasses = playerClasses;
     }
 
     @Override
@@ -50,6 +53,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg debug <игрок> §7— статы и активные статусы");
             sender.sendMessage("§e/rpg why <игрок> <статус> §7— почему статус не действует");
             sender.sendMessage("§e/rpg cast <навык> §7— выполнить навык от своего лица");
+            sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
+            sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
+            sender.sendMessage("§e/rpg bind <слот> <навык> §7— повесить навык на слот");
             return true;
         }
 
@@ -59,6 +65,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "debug" -> debug(sender, args);
             case "why" -> why(sender, args);
             case "cast" -> cast(sender, args);
+            case "class" -> chooseClass(sender, args);
+            case "unlock" -> unlock(sender, args);
+            case "bind" -> bind(sender, args);
             default -> {
                 sender.sendMessage("§cНеизвестная подкоманда: " + args[0]);
                 yield true;
@@ -77,7 +86,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         report(sender, errors, "Перезагрузка");
         sender.sendMessage("§7Статов: §f" + content.stats().size()
                 + "§7, статусов: §f" + content.statuses().size()
-                + "§7, навыков: §f" + content.skills().size());
+                + "§7, навыков: §f" + content.skills().size()
+                + "§7, классов: §f" + content.playerClasses().size());
         return true;
     }
 
@@ -170,6 +180,61 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         int level = args.length > 2 ? Integer.parseInt(args[2]) : 1;
         runtime.cast(player.getUniqueId(), skill.get(), level);
         sender.sendMessage("§7Выполнен §f" + skill.get().id() + " §7уровня §f" + level);
+        return true;
+    }
+
+    private boolean chooseClass(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cДоступные классы: §f"
+                    + String.join(", ", content.playerClasses().ids()));
+            return true;
+        }
+        String id = args[1].toLowerCase(Locale.ROOT);
+        if (playerClasses.setClass(player.getUniqueId(), id)) {
+            sender.sendMessage("§aКласс выбран: §f" + id
+                    + " §7(изученное и слоты сброшены)");
+        } else {
+            sender.sendMessage("§cТакого класса нет: " + id);
+        }
+        return true;
+    }
+
+    private boolean unlock(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен навык: /rpg unlock <навык>");
+            return true;
+        }
+        var out = playerClasses.unlock(player.getUniqueId(), args[1].toLowerCase(Locale.ROOT));
+        sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
+        return true;
+    }
+
+    private boolean bind(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 3) {
+            sender.sendMessage("§cНужны слот и навык: /rpg bind <слот> <навык>");
+            return true;
+        }
+        int slot;
+        try {
+            slot = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cНомер слота должен быть числом");
+            return true;
+        }
+        var out = playerClasses.bind(player.getUniqueId(), slot, args[2].toLowerCase(Locale.ROOT));
+        sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
         return true;
     }
 

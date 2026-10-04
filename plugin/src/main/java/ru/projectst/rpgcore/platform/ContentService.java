@@ -13,6 +13,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.balance.BalanceLoader;
+import ru.projectst.rpgcore.classes.ClassDef;
+import ru.projectst.rpgcore.classes.ClassDefLoader;
+import ru.projectst.rpgcore.classes.ClassRegistry;
 import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.loader.SourceRef;
 import ru.projectst.rpgcore.skill.SkillDef;
@@ -42,6 +45,7 @@ public final class ContentService {
     private StatusRegistry statuses = new StatusRegistry(Map.of());
     private BalanceBook balance = BalanceBook.EMPTY;
     private SkillRegistry skills = SkillRegistry.EMPTY;
+    private ClassRegistry playerClasses = ClassRegistry.EMPTY;
 
     public ContentService(Path folder) {
         this.folder = folder;
@@ -63,6 +67,10 @@ public final class ContentService {
         return skills;
     }
 
+    public ClassRegistry playerClasses() {
+        return playerClasses;
+    }
+
     /** Перечитывает контент и применяет его. */
     public ContentErrors reload() {
         ContentErrors errors = new ContentErrors();
@@ -71,6 +79,7 @@ public final class ContentService {
         statuses = loaded.statuses();
         balance = loaded.balance();
         skills = loaded.skills();
+        playerClasses = loaded.playerClasses();
         return errors;
     }
 
@@ -87,7 +96,8 @@ public final class ContentService {
     }
 
     private record Loaded(StatRegistry stats, StatusRegistry statuses,
-                          BalanceBook balance, SkillRegistry skills) {
+                          BalanceBook balance, SkillRegistry skills,
+                          ClassRegistry playerClasses) {
     }
 
     private Loaded loadAll(ContentErrors errors) {
@@ -104,7 +114,7 @@ public final class ContentService {
                 .orElse(BalanceBook.EMPTY);
 
         Map<String, SkillDef> skillMap = new LinkedHashMap<>();
-        for (Path file : skillFiles(errors)) {
+        for (Path file : filesIn("skills", errors)) {
             String name = file.getFileName().toString();
             try {
                 String text = Files.readString(file, StandardCharsets.UTF_8);
@@ -119,17 +129,33 @@ public final class ContentService {
             }
         }
 
-        // Связывание последним: до него нет ни баланса, ни статусов для сверки.
-        // Классы пока не загружаются, поэтому список пуст и проверка класса
-        // пропускается — появится вместе с M8.
-        SkillLinker.link(skillMap.values(), loadedBalance, loadedStatuses, List.of(), errors);
+        Map<String, ClassDef> classMap = new LinkedHashMap<>();
+        for (Path file : filesIn("classes", errors)) {
+            String name = file.getFileName().toString();
+            try {
+                String text = Files.readString(file, StandardCharsets.UTF_8);
+                ClassDefLoader.load(name, text, errors).ifPresent(def -> {
+                    if (classMap.putIfAbsent(def.id(), def) != null) {
+                        errors.add(SourceRef.ofFile(name), "id",
+                                "класс с таким id уже загружен: " + def.id());
+                    }
+                });
+            } catch (IOException e) {
+                errors.add(SourceRef.ofFile(name), "", "не читается: " + e.getMessage());
+            }
+        }
+
+        // Связывание последним: до него нет ни баланса, ни статусов, ни
+        // классов для сверки.
+        SkillLinker.link(skillMap.values(), loadedBalance, loadedStatuses,
+                classMap.keySet(), errors);
 
         return new Loaded(loadedStats, loadedStatuses, loadedBalance,
-                new SkillRegistry(skillMap));
+                new SkillRegistry(skillMap), new ClassRegistry(classMap));
     }
 
-    private List<Path> skillFiles(ContentErrors errors) {
-        Path dir = folder.resolve("skills");
+    private List<Path> filesIn(String subfolder, ContentErrors errors) {
+        Path dir = folder.resolve(subfolder);
         if (!Files.isDirectory(dir)) {
             return List.of();
         }
@@ -139,10 +165,11 @@ public final class ContentService {
             files.sort(Path::compareTo);
             return files;
         } catch (IOException e) {
-            errors.add(SourceRef.ofFile("skills/"), "", "каталог не читается: " + e.getMessage());
+            errors.add(SourceRef.ofFile(subfolder + "/"), "",
+                    "каталог не читается: " + e.getMessage());
             return List.of();
         } catch (UncheckedIOException e) {
-            errors.add(SourceRef.ofFile("skills/"), "", "каталог не читается");
+            errors.add(SourceRef.ofFile(subfolder + "/"), "", "каталог не читается");
             return List.of();
         }
     }

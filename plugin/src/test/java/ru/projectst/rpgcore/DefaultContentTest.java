@@ -115,4 +115,43 @@ class DefaultContentTest {
         assertTrue(link.isEmpty(), () -> "ссылки поставляемого навыка не разрешились: "
                 + link.all());
     }
+
+    @Test
+    @DisplayName("поставляемый класс грузится и навык ссылается на существующий класс")
+    void defaultClassLinks() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        var mage = ru.projectst.rpgcore.classes.ClassDefLoader
+                .load("mage.yml", resource("classes/mage.yml"), errors).orElseThrow(
+                        () -> new AssertionError(errors.all().toString()));
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        assertEquals(5, mage.levelForTier(2), "вторая ступень открыта с пятого уровня");
+
+        var skill = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_bolt.yml",
+                resource("skills/mage_mana_bolt.yml"), new ContentErrors()).orElseThrow();
+        var balance = ru.projectst.rpgcore.balance.BalanceLoader
+                .load("balance.yml", resource("balance.yml"), new ContentErrors()).orElseThrow();
+        var statuses = StatusDefLoader
+                .load("statuses.yml", resource("statuses.yml"), new ContentErrors()).orElseThrow();
+
+        ContentErrors link = new ContentErrors();
+        ru.projectst.rpgcore.skill.SkillLinker.link(java.util.List.of(skill), balance,
+                statuses, java.util.Set.of(mage.id()), link);
+
+        assertTrue(link.isEmpty(), () -> link.all().toString());
+    }
+
+    @Test
+    @DisplayName("базовые статы класса объявлены в stats.yml")
+    void classStatsExist() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        var mage = ru.projectst.rpgcore.classes.ClassDefLoader
+                .load("mage.yml", resource("classes/mage.yml"), errors).orElseThrow();
+        var stats = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
+
+        for (String statId : mage.statCurves().keySet()) {
+            assertTrue(stats.has(statId),
+                    "класс даёт базу стату " + statId + ", которого нет в stats.yml");
+        }
+    }
 }

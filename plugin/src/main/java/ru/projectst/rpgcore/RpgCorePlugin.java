@@ -14,6 +14,7 @@ import ru.projectst.rpgcore.data.PlayerDataStore;
 import ru.projectst.rpgcore.loader.ContentError;
 import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.platform.ContentService;
+import ru.projectst.rpgcore.classes.ClassService;
 import ru.projectst.rpgcore.platform.BukkitSkillWorld;
 import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.skill.SkillRuntime;
@@ -35,6 +36,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private StatService stats;
     private StatusService statuses;
     private PlayerDataStore data;
+    private ClassService classService;
 
     @Override
     public void onEnable() {
@@ -61,9 +63,12 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         data = new PlayerDataStore(getDataFolder().toPath().resolve("players"),
                 message -> getLogger().warning(message));
 
+        classService = new ClassService(content.playerClasses(),
+                content.skills(), data, stats);
+
         var command = getCommand("rpg");
         if (command != null) {
-            RpgCommand executor = new RpgCommand(content, stats, statuses, runtime);
+            RpgCommand executor = new RpgCommand(content, stats, statuses, runtime, classService);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -79,7 +84,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
                 + ", статусов " + content.statuses().size()
-                + ", навыков " + content.skills().size());
+                + ", навыков " + content.skills().size()
+                + ", классов " + content.playerClasses().size());
     }
 
     @Override
@@ -93,6 +99,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         try {
             data.load(event.getPlayer().getUniqueId());
+            // Базовые статы класса применяются при входе: уровень мог
+            // измениться, пока игрока не было.
+            classService.applyBaseStats(event.getPlayer().getUniqueId());
         } catch (PlayerDataException e) {
             // Испорченный файл не затирается пустышкой: игрок получает отказ,
             // администратор — строку в логе с причиной.
@@ -113,7 +122,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
     private void saveDefaultContent() {
         for (String name : new String[] {"stats.yml", "statuses.yml", "balance.yml",
-                "skills/mage_mana_bolt.yml"}) {
+                "skills/mage_mana_bolt.yml", "classes/mage.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }
