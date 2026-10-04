@@ -1,0 +1,21 @@
+name: RpgCore
+version: 0.1.0
+main: ru.projectst.rpgcore.RpgCorePlugin
+api-version: '1.21'
+authors: [VeekRay]
+description: Статы, статусы, скиллы, предметы и мобы одним плагином
+
+# Классический plugin.yml, а не paper-plugin.yml: сборка гибридная (Youer на
+# базе Mohist), и поддержка нового формата у гибридов отстаёт. Терять запуск
+# ради синтаксиса не стоит.
+
+commands:
+  rpg:
+    description: Проверка контента и отладка статов и статусов
+    usage: /rpg validate | reload | debug <игрок> | why <игрок> <статус>
+    permission: rpgcore.admin
+
+permissions:
+  rpgcore.admin:
+    description: Доступ к /rpg
+    default: op

@@ -1,0 +1,80 @@
+# Статусы и отношения между ними.
+#
+# Это то место, ради которого затевался проект: конфликты объявлены здесь, а не
+# размазаны по условиям отдельных навыков. Граф проверяется при загрузке, и
+# /rpg validate покажет ошибку с номером строки до того, как её увидит игрок.
+#
+# Ключи:
+#   category    control | buff | debuff | shield | immunity | mark
+#   duration    длительность по умолчанию, тики
+#   stacking    none | refresh | extend | stacks
+#   max-stacks  больше 1 допустим только при stacking: stacks
+#   priority    кто кого вытесняет в exclusive
+#   exclusive   категория, в которой одновременно активен только один статус
+#   suppresses  пока активен, перечисленные не действуют, но тикают
+#   removes     наложение снимает перечисленные
+#   blocks      пока активен, перечисленные не наложить
+#   tags        метки для условий навыков
+#
+# Взаимное подавление запрещено: исход зависел бы от порядка наложения.
+# Взаимная блокировка разрешена: кто успел первым, тот и стоит.
+
+statuses:
+
+  # ---------------------------------------------------------------- контроль
+  # Все жёсткие контроли исключительны внутри своей категории: два
+  # одновременных контроля — это и есть то самое наложение механик.
+  stun:
+    category: control
+    duration: 40
+    stacking: refresh
+    priority: 20
+    exclusive: control
+    tags: [hard]
+
+  root:
+    category: control
+    duration: 60
+    stacking: refresh
+    priority: 10
+    exclusive: control
+    tags: [soft]
+
+  silence:
+    category: debuff
+    duration: 60
+    stacking: refresh
+    tags: [soft]
+
+  # Изъятие из боя: Кокон мучений колдуна. Приоритетнее любого контроля,
+  # подавляет их и попутно не даёт наложить новые.
+  banish:
+    category: immunity
+    duration: 80
+    stacking: refresh
+    priority: 100
+    exclusive: control
+    suppresses: [stun, root]
+    blocks: [stun, root]
+    tags: [hard, immunity]
+
+  # ---------------------------------------------------------------- щиты
+  # Запас берётся из amount при наложении, поэтому один статус обслуживает
+  # щиты любого размера.
+  shield:
+    category: shield
+    duration: 200
+    stacking: refresh
+
+  # ---------------------------------------------------------------- метки
+  mark:
+    category: mark
+    duration: 160
+    stacking: refresh
+
+  # Счётчик: души колдуна, стаки равновесия друида.
+  charge:
+    category: buff
+    duration: 300
+    stacking: stacks
+    max-stacks: 5
