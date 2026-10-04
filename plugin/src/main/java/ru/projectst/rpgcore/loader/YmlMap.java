@@ -187,6 +187,33 @@ public final class YmlMap implements YmlNode {
         return map(key);
     }
 
+    /**
+     * Список строк. Отсутствие ключа допустимо и даёт пустой список: списки
+     * отношений и метки по смыслу необязательны, и требовать {@code tags: []}
+     * в каждом файле было бы шумом.
+     */
+    public List<String> strings(String key) {
+        if (!entries.containsKey(key)) {
+            read.add(key);
+            return List.of();
+        }
+        read.add(key);
+        YmlNode node = entries.get(key);
+        if (!(node instanceof YmlNode.Seq seq)) {
+            errors.add(node.at(), child(key), "ожидался список");
+            return List.of();
+        }
+        List<String> out = new java.util.ArrayList<>(seq.items().size());
+        for (YmlNode item : seq.items()) {
+            if (item instanceof YmlNode.Scalar s) {
+                out.add(s.raw());
+            } else {
+                errors.add(item.at(), child(key), "в списке ожидались простые значения");
+            }
+        }
+        return out;
+    }
+
     public List<YmlNode> seq(String key) {
         read.add(key);
         YmlNode node = entries.get(key);
