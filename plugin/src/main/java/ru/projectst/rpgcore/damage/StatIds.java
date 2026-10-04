@@ -1,0 +1,30 @@
+package ru.projectst.rpgcore.damage;
+
+/**
+ * Идентификаторы статов, которые знает конвейер урона.
+ *
+ * <p>Собраны в одном месте намеренно: пока они были строками по месту
+ * использования, опечатка в имени стата означала «надбавка молча не
+ * применяется». Теперь опечатка ловится компилятором, а отсутствие стата в
+ * реестре — исключением при расчёте.
+ */
+public final class StatIds {
+
+    /** Общий усилитель урона навыков, поверх школьного. */
+    public static final String SKILL_DAMAGE = "skill_damage";
+
+    public static final String PHYSICAL_DAMAGE = "physical_damage";
+    public static final String MAGIC_DAMAGE = "magic_damage";
+
+    public static final String CRIT_CHANCE = "critical_strike_chance";
+    public static final String CRIT_POWER = "critical_strike_power";
+
+    public static final String DEFENSE = "defense";
+    public static final String MAGIC_RESISTANCE = "magic_resistance";
+
+    /** Процентное снижение любого урона. */
+    public static final String DAMAGE_REDUCTION = "damage_reduction";
+
+    private StatIds() {
+    }
+}
