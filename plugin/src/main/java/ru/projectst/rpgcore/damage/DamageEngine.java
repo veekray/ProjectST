@@ -76,17 +76,22 @@ public final class DamageEngine {
         }
         double afterMitigation = value;
 
-        // 5. щиты
+        // 5. неуязвимость — после подсчёта промежуточных значений, но ДО щитов.
+        //
+        // Порядок именно такой по двум причинам сразу. Если проверять раньше,
+        // в результате остаётся голый ноль, и в отладке не видно, каким урон
+        // был бы без неё. Если проверять позже щитов — неуязвимая цель сожжёт
+        // щит впустую, хотя урона и так не было.
+        if (state.immune()) {
+            return new DamageResult(0, 0, crit, DamageResult.Blocker.IMMUNITY,
+                    afterScaling, afterMitigation);
+        }
+
+        // 6. щиты
         double absorbed = 0;
         if (state.shieldPool() > 0) {
             absorbed = Math.min(state.shieldPool(), value);
             value -= absorbed;
-        }
-
-        // 6. неуязвимость — последней, чтобы промежуточные значения остались видны
-        if (state.immune()) {
-            return new DamageResult(0, absorbed, crit, DamageResult.Blocker.IMMUNITY,
-                    afterScaling, afterMitigation);
         }
         if (value <= 0 && absorbed > 0) {
             return new DamageResult(0, absorbed, crit, DamageResult.Blocker.SHIELD,

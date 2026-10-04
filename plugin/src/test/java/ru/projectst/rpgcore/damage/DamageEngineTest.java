@@ -164,6 +164,17 @@ class DamageEngineTest {
     }
 
     @Test
+    @DisplayName("неуязвимая цель не жжёт щит впустую")
+    void immunityDoesNotBurnShield() {
+        DamageResult r = NO_CRIT.compute(magic(100), stats(), stats(),
+                new DefenderState(true, 80));
+
+        assertEquals(0, r.applied(), 1e-9);
+        assertEquals(0, r.absorbed(), 1e-9, "щит не тронут: урона и так не было");
+        assertEquals(DamageResult.Blocker.IMMUNITY, r.blockedBy());
+    }
+
+    @Test
     @DisplayName("skillId обязателен: без него урон нельзя объяснить")
     void skillIdRequired() {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,

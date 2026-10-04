@@ -14,7 +14,9 @@ import ru.projectst.rpgcore.data.PlayerDataStore;
 import ru.projectst.rpgcore.loader.ContentError;
 import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.platform.ContentService;
+import ru.projectst.rpgcore.platform.BukkitSkillWorld;
 import ru.projectst.rpgcore.platform.RpgCommand;
+import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatService;
 import ru.projectst.rpgcore.status.StatusService;
@@ -51,14 +53,17 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
         // Крит берёт случайность отсюда; в тестах подставляется детерминированная.
         DoubleSupplier random = Math::random;
-        new DamageEngine(random);
+        DamageEngine damage = new DamageEngine(random);
+
+        BukkitSkillWorld world = new BukkitSkillWorld(this, damage, stats, statuses);
+        SkillRuntime runtime = new SkillRuntime(world, statuses, content.balance());
 
         data = new PlayerDataStore(getDataFolder().toPath().resolve("players"),
                 message -> getLogger().warning(message));
 
         var command = getCommand("rpg");
         if (command != null) {
-            RpgCommand executor = new RpgCommand(content, stats, statuses);
+            RpgCommand executor = new RpgCommand(content, stats, statuses, runtime);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -73,7 +78,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, () -> statuses.expireAll(), 20L, 20L);
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
-                + ", статусов " + content.statuses().size());
+                + ", статусов " + content.statuses().size()
+                + ", навыков " + content.skills().size());
     }
 
     @Override
@@ -106,7 +112,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     }
 
     private void saveDefaultContent() {
-        for (String name : new String[] {"stats.yml", "statuses.yml"}) {
+        for (String name : new String[] {"stats.yml", "statuses.yml", "balance.yml",
+                "skills/mage_mana_bolt.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }

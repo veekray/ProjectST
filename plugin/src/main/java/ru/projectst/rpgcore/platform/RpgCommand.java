@@ -27,16 +27,19 @@ import ru.projectst.rpgcore.status.StatusService;
  */
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUB = List.of("validate", "reload", "debug", "why");
+    private static final List<String> SUB = List.of("validate", "reload", "debug", "why", "cast");
 
     private final ContentService content;
     private final StatService stats;
     private final StatusService statuses;
+    private final ru.projectst.rpgcore.skill.SkillRuntime runtime;
 
-    public RpgCommand(ContentService content, StatService stats, StatusService statuses) {
+    public RpgCommand(ContentService content, StatService stats, StatusService statuses,
+                      ru.projectst.rpgcore.skill.SkillRuntime runtime) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
+        this.runtime = runtime;
     }
 
     @Override
@@ -46,6 +49,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg reload §7— перечитать контент");
             sender.sendMessage("§e/rpg debug <игрок> §7— статы и активные статусы");
             sender.sendMessage("§e/rpg why <игрок> <статус> §7— почему статус не действует");
+            sender.sendMessage("§e/rpg cast <навык> §7— выполнить навык от своего лица");
             return true;
         }
 
@@ -54,6 +58,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "reload" -> reload(sender);
             case "debug" -> debug(sender, args);
             case "why" -> why(sender, args);
+            case "cast" -> cast(sender, args);
             default -> {
                 sender.sendMessage("§cНеизвестная подкоманда: " + args[0]);
                 yield true;
@@ -71,7 +76,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         ContentErrors errors = content.reload();
         report(sender, errors, "Перезагрузка");
         sender.sendMessage("§7Статов: §f" + content.stats().size()
-                + "§7, статусов: §f" + content.statuses().size());
+                + "§7, статусов: §f" + content.statuses().size()
+                + "§7, навыков: §f" + content.skills().size());
         return true;
     }
 
@@ -143,6 +149,30 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Ручной запуск навыка. Нужен до появления классов и слотов: иначе первый
+     * настоящий навык нельзя было бы проверить в игре вообще.
+     */
+    private boolean cast(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен навык: /rpg cast <навык>");
+            return true;
+        }
+        var skill = content.skills().find(args[1].toLowerCase(Locale.ROOT));
+        if (skill.isEmpty()) {
+            sender.sendMessage("§cНавык не загружен: " + args[1]);
+            return true;
+        }
+        int level = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+        runtime.cast(player.getUniqueId(), skill.get(), level);
+        sender.sendMessage("§7Выполнен §f" + skill.get().id() + " §7уровня §f" + level);
+        return true;
+    }
+
     private UUID resolve(CommandSender sender, String name) {
         Player online = Bukkit.getPlayerExact(name);
         if (online != null) {
@@ -172,6 +202,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("cast")) {
+            List<String> ids = new ArrayList<>();
+            content.skills().ids().forEach(ids::add);
+            return ids;
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("why")) {
             List<String> ids = new ArrayList<>();

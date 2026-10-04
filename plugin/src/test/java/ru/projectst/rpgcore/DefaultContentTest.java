@@ -93,4 +93,26 @@ class DefaultContentTest {
 
         assertEquals(5, registry.require("charge").maxStacks());
     }
+
+    @Test
+    @DisplayName("поставляемый навык грузится и все его ссылки разрешаются")
+    void defaultSkillLinks() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        var skill = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_bolt.yml",
+                resource("skills/mage_mana_bolt.yml"), errors).orElseThrow(
+                        () -> new AssertionError(errors.all().toString()));
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+
+        var balance = ru.projectst.rpgcore.balance.BalanceLoader
+                .load("balance.yml", resource("balance.yml"), errors).orElseThrow();
+        var statuses = StatusDefLoader
+                .load("statuses.yml", resource("statuses.yml"), errors).orElseThrow();
+
+        ContentErrors link = new ContentErrors();
+        ru.projectst.rpgcore.skill.SkillLinker.link(java.util.List.of(skill), balance,
+                statuses, java.util.List.of(), link);
+
+        assertTrue(link.isEmpty(), () -> "ссылки поставляемого навыка не разрешились: "
+                + link.all());
+    }
 }
