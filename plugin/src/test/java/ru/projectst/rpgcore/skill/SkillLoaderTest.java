@@ -1,0 +1,289 @@
+package ru.projectst.rpgcore.skill;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import ru.projectst.rpgcore.balance.BalanceBook;
+import ru.projectst.rpgcore.balance.BalanceLoader;
+import ru.projectst.rpgcore.damage.DamageSchool;
+import ru.projectst.rpgcore.loader.ContentErrors;
+import ru.projectst.rpgcore.status.StatusDefLoader;
+import ru.projectst.rpgcore.status.StatusRegistry;
+
+class SkillLoaderTest {
+
+    private ContentErrors errors;
+
+    private Optional<SkillDef> load(String yaml) {
+        errors = new ContentErrors();
+        return SkillLoader.load("mage_mana_bolt.yml", yaml, errors);
+    }
+
+    private static final String GOOD = """
+            id: mage_mana_bolt
+            display: "Мановый разряд"
+            class: mage
+            tier: 2
+            mana: $mana
+            cooldown: $cooldown
+
+            steps:
+              - target: { type: enemies_in_radius, radius: $radius }
+                do:
+                  - { action: damage, amount: $damage, school: magic }
+                  - { action: status, id: mark, duration: 160 }
+              - target: { type: self }
+                delay: 4
+                do:
+                  - { action: message, text: "Разряд ушёл" }
+            """;
+
+    @Test
+    @DisplayName("корректный навык читается целиком")
+    void goodSkillLoads() {
+        SkillDef skill = load(GOOD).orElseThrow();
+
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        assertEquals("mage_mana_bolt", skill.id());
+        assertEquals("mage", skill.classId());
+        assertEquals(2, skill.tier());
+        assertEquals(2, skill.steps().size());
+
+        Step first = skill.steps().get(0);
+        assertEquals(TargetSpec.Type.ENEMIES_IN_RADIUS, first.target().type());
+        assertEquals("radius", first.target().radius().balanceKey());
+        assertEquals(2, first.actions().size());
+
+        Action.Damage damage = assertInstanceOf(Action.Damage.class, first.actions().get(0));
+        assertEquals("damage", damage.amount().balanceKey());
+        assertEquals(DamageSchool.MAGIC, damage.school());
+
+        Action.ApplyStatus status = assertInstanceOf(Action.ApplyStatus.class, first.actions().get(1));
+        assertEquals("mark", status.statusId());
+        assertEquals(160, status.duration().resolve(null, 1), 1e-9);
+
+        assertEquals(4, skill.steps().get(1).delayTicks());
+    }
+
+    @Test
+    @DisplayName("неизвестное действие называет допустимые")
+    void unknownActionListsAllowed() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: взорвать, amount: 5 }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("damage")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("цель без радиуса там, где он нужен, — ошибка")
+    void radiusRequired() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("radius")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("конус без угла — ошибка")
+    void coneNeedsAngle() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_cone, radius: 10 }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("angle")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("навык без шагов отвергается")
+    void emptySkillRejected() {
+        load("""
+                id: s
+                class: mage
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("ничего не делает")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("навык без класса отвергается")
+    void classRequired() {
+        load("""
+                id: s
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "раз" }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("класс")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("мусор вместо числа называет полученное значение")
+    void badNumberIsReported() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: много }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("много")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("неизвестный ключ в навыке ловится с номером строки")
+    void unknownKeyCaught() {
+        load("""
+                id: s
+                class: mage
+                tierr: 3
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "раз" }
+                """);
+
+        assertTrue(errors.all().stream()
+                        .anyMatch(e -> e.what().equals("неизвестный ключ") && e.at().line() == 3),
+                errors.all().toString());
+    }
+
+    // ------------------------------------------------------------------ связывание
+
+    private static StatusRegistry statuses() {
+        return StatusDefLoader.load("statuses.yml", """
+                statuses:
+                  mark:
+                    category: mark
+                """, new ContentErrors()).orElseThrow();
+    }
+
+    private static BalanceBook balance(String yaml) {
+        return BalanceLoader.load("balance.yml", yaml, new ContentErrors()).orElseThrow();
+    }
+
+    @Test
+    @DisplayName("связывание пропускает навык, у которого все ссылки на месте")
+    void linkingAcceptsCompleteSkill() {
+        SkillDef skill = load(GOOD).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), balance("""
+                balance:
+                  mage_mana_bolt:
+                    mana: 8
+                    cooldown: 4
+                    radius: 6
+                    damage: 12
+                """), statuses(), List.of("mage"), link);
+
+        assertTrue(link.isEmpty(), () -> link.all().toString());
+    }
+
+    @Test
+    @DisplayName("ссылка на отсутствующий ключ баланса ловится до запуска")
+    void linkingCatchesMissingBalanceKey() {
+        SkillDef skill = load(GOOD).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), balance("""
+                balance:
+                  mage_mana_bolt:
+                    mana: 8
+                    cooldown: 4
+                    radius: 6
+                """), statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("damage"), link.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("ссылка на несуществующий статус ловится до запуска")
+    void linkingCatchesMissingStatus() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: status, id: нет_такого }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("несуществующий статус"));
+    }
+
+    @Test
+    @DisplayName("ссылка на несуществующий класс ловится до запуска")
+    void linkingCatchesMissingClass() {
+        SkillDef skill = load("""
+                id: s
+                class: нет_такого
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "раз" }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("класс"));
+    }
+
+    @Test
+    @DisplayName("прямые числа связывание не трогает")
+    void literalsNeedNoBalance() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 6 }
+                    do:
+                      - { action: damage, amount: 12 }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertTrue(link.isEmpty(), () -> link.all().toString());
+        assertEquals(Map.of(), Map.of());
+    }
+}

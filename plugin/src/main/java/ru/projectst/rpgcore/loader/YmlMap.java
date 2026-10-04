@@ -53,6 +53,31 @@ public final class YmlMap implements YmlNode {
         return entries.containsKey(key);
     }
 
+    /** Форма значения. */
+    public enum Kind { ABSENT, SCALAR, SECTION, LIST }
+
+    /**
+     * Форма значения <b>без</b> пометки ключа прочитанным.
+     *
+     * <p>Нужно там, где схема зависит от формы: например, значение баланса —
+     * это либо число, либо раздел с кривой. Обычный геттер пометил бы ключ
+     * прочитанным ещё до того, как стало ясно, чем он является, и тогда
+     * настоящее чтение прошло бы мимо учёта.
+     */
+    public Kind rawKind(String key) {
+        YmlNode node = entries.get(key);
+        if (node == null) {
+            return Kind.ABSENT;
+        }
+        if (node instanceof YmlMap) {
+            return Kind.SECTION;
+        }
+        if (node instanceof YmlNode.Seq) {
+            return Kind.LIST;
+        }
+        return Kind.SCALAR;
+    }
+
     public boolean isEmpty() {
         return entries.isEmpty();
     }
