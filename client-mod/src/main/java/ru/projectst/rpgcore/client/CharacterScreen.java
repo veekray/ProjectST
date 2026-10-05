@@ -52,19 +52,51 @@ public final class CharacterScreen extends Screen {
         super(Component.literal("RpgCore"));
     }
 
+    /**
+     * Во сколько раз крупнее рисуем окно.
+     *
+     * <p>Собственный масштаб, а не глобальный «Размер интерфейса» Minecraft: тот
+     * растягивает всё сразу, включая хотбар и чат. Увеличить нужно окно, которое
+     * читают, а не экран, в котором играют.
+     *
+     * <p>Только целое число: дробное растягивает пиксельный шрифт между
+     * пикселями, и выходит ровно то мыло, от которого увеличение спасает.
+     */
+    private int scale() {
+        return HudLayout.menuScale();
+    }
+
+    private int viewWidth() {
+        return width / scale();
+    }
+
+    private int viewHeight() {
+        return height / scale();
+    }
+
     private int left() {
-        return (width - PANEL_WIDTH) / 2;
+        return (viewWidth() - PANEL_WIDTH) / 2;
     }
 
     private int top() {
-        return (height - PANEL_HEIGHT) / 2;
+        return (viewHeight() - PANEL_HEIGHT) / 2;
+    }
+
+    /** Мышь в координатах панели: вся разметка считается в них. */
+    private double mx(double mouseX) {
+        return mouseX / scale();
+    }
+
+    private double my(double mouseY) {
+        return mouseY / scale();
     }
 
     @Override
     protected void init() {
         clearWidgets();
-        int x = left() + 6;
-        int y = top() + 6;
+        int scale = scale();
+        int x = (left() + 6) * scale;
+        int y = (top() + 6) * scale;
         for (Tab value : Tab.values()) {
             Tab target = value;
             addRenderableWidget(Button.builder(Component.literal(value.title()), button -> {
@@ -72,15 +104,28 @@ public final class CharacterScreen extends Screen {
                 scroll = 0;
                 choosingSlot = 0;
                 rebuild();
-            }).bounds(x, y, 78, 18).build());
-            x += 80;
+            }).bounds(x, y, 78 * scale, 18 * scale).build());
+            x += 80 * scale;
         }
+
+        // Масштаб окна: тут же, рядом с расстановкой — обе настройки про то,
+        // как интерфейс выглядит, а не про персонажа.
+        addRenderableWidget(Button.builder(
+                        Component.literal("Размер: " + scale() + "×"), button -> {
+                            HudLayout.menuScale(scale() % 3 + 1);
+                            HudLayout.save();
+                            rebuild();
+                        })
+                .bounds((left() + 6) * scale, (top() + PANEL_HEIGHT - 24) * scale,
+                        70 * scale, 18 * scale)
+                .build());
 
         // Расстановка интерфейса: отсюда, а не из настроек игры, потому что
         // ищут её вместе с остальным про персонажа.
         addRenderableWidget(Button.builder(Component.literal("Расставить интерфейс"),
                         button -> minecraft.setScreen(new HudEditScreen(this)))
-                .bounds(left() + PANEL_WIDTH - 130, top() + PANEL_HEIGHT - 24, 124, 18)
+                .bounds((left() + PANEL_WIDTH - 130) * scale,
+                        (top() + PANEL_HEIGHT - 24) * scale, 124 * scale, 18 * scale)
                 .build());
     }
 
@@ -91,6 +136,20 @@ public final class CharacterScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    /**
+     * Свой фон вместо ванильного.
+     *
+     * <p>Minecraft с 1.20.5 размывает мир под любым открытым экраном — тем самым
+     * шейдером, из-за которого окно выглядит мыльным. Нам это размытие не нужно:
+     * панель и так непрозрачная, а мыло с неё переходит на восприятие текста
+     * поверх. Простое затемнение читается чище и стоит дешевле.
+     */
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY,
+                                 float partialTick) {
+        graphics.fill(0, 0, width, height, 0xC00A0806);
     }
 
     /** Строка под курсором: нужна только для подсветки. */
@@ -106,6 +165,21 @@ public final class CharacterScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics, mouseX, mouseY, partialTick);
 
+        int scale = scale();
+        graphics.pose().pushPose();
+        graphics.pose().scale(scale, scale, 1);
+        try {
+            renderPanel(graphics, (int) mx(mouseX), (int) my(mouseY), partialTick);
+        } finally {
+            // Матрицу возвращаем всегда: забытый pop перекосил бы весь
+            // последующий интерфейс, включая чужой.
+            graphics.pose().popPose();
+        }
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    private void renderPanel(GuiGraphics graphics, int mouseX, int mouseY,
+                             float partialTick) {
         int x = left();
         int y = top();
         RpgStyle.panel(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT);
@@ -117,7 +191,6 @@ public final class CharacterScreen extends Screen {
             graphics.drawCenteredString(font, Component.literal(
                             "Сервер не прислал данные: нажмите заново"),
                     x + PANEL_WIDTH / 2, y + PANEL_HEIGHT / 2, RpgStyle.TEXT_DIM);
-            super.render(graphics, mouseX, mouseY, partialTick);
             return;
         }
 
@@ -132,7 +205,6 @@ public final class CharacterScreen extends Screen {
             case SLOTS -> renderSlots(graphics, menu, x + 12, y + 36);
             case STATS -> renderStats(graphics, menu, x + 12, y + 36);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     // ------------------------------------------------------------------ вкладки
@@ -140,10 +212,10 @@ public final class CharacterScreen extends Screen {
     private void renderCharacter(GuiGraphics graphics, MenuData menu, int x, int y) {
         if (menu.classId().isEmpty()) {
             graphics.drawString(font, Component.literal("Выберите класс"), x, y,
-                    RpgStyle.TEXT_WARN, false);
+                    RpgStyle.TEXT_WARN, true);
             graphics.drawString(font, Component.literal(
                             "Это решение можно отменить только администратору"),
-                    x, y + 12, RpgStyle.TEXT_DIM, false);
+                    x, y + 12, RpgStyle.TEXT_DIM, true);
 
             int line = y + 30;
             int row = 0;
@@ -154,11 +226,11 @@ public final class CharacterScreen extends Screen {
                             0x33C9A227);
                 }
                 graphics.drawString(font, Component.literal(strip(klass.display())),
-                        x, line, RpgStyle.TEXT_WARN, false);
+                        x, line, RpgStyle.TEXT_WARN, true);
                 graphics.drawString(font, Component.literal("платит: "
                                 + klass.resourceName() + ",  слотов: " + klass.slots()
                                 + ",  предел уровня: " + klass.maxLevel()),
-                        x, line + 11, RpgStyle.TEXT_DIM, false);
+                        x, line + 11, RpgStyle.TEXT_DIM, true);
                 line += 26;
                 row++;
             }
@@ -166,11 +238,11 @@ public final class CharacterScreen extends Screen {
         }
 
         graphics.drawString(font, Component.literal(strip(classDisplay(menu))), x, y,
-                RpgStyle.TEXT_WARN, false);
+                RpgStyle.TEXT_WARN, true);
         graphics.drawString(font, Component.literal("Уровень: " + menu.level()), x, y + 16,
-                RpgStyle.TEXT, false);
+                RpgStyle.TEXT, true);
         graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()),
-                x, y + 28, menu.points() > 0 ? RpgStyle.READY : RpgStyle.TEXT_DIM, false);
+                x, y + 28, menu.points() > 0 ? RpgStyle.READY : RpgStyle.TEXT_DIM, true);
 
         // Полоса опыта: доля посчитана сервером, клиент только делит на длину.
         int barWidth = PANEL_WIDTH - 36;
@@ -181,27 +253,27 @@ public final class CharacterScreen extends Screen {
             RpgStyle.bar(graphics, x, barY, barWidth, 6, share, RpgStyle.READY);
             graphics.drawString(font, Component.literal(Math.round(menu.xp()) + " / "
                             + Math.round(menu.xp() + menu.xpToNext())),
-                    x, barY + 10, RpgStyle.TEXT_DIM, false);
+                    x, barY + 10, RpgStyle.TEXT_DIM, true);
         } else {
             RpgStyle.bar(graphics, x, barY, barWidth, 6, 1, RpgStyle.EDGE_BRIGHT);
             graphics.drawString(font, Component.literal("Предел уровня"), x, barY + 10,
-                    RpgStyle.TEXT_WARN, false);
+                    RpgStyle.TEXT_WARN, true);
         }
 
         ClientNetwork.state().ifPresent(state -> {
             graphics.drawString(font, Component.literal(state.resourceName() + ": "
                             + Math.round(Math.floor(state.resource())) + " / "
                             + Math.round(state.resourceMax())),
-                    x, barY + 28, RpgStyle.RESOURCE, false);
+                    x, barY + 28, RpgStyle.RESOURCE, true);
             if (!state.counters().isEmpty()) {
                 int line = barY + 44;
                 graphics.drawString(font, Component.literal("Ядро класса:"), x, line,
-                        RpgStyle.TEXT_DIM, false);
+                        RpgStyle.TEXT_DIM, true);
                 line += 12;
                 for (var counter : state.counters()) {
                     graphics.drawString(font, Component.literal(counter.display() + ": "
                                     + counter.stacks() + " / " + counter.maxStacks()),
-                            x, line, RpgHud.colourOf(counter.color(), "BUFF"), false);
+                            x, line, RpgHud.colourOf(counter.color(), "BUFF"), true);
                     line += 11;
                 }
             }
@@ -212,12 +284,12 @@ public final class CharacterScreen extends Screen {
                               int mouseX, int mouseY) {
         if (menu.classId().isEmpty()) {
             graphics.drawString(font, Component.literal("Сначала выберите класс"), x, y,
-                    RpgStyle.HEALTH_LOW, false);
+                    RpgStyle.HEALTH_LOW, true);
             return;
         }
         graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()
                         + "   ЛКМ — изучить или вложить очко"),
-                x, y, RpgStyle.TEXT_DIM, false);
+                x, y, RpgStyle.TEXT_DIM, true);
 
         int line = y + 16;
         for (MenuData.SkillLine skill : visible(menu.skills())) {
@@ -227,10 +299,10 @@ public final class CharacterScreen extends Screen {
                     + "  " + skill.display();
             String right = reason(menu, skill);
 
-            graphics.drawString(font, Component.literal(left), x, line, colour, false);
+            graphics.drawString(font, Component.literal(left), x, line, colour, true);
             graphics.drawString(font, Component.literal(right),
                     x + PANEL_WIDTH - 36 - font.width(right), line,
-                    right.startsWith("Нажмите") ? RpgStyle.READY : RpgStyle.COOLDOWN, false);
+                    right.startsWith("Нажмите") ? RpgStyle.READY : RpgStyle.COOLDOWN, true);
             line += 12;
         }
     }
@@ -238,20 +310,20 @@ public final class CharacterScreen extends Screen {
     private void renderSlots(GuiGraphics graphics, MenuData menu, int x, int y) {
         if (menu.classId().isEmpty()) {
             graphics.drawString(font, Component.literal("Сначала выберите класс"), x, y,
-                    RpgStyle.HEALTH_LOW, false);
+                    RpgStyle.HEALTH_LOW, true);
             return;
         }
         if (choosingSlot > 0) {
             graphics.drawString(font, Component.literal("Слот " + choosingSlot
                             + ": выберите навык, ПКМ — освободить"),
-                    x, y, RpgStyle.TEXT_WARN, false);
+                    x, y, RpgStyle.TEXT_WARN, true);
             int line = y + 16;
             for (MenuData.SkillLine skill : menu.skills()) {
                 if (skill.level() == 0) {
                     continue;
                 }
                 graphics.drawString(font, Component.literal(skill.display()), x, line,
-                        RpgStyle.RESOURCE, false);
+                        RpgStyle.RESOURCE, true);
                 line += 12;
             }
             return;
@@ -259,7 +331,7 @@ public final class CharacterScreen extends Screen {
 
         graphics.drawString(font, Component.literal(
                         "ЛКМ — занять слот, ПКМ — освободить"),
-                x, y, RpgStyle.TEXT_DIM, false);
+                x, y, RpgStyle.TEXT_DIM, true);
         int line = y + 16;
         for (int slot = 1; slot <= menu.slots(); slot++) {
             String bound = "пусто";
@@ -272,15 +344,15 @@ public final class CharacterScreen extends Screen {
             // надпись на экране в бою всегда говорят одно и то же.
             String key = RpgKeys.slotKeyLabel(slot);
             graphics.drawString(font, Component.literal("Слот " + slot + ": " + bound),
-                    x, line, bound.equals("пусто") ? RpgStyle.TEXT_DIM : RpgStyle.TEXT, false);
+                    x, line, bound.equals("пусто") ? RpgStyle.TEXT_DIM : RpgStyle.TEXT, true);
             graphics.drawString(font, Component.literal(key),
                     x + PANEL_WIDTH - 36 - font.width(key), line,
-                    key.equals("не назначено") ? RpgStyle.TEXT_WARN : RpgStyle.RESOURCE, false);
+                    key.equals("не назначено") ? RpgStyle.TEXT_WARN : RpgStyle.RESOURCE, true);
             line += 12;
         }
         graphics.drawString(font, Component.literal(
                         "Клавиши меняются в настройках управления, раздел RpgCore"),
-                x, line + 8, RpgStyle.TEXT_DIM, false);
+                x, line + 8, RpgStyle.TEXT_DIM, true);
     }
 
     private void renderStats(GuiGraphics graphics, MenuData menu, int x, int y) {
@@ -289,7 +361,7 @@ public final class CharacterScreen extends Screen {
         for (MenuData.StatLine stat : menu.stats()) {
             int columnX = x + column * 150;
             graphics.drawString(font, Component.literal(stat.display() + ": "
-                            + trim(stat.value())), columnX, line, RpgStyle.TEXT, false);
+                            + trim(stat.value())), columnX, line, RpgStyle.TEXT, true);
             line += 11;
             if (line > top() + PANEL_HEIGHT - 20) {
                 line = y;
@@ -301,12 +373,15 @@ public final class CharacterScreen extends Screen {
     // ------------------------------------------------------------------ щелчки
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(double rawX, double rawY, int button) {
         MenuData menu = ClientNetwork.menu().orElse(null);
         if (menu == null) {
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(rawX, rawY, button);
         }
-        int x = left() + 12;
+        // Кнопки живут в экранных координатах, строки — в координатах панели.
+        // Поэтому ниже два разных набора, и путать их нельзя.
+        double mouseX = mx(rawX);
+        double mouseY = my(rawY);
         int y = top() + 36;
         int row = (int) ((mouseY - y - 16) / 12);
 
@@ -355,7 +430,7 @@ public final class CharacterScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(rawX, rawY, button);
     }
 
     // ------------------------------------------------------------------ мелочи

@@ -49,6 +49,13 @@ public final class HudEditScreen extends Screen {
         return false;
     }
 
+    /** Свой фон без ванильного размытия: см. CharacterScreen. */
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY,
+                                 float partialTick) {
+        graphics.fill(0, 0, width, height, 0x900A0806);
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics, mouseX, mouseY, partialTick);

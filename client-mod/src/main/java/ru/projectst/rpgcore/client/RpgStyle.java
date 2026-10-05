@@ -16,8 +16,11 @@ import net.minecraft.client.gui.GuiGraphics;
  */
 public final class RpgStyle {
 
+    // Цвета подобраны под тёмный фон и мелкий шрифт: приглушённый текст всё
+    // равно должен читаться, иначе «тише» превращается в «мутно».
+
     /** Тёмный пергамент: фон панелей и полос. */
-    public static final int PANEL = 0xE81A1410;
+    public static final int PANEL = 0xF5140F0B;
     /** Чуть светлее: внутренняя подложка полос. */
     public static final int TRACK = 0xCC2A2118;
     /** Бронза: рамки и разделители. */
@@ -35,8 +38,8 @@ public final class RpgStyle {
     /** Пепел: перезарядка. */
     public static final int COOLDOWN = 0xFF6B4A2A;
 
-    public static final int TEXT = 0xFFE8DCC0;
-    public static final int TEXT_DIM = 0xFF9A8E78;
+    public static final int TEXT = 0xFFF2E8CE;
+    public static final int TEXT_DIM = 0xFFB9AC92;
     public static final int TEXT_WARN = 0xFFC9A227;
 
     private RpgStyle() {

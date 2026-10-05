@@ -52,6 +52,7 @@ public final class HudLayout {
     private static final Map<Element, float[]> POSITIONS = new EnumMap<>(Element.class);
 
     private static Path file;
+    private static int menuScale = 1;
 
     private HudLayout() {
     }
@@ -76,12 +77,28 @@ public final class HudLayout {
         return Math.round(y(element) * height);
     }
 
+    /**
+     * Во сколько раз крупнее рисовать окна мода.
+     *
+     * <p>Только целое число. Дробное увеличение растягивает пиксельный шрифт
+     * между пикселями, и получается ровно то мыло, от которого увеличение и
+     * спасает. Поэтому выбор — один к одному или вдвое, без промежуточных.
+     */
+    public static int menuScale() {
+        return menuScale;
+    }
+
+    public static void menuScale(int scale) {
+        menuScale = Math.clamp(scale, 1, 3);
+    }
+
     public static void move(Element element, float fractionX, float fractionY) {
         POSITIONS.put(element, new float[] {
                 Math.clamp(fractionX, 0f, 1f), Math.clamp(fractionY, 0f, 1f)});
     }
 
     public static void reset() {
+        menuScale = 1;
         POSITIONS.clear();
         for (Element element : Element.values()) {
             POSITIONS.put(element, new float[] {element.defaultX, element.defaultY});
@@ -122,6 +139,10 @@ public final class HudLayout {
                 if (point == null || point.length != 2) {
                     return;
                 }
+                if (name.equals("MENU_SCALE")) {
+                    menuScale((int) point[0]);
+                    return;
+                }
                 try {
                     move(Element.valueOf(name), point[0], point[1]);
                 } catch (IllegalArgumentException ignored) {
@@ -138,6 +159,9 @@ public final class HudLayout {
         for (Element element : Element.values()) {
             out.put(element.name(), new float[] {x(element), y(element)});
         }
+        // Масштаб живёт в том же файле: отдельный файл ради одного числа —
+        // лишний повод однажды потерять половину настроек.
+        out.put("MENU_SCALE", new float[] {menuScale, 0});
         try {
             Files.createDirectories(file().getParent());
             Files.writeString(file(), GSON.toJson(out), StandardCharsets.UTF_8);
