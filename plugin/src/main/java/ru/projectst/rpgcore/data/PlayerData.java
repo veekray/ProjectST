@@ -23,7 +23,7 @@ public final class PlayerData {
      * Версия схемы. Увеличивается при несовместимом изменении полей; старые
      * файлы поднимаются в {@link PlayerDataCodec}.
      */
-    public static final int SCHEMA_VERSION = 1;
+    public static final int SCHEMA_VERSION = 2;
 
     private final UUID uuid;
     private String classId;
@@ -32,6 +32,7 @@ public final class PlayerData {
     private int unspentPoints;
     private final Set<String> unlockedSkills = new LinkedHashSet<>();
     private final Map<Integer, String> slotBindings = new LinkedHashMap<>();
+    private final Map<String, Integer> skillLevels = new LinkedHashMap<>();
 
     public PlayerData(UUID uuid) {
         if (uuid == null) {
@@ -86,6 +87,35 @@ public final class PlayerData {
 
     public boolean isUnlocked(String skillId) {
         return unlockedSkills.contains(skillId);
+    }
+
+    /**
+     * Уровни изученных навыков. Запись есть только у поднятых выше первого:
+     * изученный навык без записи — это первый уровень. Так отсутствие записи
+     * нигде не означает «ноль», и забытая миграция не обнулила бы вложенные
+     * очки молча.
+     */
+    public Map<String, Integer> skillLevels() {
+        return skillLevels;
+    }
+
+    /** Уровень навыка; ноль означает «не изучен». */
+    public int skillLevel(String skillId) {
+        if (!isUnlocked(skillId)) {
+            return 0;
+        }
+        return skillLevels.getOrDefault(skillId, 1);
+    }
+
+    public void setSkillLevel(String skillId, int level) {
+        if (level < 1) {
+            throw new IllegalArgumentException("уровень навыка не меньше 1");
+        }
+        if (level == 1) {
+            skillLevels.remove(skillId);
+        } else {
+            skillLevels.put(skillId, level);
+        }
     }
 
     /** Привязки слотов: номер слота → id навыка. */

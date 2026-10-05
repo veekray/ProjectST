@@ -65,4 +65,29 @@ public final class ClassOutcome {
             return detail == null ? kind.name() : kind + ": " + detail;
         }
     }
+
+    /** Результат вложения очка в уровень изученного навыка. */
+    public record Upgrade(Kind kind, String detail) {
+
+        public enum Kind {
+            UPGRADED,
+            /** Навык не изучен: вкладывать очки некуда. */
+            NOT_UNLOCKED,
+            /** Уровень уже максимальный. */
+            MAX_LEVEL,
+            /** Нет свободных очков. */
+            NO_POINTS,
+            UNKNOWN_SKILL,
+            NO_CLASS
+        }
+
+        public boolean succeeded() {
+            return kind == Kind.UPGRADED;
+        }
+
+        @Override
+        public String toString() {
+            return detail == null ? kind.name() : kind + ": " + detail;
+        }
+    }
 }

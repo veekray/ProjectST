@@ -20,6 +20,9 @@ import ru.projectst.rpgcore.stat.StatService;
  */
 public final class ClassService {
 
+    /** Выше этого уровня навык не поднять. */
+    public static final int MAX_SKILL_LEVEL = 5;
+
     /** Имя источника базовых статов в {@link StatService}. */
     public static final String STAT_SOURCE = "class";
 
@@ -59,6 +62,7 @@ public final class ClassService {
         PlayerData d = data.load(player);
         if (!classId.equals(d.classId())) {
             d.unlockedSkills().clear();
+            d.skillLevels().clear();
             d.slotBindings().clear();
         }
         d.setClassId(classId);
@@ -132,6 +136,44 @@ public final class ClassService {
         d.unlockedSkills().add(skillId);
         data.saveLater(d);
         return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.UNLOCKED, null);
+    }
+
+    /** Уровень навыка у игрока; ноль означает «не изучен». */
+    public int skillLevel(UUID player, String skillId) {
+        return data.load(player).skillLevel(skillId);
+    }
+
+    /**
+     * Вкладывает очко в уровень уже изученного навыка.
+     *
+     * <p>Уровень — это то, по чему разворачиваются кривые баланса, поэтому
+     * вложение очка видно прямо в уроне, а не только в описании.
+     */
+    public ClassOutcome.Upgrade upgrade(UUID player, String skillId) {
+        PlayerData d = data.load(player);
+        if (classOf(player).isEmpty()) {
+            return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.NO_CLASS, null);
+        }
+        if (!skills.has(skillId)) {
+            return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.UNKNOWN_SKILL, skillId);
+        }
+        int level = d.skillLevel(skillId);
+        if (level == 0) {
+            return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.NOT_UNLOCKED, skillId);
+        }
+        if (level >= MAX_SKILL_LEVEL) {
+            return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.MAX_LEVEL,
+                    "максимум " + MAX_SKILL_LEVEL);
+        }
+        if (d.unspentPoints() < 1) {
+            return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.NO_POINTS, null);
+        }
+
+        d.setUnspentPoints(d.unspentPoints() - 1);
+        d.setSkillLevel(skillId, level + 1);
+        data.saveLater(d);
+        return new ClassOutcome.Upgrade(ClassOutcome.Upgrade.Kind.UPGRADED,
+                "уровень " + (level + 1));
     }
 
     // ------------------------------------------------------------------ слоты

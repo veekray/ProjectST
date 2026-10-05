@@ -10,6 +10,15 @@ package ru.projectst.rpgcore.damage;
  */
 public final class StatIds {
 
+    /** Запас маны. */
+    public static final String MAX_MANA = "max_mana";
+
+    /** Восстановление маны в секунду. */
+    public static final String MANA_REGEN = "mana_regen";
+
+    /** Сокращение перезарядки в процентах; ограничено сверху в CastService. */
+    public static final String COOLDOWN_REDUCTION = "cooldown_reduction";
+
     /** Общий усилитель урона навыков, поверх школьного. */
     public static final String SKILL_DAMAGE = "skill_damage";
 

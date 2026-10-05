@@ -8,6 +8,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.projectst.rpgcore.cast.CastService;
+import ru.projectst.rpgcore.cast.CooldownTracker;
+import ru.projectst.rpgcore.cast.ManaPool;
 import ru.projectst.rpgcore.damage.DamageEngine;
 import ru.projectst.rpgcore.data.PlayerDataException;
 import ru.projectst.rpgcore.data.PlayerDataStore;
@@ -37,6 +40,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private StatusService statuses;
     private PlayerDataStore data;
     private ClassService classService;
+    private ManaPool mana;
+    private CooldownTracker cooldowns;
 
     @Override
     public void onEnable() {
@@ -67,9 +72,15 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         classService = new ClassService(content.playerClasses(),
                 content.skills(), data, stats);
 
+        mana = new ManaPool(stats);
+        cooldowns = new CooldownTracker(clock);
+        CastService casts = new CastService(classService, content.skills(), content.balance(),
+                statuses, content.statuses(), stats, mana, cooldowns, runtime);
+
         var command = getCommand("rpg");
         if (command != null) {
-            RpgCommand executor = new RpgCommand(content, stats, statuses, runtime, classService);
+            RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
+                    classService, casts);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -82,6 +93,15 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память
         // не держала записи по ушедшим целям.
         Bukkit.getScheduler().runTaskTimer(this, () -> statuses.expireAll(), 20L, 20L);
+
+        // Восстановление маны. Стат задан в мане за секунду, и таймер идёт
+        // ровно раз в секунду, чтобы между ними не было пересчёта, который
+        // однажды разошёлся бы с написанным в stats.yml.
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (var online : Bukkit.getOnlinePlayers()) {
+                mana.regenerate(online.getUniqueId(), 1.0);
+            }
+        }, 20L, 20L);
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
                 + ", статусов " + content.statuses().size()
@@ -103,6 +123,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             // Базовые статы класса применяются при входе: уровень мог
             // измениться, пока игрока не было.
             classService.applyBaseStats(event.getPlayer().getUniqueId());
+            // Полный запас при входе: ноль выглядел бы как поломка.
+            mana.fill(event.getPlayer().getUniqueId());
         } catch (PlayerDataException e) {
             // Испорченный файл не затирается пустышкой: игрок получает отказ,
             // администратор — строку в логе с причиной.
@@ -119,11 +141,15 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         data.unload(uuid);
         stats.forget(uuid);
         statuses.forget(uuid);
+        mana.forget(uuid);
+        cooldowns.forget(uuid);
     }
 
     private void saveDefaultContent() {
         for (String name : new String[] {"stats.yml", "statuses.yml", "balance.yml",
-                "skills/mage_mana_bolt.yml", "classes/mage.yml"}) {
+                "skills/mage_mana_bolt.yml", "skills/mage_mana_bolt_impact.yml",
+                "skills/mage_flux_loop.yml", "skills/mage_collapse.yml",
+                "classes/mage.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }

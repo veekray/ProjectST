@@ -14,7 +14,7 @@
 #   suppresses  пока активен, перечисленные не действуют, но тикают
 #   removes     наложение снимает перечисленные
 #   blocks      пока активен, перечисленные не наложить
-#   tags        метки для условий навыков
+#   tags        метки для условий навыков; blocks-cast запрещает касты
 #
 # Взаимное подавление запрещено: исход зависел бы от порядка наложения.
 # Взаимная блокировка разрешена: кто успел первым, тот и стоит.
@@ -30,7 +30,7 @@ statuses:
     stacking: refresh
     priority: 20
     exclusive: control
-    tags: [hard]
+    tags: [hard, blocks-cast]
 
   root:
     category: control
@@ -40,11 +40,14 @@ statuses:
     exclusive: control
     tags: [soft]
 
+  # Метка blocks-cast — единственное место, где написано «нельзя кастовать».
+  # Проверка в CastService читает её, а не перечисляет статусы по именам:
+  # иначе новый контроль молча оказался бы кастуемым.
   silence:
     category: debuff
     duration: 60
     stacking: refresh
-    tags: [soft]
+    tags: [soft, blocks-cast]
 
   # Изъятие из боя: Кокон мучений колдуна. Приоритетнее любого контроля,
   # подавляет их и попутно не даёт наложить новые.
@@ -56,7 +59,7 @@ statuses:
     exclusive: control
     suppresses: [stun, root]
     blocks: [stun, root]
-    tags: [hard, immunity]
+    tags: [hard, immunity, blocks-cast]
 
   # ---------------------------------------------------------------- щиты
   # Запас берётся из amount при наложении, поэтому один статус обслуживает

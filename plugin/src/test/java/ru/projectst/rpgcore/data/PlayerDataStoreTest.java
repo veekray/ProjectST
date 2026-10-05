@@ -145,4 +145,49 @@ class PlayerDataStoreTest {
     void levelFloor() {
         assertThrows(IllegalArgumentException.class, () -> new PlayerData(ID).setLevel(0));
     }
+
+    @Test
+    @DisplayName("уровни навыков переживают запись, а старый файл поднимается до первого уровня")
+    void skillLevelsRoundTrip() {
+        PlayerData data = sample();
+        data.setSkillLevel("mage_collapse", 3);
+
+        PlayerData back = PlayerDataCodec.fromJson(ID, PlayerDataCodec.toJson(data));
+        assertEquals(3, back.skillLevel("mage_collapse"));
+        assertEquals(1, back.skillLevel("mage_mana_bolt"), "изученный без записи — первый уровень");
+        assertEquals(0, back.skillLevel("чужой_навык"), "не изученный — ноль");
+
+        PlayerData old = PlayerDataCodec.fromJson(ID, """
+                {"schema":1,"uuid":"11111111-2222-3333-4444-555555555555",
+                 "class":"mage","level":9,"xp":0,"points":0,
+                 "unlocked":["mage_mana_bolt"],"slots":{}}
+                """);
+        assertEquals(1, old.skillLevel("mage_mana_bolt"),
+                "файл первой схемы — все изученные на первом уровне");
+    }
+
+    @Test
+    @DisplayName("выключение дописывает последнее состояние, а не отложенное старое")
+    void shutdownWinsOverQueuedWrite(@TempDir Path dir) throws IOException {
+        PlayerDataStore store = new PlayerDataStore(dir, msg -> {
+            throw new AssertionError(msg);
+        });
+
+        PlayerData data = store.load(ID);
+        data.setLevel(2);
+        store.saveLater(data);
+
+        // Состояние меняется сразу после постановки записи в очередь: ровно так
+        // и происходит при выключении сервера под нагрузкой.
+        data.setLevel(40);
+        store.shutdown();
+
+        String json = Files.readString(dir.resolve(ID + ".json"), StandardCharsets.UTF_8);
+        assertEquals(40, PlayerDataCodec.fromJson(ID, json).level(),
+                "отложенная запись не должна лечь поверх финальной");
+        try (var files = Files.list(dir)) {
+            assertTrue(files.noneMatch(f -> f.toString().endsWith(".tmp")),
+                    "временные файлы не остаются");
+        }
+    }
 }

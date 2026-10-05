@@ -27,22 +27,26 @@ import ru.projectst.rpgcore.status.StatusService;
  */
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUB = List.of("validate", "reload", "debug", "why", "cast", "class", "unlock", "bind");
+    private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
+            "cast", "slot", "class", "unlock", "upgrade", "bind", "mana");
 
     private final ContentService content;
     private final StatService stats;
     private final StatusService statuses;
     private final ru.projectst.rpgcore.skill.SkillRuntime runtime;
     private final ru.projectst.rpgcore.classes.ClassService playerClasses;
+    private final ru.projectst.rpgcore.cast.CastService casts;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
-                      ru.projectst.rpgcore.classes.ClassService playerClasses) {
+                      ru.projectst.rpgcore.classes.ClassService playerClasses,
+                      ru.projectst.rpgcore.cast.CastService casts) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
         this.runtime = runtime;
         this.playerClasses = playerClasses;
+        this.casts = casts;
     }
 
     @Override
@@ -52,9 +56,13 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg reload §7— перечитать контент");
             sender.sendMessage("§e/rpg debug <игрок> §7— статы и активные статусы");
             sender.sendMessage("§e/rpg why <игрок> <статус> §7— почему статус не действует");
-            sender.sendMessage("§e/rpg cast <навык> §7— выполнить навык от своего лица");
+            sender.sendMessage("§e/rpg cast <навык> §7— применить навык со всеми проверками");
+            sender.sendMessage("§e/rpg cast <навык> raw [ур] §7— в обход маны и перезарядки");
+            sender.sendMessage("§e/rpg slot <номер> §7— применить навык из слота");
+            sender.sendMessage("§e/rpg mana §7— запас маны и перезарядки");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
+            sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
             sender.sendMessage("§e/rpg bind <слот> <навык> §7— повесить навык на слот");
             return true;
         }
@@ -65,8 +73,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "debug" -> debug(sender, args);
             case "why" -> why(sender, args);
             case "cast" -> cast(sender, args);
+            case "slot" -> castSlot(sender, args);
+            case "mana" -> mana(sender);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
+            case "upgrade" -> upgrade(sender, args);
             case "bind" -> bind(sender, args);
             default -> {
                 sender.sendMessage("§cНеизвестная подкоманда: " + args[0]);
@@ -160,8 +171,13 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Ручной запуск навыка. Нужен до появления классов и слотов: иначе первый
-     * настоящий навык нельзя было бы проверить в игре вообще.
+     * Применение навыка.
+     *
+     * <p>По умолчанию идёт через {@code CastService}, то есть со всеми
+     * проверками и списанием ресурсов — так же, как по нажатию клавиши.
+     * Слово {@code raw} третьим аргументом пропускает ворота и запускает
+     * навык напрямую: это нужно для отладки баланса, когда уровень задаётся
+     * руками, и названо явно, чтобы случайно не измерять урон мимо кулдауна.
      */
     private boolean cast(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -172,14 +188,94 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§cНужен навык: /rpg cast <навык>");
             return true;
         }
-        var skill = content.skills().find(args[1].toLowerCase(Locale.ROOT));
+        String id = args[1].toLowerCase(Locale.ROOT);
+        boolean raw = args.length > 2 && args[2].equalsIgnoreCase("raw");
+
+        if (!raw) {
+            var out = casts.cast(player.getUniqueId(), id);
+            sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
+            return true;
+        }
+
+        var skill = content.skills().find(id);
         if (skill.isEmpty()) {
             sender.sendMessage("§cНавык не загружен: " + args[1]);
             return true;
         }
-        int level = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+        int level = 1;
+        if (args.length > 3) {
+            try {
+                level = Integer.parseInt(args[3]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage("§cУровень должен быть числом");
+                return true;
+            }
+        }
         runtime.cast(player.getUniqueId(), skill.get(), level);
-        sender.sendMessage("§7Выполнен §f" + skill.get().id() + " §7уровня §f" + level);
+        sender.sendMessage("§7Выполнен §f" + skill.get().id() + " §7уровня §f" + level
+                + " §8(в обход маны и перезарядки)");
+        return true;
+    }
+
+    private boolean castSlot(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен номер слота: /rpg slot <номер>");
+            return true;
+        }
+        int slot;
+        try {
+            slot = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cНомер слота должен быть числом");
+            return true;
+        }
+        var out = casts.castSlot(player.getUniqueId(), slot);
+        sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
+        return true;
+    }
+
+    /** Мана, перезарядки и запрещающий статус — всё, что решает исход нажатия. */
+    private boolean mana(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        UUID id = player.getUniqueId();
+        sender.sendMessage("§6Мана: §f" + trim(Math.floor(casts.mana().current(id)))
+                + "§7/§f" + trim(casts.mana().max(id)));
+        casts.blockingStatus(id).ifPresent(status ->
+                sender.sendMessage("§cКасты запрещены статусом §f" + status.id()));
+
+        boolean any = false;
+        for (String skillId : content.skills().ids()) {
+            long left = casts.cooldowns().remaining(id, skillId);
+            if (left > 0) {
+                sender.sendMessage("§7перезарядка §f" + skillId + " §7— §f"
+                        + trim(Math.round(left / 2.0) / 10.0) + " с");
+                any = true;
+            }
+        }
+        if (!any) {
+            sender.sendMessage("§7перезарядок нет");
+        }
+        return true;
+    }
+
+    private boolean upgrade(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен навык: /rpg upgrade <навык>");
+            return true;
+        }
+        var out = playerClasses.upgrade(player.getUniqueId(), args[1].toLowerCase(Locale.ROOT));
+        sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
         return true;
     }
 
@@ -268,7 +364,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("cast")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("cast")
+                || args[0].equalsIgnoreCase("unlock") || args[0].equalsIgnoreCase("upgrade"))) {
             List<String> ids = new ArrayList<>();
             content.skills().ids().forEach(ids::add);
             return ids;

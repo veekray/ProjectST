@@ -100,9 +100,14 @@ public final class PlayerDataStore {
         }
     }
 
-    /** Пишет всех загруженных немедленно и останавливает поток записи. */
+    /**
+     * Останавливает поток записи и дописывает всех загруженных.
+     *
+     * <p>Порядок именно такой: сначала дожидаемся очереди, потом пишем сами.
+     * Наоборот было бы хуже тихо — отложенная запись легла бы поверх финальной,
+     * то есть выключение сервера откатывало бы последние изменения.
+     */
     public void shutdown() {
-        loaded.values().forEach(this::saveNow);
         writer.shutdown();
         try {
             if (!writer.awaitTermination(10, TimeUnit.SECONDS)) {
@@ -111,6 +116,7 @@ public final class PlayerDataStore {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        loaded.values().forEach(this::saveNow);
     }
 
     public int loadedCount() {
@@ -126,14 +132,25 @@ public final class PlayerDataStore {
      * означал бы потерянного игрока.
      */
     private void writeAtomically(UUID uuid, String json) {
+        Path temp = null;
         try {
             Files.createDirectories(directory);
-            Path target = fileOf(uuid);
-            Path temp = directory.resolve(uuid + ".json.tmp");
+            // Имя временного файла уникально для каждой записи. С общим именем
+            // две записи одного игрока — отложенная и синхронная при выключении —
+            // отбирали бы друг у друга файл, и одна из них падала бы с
+            // NoSuchFile вместо того, чтобы сохранить игрока.
+            temp = Files.createTempFile(directory, uuid + "-", ".json.tmp");
             Files.writeString(temp, json, StandardCharsets.UTF_8);
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(temp, fileOf(uuid), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            log.accept("не удалось сохранить данные " + uuid + ": " + e.getMessage());
+            log.accept("не удалось сохранить данные " + uuid + ": " + e);
+            if (temp != null) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException ignored) {
+                    // Остался мусорный .tmp — это не повод терять исходную причину.
+                }
+            }
         }
     }
 }

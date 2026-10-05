@@ -44,6 +44,12 @@ public final class PlayerDataCodec {
         }
         root.add("slots", slots);
 
+        JsonObject levels = new JsonObject();
+        for (Map.Entry<String, Integer> e : data.skillLevels().entrySet()) {
+            levels.addProperty(e.getKey(), e.getValue());
+        }
+        root.add("levels", levels);
+
         return GSON.toJson(root);
     }
 
@@ -96,16 +102,27 @@ public final class PlayerDataCodec {
                 }
             }
         }
+        if (root.has("levels")) {
+            for (Map.Entry<String, com.google.gson.JsonElement> e
+                    : root.getAsJsonObject("levels").entrySet()) {
+                data.setSkillLevel(e.getKey(), Math.max(1, e.getValue().getAsInt()));
+            }
+        }
         return data;
     }
 
     /**
-     * Подъём старых схем. Сейчас поднимать нечего: версия 1 первая. Метод
-     * существует заранее, чтобы при первом же изменении формата было видно,
-     * куда писать миграцию, и чтобы она не превратилась в «а, старые файлы
-     * просто сбросим».
+     * Подъём старых схем.
+     *
+     * <p>1 → 2: появились уровни навыков. Поля в старых файлах нет, и это
+     * означает «все изученные на первом уровне» — ровно то, что они и были.
+     * Запись здесь всё равно делается явной, чтобы миграция была видна, а не
+     * спрятана в терпимости читателя к отсутствующему ключу.
      */
     private static JsonObject migrate(JsonObject root, int fromSchema) {
+        if (fromSchema < 2 && !root.has("levels")) {
+            root.add("levels", new JsonObject());
+        }
         return root;
     }
 }
