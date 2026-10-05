@@ -39,6 +39,42 @@ public final class RpgKeys {
     private RpgKeys() {
     }
 
+    /**
+     * Как подписать клавишу слота.
+     *
+     * <p>Берётся та, что игрок назначил в настройках управления, а не
+     * придуманная модом. Подпись, не совпадающая с настройкой, — это подсказка,
+     * которая врёт, и доверять после неё перестают всем остальным.
+     */
+    public static String slotKeyLabel(int slot) {
+        if (slot < 1 || slot > SLOTS || SLOT_KEYS[slot - 1] == null) {
+            return "—";
+        }
+        KeyMapping key = SLOT_KEYS[slot - 1];
+        if (key.isUnbound()) {
+            return "не назначено";
+        }
+        return key.getTranslatedKeyMessage().getString();
+    }
+
+    /** Как подписать клавишу окна персонажа. */
+    public static String menuKeyLabel() {
+        if (menuKey == null || menuKey.isUnbound()) {
+            return "не назначено";
+        }
+        return menuKey.getTranslatedKeyMessage().getString();
+    }
+
+    /** Назначена ли хоть одна клавиша слота: от этого зависит подсказка. */
+    public static boolean anySlotBound() {
+        for (KeyMapping key : SLOT_KEYS) {
+            if (key != null && !key.isUnbound()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event) {
         for (int i = 0; i < SLOTS; i++) {

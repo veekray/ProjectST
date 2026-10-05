@@ -90,6 +90,9 @@ public final class CharacterScreen extends Screen {
         return false;
     }
 
+    /** Строка под курсором: нужна только для подсветки. */
+    private int hoveredRow = -1;
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         scroll = Math.max(0, scroll - (int) Math.signum(deltaY));
@@ -104,6 +107,8 @@ public final class CharacterScreen extends Screen {
         int y = top();
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, COLOUR_PANEL);
         graphics.renderOutline(x, y, PANEL_WIDTH, PANEL_HEIGHT, COLOUR_EDGE);
+
+        hoveredRow = rowAt(mouseY);
 
         MenuData menu = ClientNetwork.menu().orElse(null);
         if (menu == null) {
@@ -133,18 +138,29 @@ public final class CharacterScreen extends Screen {
 
     private void renderCharacter(GuiGraphics graphics, MenuData menu, int x, int y) {
         if (menu.classId().isEmpty()) {
-            graphics.drawString(font, Component.literal("Класс не выбран"), x, y,
-                    0xFFE05A4F, false);
-            int line = y + 16;
-            for (MenuData.ClassLine klass : menu.classes()) {
-                graphics.drawString(font, Component.literal(strip(klass.display())
-                                + "  —  " + klass.resourceName() + ", слотов "
-                                + klass.slots()), x, line, 0xFFFFFFFF, false);
-                line += 12;
-            }
+            graphics.drawString(font, Component.literal("Выберите класс"), x, y,
+                    0xFFFFD479, false);
             graphics.drawString(font, Component.literal(
-                            "Выбрать класс можно во вкладке и командой /rpg class"),
-                    x, line + 6, 0xFF8A8A8A, false);
+                            "Это решение можно отменить только администратору"),
+                    x, y + 12, 0xFF8A8A8A, false);
+
+            int line = y + 30;
+            int row = 0;
+            for (MenuData.ClassLine klass : menu.classes()) {
+                boolean hovered = hoveredRow == row;
+                if (hovered) {
+                    graphics.fill(x - 4, line - 2, x + PANEL_WIDTH - 28, line + 22,
+                            0x33FFFFFF);
+                }
+                graphics.drawString(font, Component.literal(strip(klass.display())),
+                        x, line, 0xFFFFD479, false);
+                graphics.drawString(font, Component.literal("платит: "
+                                + klass.resourceName() + ",  слотов: " + klass.slots()
+                                + ",  предел уровня: " + klass.maxLevel()),
+                        x, line + 11, 0xFFBFBFBF, false);
+                line += 26;
+                row++;
+            }
             return;
         }
 
@@ -243,7 +259,7 @@ public final class CharacterScreen extends Screen {
         }
 
         graphics.drawString(font, Component.literal(
-                        "ЛКМ — занять слот, ПКМ — освободить. Клавиши: настройки управления"),
+                        "ЛКМ — занять слот, ПКМ — освободить"),
                 x, y, 0xFFBFBFBF, false);
         int line = y + 16;
         for (int slot = 1; slot <= menu.slots(); slot++) {
@@ -253,10 +269,19 @@ public final class CharacterScreen extends Screen {
                     bound = skill.display();
                 }
             }
+            // Клавиша — та, что игрок назначил сам. Поэтому «Слот 3» в меню и
+            // надпись на экране в бою всегда говорят одно и то же.
+            String key = RpgKeys.slotKeyLabel(slot);
             graphics.drawString(font, Component.literal("Слот " + slot + ": " + bound),
                     x, line, bound.equals("пусто") ? 0xFF8A8A8A : 0xFFFFFFFF, false);
+            graphics.drawString(font, Component.literal(key),
+                    x + PANEL_WIDTH - 36 - font.width(key), line,
+                    key.equals("не назначено") ? 0xFFE0A24F : 0xFF8FD3FF, false);
             line += 12;
         }
+        graphics.drawString(font, Component.literal(
+                        "Клавиши меняются в настройках управления, раздел RpgCore"),
+                x, line + 8, 0xFF8A8A8A, false);
     }
 
     private void renderStats(GuiGraphics graphics, MenuData menu, int x, int y) {
@@ -287,9 +312,11 @@ public final class CharacterScreen extends Screen {
         int row = (int) ((mouseY - y - 16) / 12);
 
         if (tab == Tab.CHARACTER && menu.classId().isEmpty()) {
+            // Строки выбора класса выше и в два раза толще остальных.
+            int classRow = (int) ((mouseY - y - 30) / 26);
             List<MenuData.ClassLine> classes = menu.classes();
-            if (row >= 0 && row < classes.size()) {
-                ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0, classes.get(row).id());
+            if (classRow >= 0 && classRow < classes.size()) {
+                ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0, classes.get(classRow).id());
                 return true;
             }
         }
@@ -333,6 +360,15 @@ public final class CharacterScreen extends Screen {
     }
 
     // ------------------------------------------------------------------ мелочи
+
+    /** Какая строка списка под этой точкой: одна формула на показ и на щелчок. */
+    private int rowAt(double mouseY) {
+        int y = top() + 36;
+        if (tab == Tab.CHARACTER) {
+            return (int) ((mouseY - y - 30) / 26);
+        }
+        return (int) ((mouseY - y - 16) / 12);
+    }
 
     private List<MenuData.SkillLine> visible(List<MenuData.SkillLine> skills) {
         int from = Math.min(scroll, Math.max(0, skills.size() - 1));

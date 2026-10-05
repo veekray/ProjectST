@@ -22,7 +22,6 @@ import ru.projectst.rpgcore.platform.BukkitSkillWorld;
 import ru.projectst.rpgcore.platform.ExperienceListener;
 import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
-import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.platform.ClientLink;
 import ru.projectst.rpgcore.platform.EquipmentWatcher;
@@ -140,7 +139,6 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         }
 
         Bukkit.getPluginManager().registerEvents(this, this);
-        Bukkit.getPluginManager().registerEvents(new SkillInputListener(casts), this);
         Bukkit.getPluginManager().registerEvents(new ExperienceListener(classService), this);
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);

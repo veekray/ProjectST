@@ -30,11 +30,13 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
-            "progress", "xp", "give", "items", "mobs", "spawn", "convert", "client");
+            "progress", "xp", "give", "items", "mobs", "spawn", "convert", "client",
+            "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
-            Set.of("validate", "reload", "debug", "why", "xp", "give", "spawn", "convert");
+            Set.of("validate", "reload", "debug", "why", "xp", "give", "spawn", "convert",
+                    "reset");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
 
@@ -107,6 +109,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
             sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
             sender.sendMessage("§e/rpg client §7— у кого стоит клиентский мод");
+            sender.sendMessage("§e/rpg reset <игрок> <что> §7— обнулить игрока целиком"
+                    + " или частью");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
             sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
@@ -132,6 +136,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "spawn" -> spawnMob(sender, args);
             case "convert" -> convert(sender);
             case "client" -> clientStatus(sender);
+            case "reset" -> reset(sender, args);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
             case "upgrade" -> upgrade(sender, args);
@@ -198,6 +203,44 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         // секунды до пересчёта статов незачем.
         equipment.apply(player);
         sender.sendMessage("§aВыдано: §f" + def.get().display() + " §7x" + amount);
+        return true;
+    }
+
+    /**
+     * Обнуление игрока.
+     *
+     * <p>Что именно пропадёт, названо до выполнения и перечислено в подсказке:
+     * «обнулить» без уточнения — это команда, после которой администратор идёт
+     * извиняться.
+     */
+    private boolean reset(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cНужны игрок и что обнулять: /rpg reset <игрок> <что>");
+            for (var kind : ru.projectst.rpgcore.classes.ResetKind.values()) {
+                sender.sendMessage("§8  " + kind.key() + " §7— " + kind.what());
+            }
+            return true;
+        }
+        UUID target = resolve(sender, args[1]);
+        if (target == null) {
+            return true;
+        }
+        var kind = ru.projectst.rpgcore.classes.ResetKind.of(args[2]);
+        if (kind.isEmpty()) {
+            sender.sendMessage("§cНеизвестно, что обнулять: " + args[2]);
+            return true;
+        }
+
+        String done = playerClasses.reset(target, kind.get());
+        sender.sendMessage("§aОбнулено у §f" + args[1] + "§7: " + done);
+
+        Player online = Bukkit.getPlayerExact(args[1]);
+        if (online != null) {
+            // Игрок должен узнать сам: иначе он обнаружит пропажу навыков в бою.
+            online.sendMessage("§eВаш персонаж обнулён: §f" + done);
+            equipment.apply(online);
+            clientLink.sendMenu(online);
+        }
         return true;
     }
 
@@ -740,6 +783,16 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                     .toList();
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
+            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {
+            List<String> kinds = new ArrayList<>();
+            for (var kind : ru.projectst.rpgcore.classes.ResetKind.values()) {
+                kinds.add(kind.key());
+            }
+            return kinds;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("reset")) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("spawn")) {

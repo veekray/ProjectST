@@ -79,9 +79,10 @@ public final class RpgHud {
     /**
      * Слоты с перезарядками.
      *
-     * <p>Рядом с номером написано нажатие: Shift и цифра. Мод не перехватывает
-     * клавиши, он лишь напоминает, какие они, — поэтому подсказка одинакова у
-     * игрока с модом и без.
+     * <p>Рядом с навыком написана та клавиша, которую игрок назначил в настройках
+     * управления. Пока не назначил — так и написано: «не назначено». Молчаливо
+     * подставить «цифру 1» было бы хуже, чем сказать правду, потому что нажатие
+     * всё равно ничего не сделает.
      */
     private static void drawSlots(GuiGraphics graphics, Minecraft client, ClientState state,
                                   int width, int height) {
@@ -91,8 +92,18 @@ public final class RpgHud {
         int x = 8;
         int y = height - 20 - state.slots().size() * 11;
 
+        if (!RpgKeys.anySlotBound()) {
+            // Одна строка вместо шести «не назначено»: игрок должен понять, что
+            // делать, а не читать один и тот же ответ шесть раз.
+            graphics.drawString(client.font, Component.literal(
+                            "Клавиши навыков не назначены — настройки управления, раздел RpgCore"),
+                    x, y - 12, 0xFFE0A24F, true);
+        }
+
         for (ClientState.SlotLine slot : state.slots()) {
-            String label = "Shift+" + slot.slot() + "  ";
+            // Подпись — та клавиша, которую игрок назначил сам. Придуманная
+            // модом подсказка врала бы ровно до первой перенастройки.
+            String label = RpgKeys.slotKeyLabel(slot.slot()) + "  ";
             if (slot.skillId().isEmpty()) {
                 graphics.drawString(client.font, Component.literal(label + "—"),
                         x, y, 0xFF8A8A8A, true);

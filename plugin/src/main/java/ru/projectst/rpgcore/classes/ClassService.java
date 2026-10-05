@@ -211,6 +211,88 @@ public final class ClassService {
         return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.UNLOCKED, null);
     }
 
+    /**
+     * Обнуляет игрока целиком или частью.
+     *
+     * <p>Очки за изученные навыки возвращаются: сброс навыков — это пересборка
+     * сборки, а не наказание. Единственное исключение — полный сброс и сброс
+     * класса: там очки уходят вместе с уровнем, потому что уровня тоже не
+     * остаётся.
+     *
+     * <p>Статы пересчитываются сразу: иначе у игрока без класса остались бы
+     * классовые надбавки, и обнаружилось бы это как «сбросил, а урон прежний».
+     *
+     * @return короткий отчёт, что именно убрали
+     */
+    public String reset(UUID player, ResetKind kind) {
+        PlayerData d = data.load(player);
+        StringBuilder done = new StringBuilder();
+
+        switch (kind) {
+            case ALL -> {
+                d.setClassId(null);
+                d.unlockedSkills().clear();
+                d.skillLevels().clear();
+                d.slotBindings().clear();
+                d.setLevel(1);
+                d.setXp(0);
+                d.setUnspentPoints(0);
+                done.append("класс, навыки, слоты, уровень и опыт");
+            }
+            case CLASS -> {
+                d.setClassId(null);
+                d.unlockedSkills().clear();
+                d.skillLevels().clear();
+                d.slotBindings().clear();
+                done.append("класс, навыки и слоты");
+            }
+            case SKILLS -> {
+                int refund = spentPoints(d);
+                d.unlockedSkills().clear();
+                d.skillLevels().clear();
+                d.slotBindings().clear();
+                d.setUnspentPoints(d.unspentPoints() + refund);
+                done.append("навыки и слоты, возвращено очков: ").append(refund);
+            }
+            case SLOTS -> {
+                d.slotBindings().clear();
+                done.append("привязки слотов");
+            }
+            case PROGRESS -> {
+                d.setLevel(1);
+                d.setXp(0);
+                d.setUnspentPoints(0);
+                done.append("уровень, опыт и очки");
+            }
+        }
+
+        // Надбавки класса снимаются или пересчитываются по новому уровню.
+        if (d.classId() == null) {
+            stats.removeSource(player, STAT_SOURCE);
+            classes.all().forEach(def -> def.statCurves().keySet()
+                    .forEach(statId -> stats.setBase(player, statId, 0)));
+        } else {
+            applyBaseStats(player);
+        }
+        data.saveLater(d);
+        return done.toString();
+    }
+
+    /**
+     * Сколько очков вложено в изученные навыки.
+     *
+     * <p>Очко за изучение плюс по очку за каждый уровень сверх первого — ровно
+     * та же арифметика, что тратила их в {@code unlock} и {@code upgrade}.
+     * Считать иначе означало бы возвращать не то, что взяли.
+     */
+    private int spentPoints(PlayerData d) {
+        int spent = 0;
+        for (String skillId : d.unlockedSkills()) {
+            spent += 1 + Math.max(0, d.skillLevel(skillId) - 1);
+        }
+        return spent;
+    }
+
     /** Изученные навыки игрока: по ним ищут пассивки для срабатывания. */
     public java.util.Collection<String> unlockedSkills(UUID player) {
         return java.util.List.copyOf(data.load(player).unlockedSkills());

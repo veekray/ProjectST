@@ -397,4 +397,104 @@ class ClassServiceTest {
         assertEquals(0, service.skillLevel(PLAYER, "bolt"));
         assertTrue(service.snapshot(PLAYER).skillLevels().isEmpty());
     }
+
+    // ------------------------------------------------------------------ обнуление
+
+    private void prepared() {
+        service.setClass(PLAYER, "mage");
+        service.setLevel(PLAYER, 20);
+        service.grantPoints(PLAYER, 10);
+        service.unlock(PLAYER, "bolt");
+        service.upgrade(PLAYER, "bolt");
+        service.upgrade(PLAYER, "bolt");
+        service.unlock(PLAYER, "collapse");
+        service.bind(PLAYER, 1, "bolt");
+    }
+
+    @Test
+    @DisplayName("сброс навыков возвращает ровно то, что было потрачено")
+    void resetSkillsRefundsExactly() {
+        prepared();
+        // Потрачено: очко за bolt, два за его уровни, очко за collapse — четыре.
+        int before = service.snapshot(PLAYER).unspentPoints();
+
+        service.reset(PLAYER, ResetKind.SKILLS);
+
+        var data = service.snapshot(PLAYER);
+        assertEquals(before + 4, data.unspentPoints(),
+                "возврат не тот — значит, тратили и возвращаем по разной арифметике");
+        assertTrue(data.unlockedSkills().isEmpty());
+        assertTrue(data.slotBindings().isEmpty(), "слоты без навыков бессмысленны");
+        assertEquals(20, data.level(), "уровень сброс навыков не трогает");
+    }
+
+    @Test
+    @DisplayName("сброс слотов не трогает ни навыки, ни очки")
+    void resetSlotsTouchesOnlySlots() {
+        prepared();
+        int points = service.snapshot(PLAYER).unspentPoints();
+
+        service.reset(PLAYER, ResetKind.SLOTS);
+
+        var data = service.snapshot(PLAYER);
+        assertTrue(data.slotBindings().isEmpty());
+        assertEquals(3, service.skillLevel(PLAYER, "bolt"), "навык остался с уровнем");
+        assertEquals(points, data.unspentPoints());
+    }
+
+    @Test
+    @DisplayName("сброс прогресса оставляет изученное, но убирает уровень и очки")
+    void resetProgressKeepsSkills() {
+        prepared();
+
+        service.reset(PLAYER, ResetKind.PROGRESS);
+
+        var data = service.snapshot(PLAYER);
+        assertEquals(1, data.level());
+        assertEquals(0, data.xp(), 1e-9);
+        assertEquals(0, data.unspentPoints());
+        assertTrue(data.isUnlocked("bolt"), "навыки остались");
+    }
+
+    @Test
+    @DisplayName("сброс класса убирает класс, навыки и слоты, но не уровень")
+    void resetClassKeepsLevel() {
+        prepared();
+
+        service.reset(PLAYER, ResetKind.CLASS);
+
+        var data = service.snapshot(PLAYER);
+        assertTrue(service.classOf(PLAYER).isEmpty());
+        assertTrue(data.unlockedSkills().isEmpty());
+        assertTrue(data.slotBindings().isEmpty());
+        assertEquals(20, data.level());
+    }
+
+    @Test
+    @DisplayName("полный сброс делает игрока новым, и классовые статы уходят")
+    void resetAllClearsEverything() {
+        prepared();
+        assertTrue(stats.snapshot(PLAYER).get("defense") > 0, "класс дал базу защиты");
+
+        service.reset(PLAYER, ResetKind.ALL);
+
+        var data = service.snapshot(PLAYER);
+        assertTrue(service.classOf(PLAYER).isEmpty());
+        assertEquals(1, data.level());
+        assertEquals(0, data.unspentPoints());
+        assertTrue(data.unlockedSkills().isEmpty());
+        assertEquals(0, stats.snapshot(PLAYER).get("defense"), 1e-9,
+                "иначе сброшенный игрок ходил бы с защитой от класса, которого у него нет");
+    }
+
+    @Test
+    @DisplayName("что именно пропадёт, названо у каждого вида сброса")
+    void everyKindSaysWhatItTakes() {
+        for (ResetKind kind : ResetKind.values()) {
+            assertFalse(kind.what().isBlank(),
+                    "у " + kind.key() + " нет описания: «обнулить» без уточнения опасно");
+        }
+        assertEquals(ResetKind.ALL, ResetKind.of("all").orElseThrow());
+        assertTrue(ResetKind.of("что-нибудь").isEmpty());
+    }
 }

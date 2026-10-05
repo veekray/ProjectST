@@ -2,6 +2,7 @@ package ru.projectst.rpgcore.client;
 
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -28,6 +29,15 @@ public final class ClientNetwork {
     private static volatile MenuData menu;
     private static volatile boolean accepted;
 
+    /**
+     * Предлагали ли уже выбрать класс в этот заход.
+     *
+     * <p>Один раз за вход, а не каждый раз, когда приходят данные: экран,
+     * открывающийся сам посреди игры, — это не забота, а помеха. Закрыл —
+     * значит не сейчас.
+     */
+    private static volatile boolean classOffered;
+
     private ClientNetwork() {
     }
 
@@ -45,6 +55,7 @@ public final class ClientNetwork {
         state = null;
         menu = null;
         accepted = false;
+        classOffered = false;
         PacketDistributor.sendToServer(HelloPayload.of());
     }
 
@@ -83,12 +94,35 @@ public final class ClientNetwork {
         context.enqueueWork(() -> {
             try {
                 menu = StateCodec.readMenu(payload.data());
+                offerClassIfNeeded();
             } catch (RuntimeException e) {
                 // Как и с состоянием: лучше пустой экран, чем экран с чужими
                 // числами. Пустой виден сразу, чужие — нет.
                 menu = null;
             }
         });
+    }
+
+    /**
+     * Если класса нет — сразу показываем выбор.
+     *
+     * <p>Мод узнаёт класс сам, из тех же данных, что рисует: спрашивать игрока
+     * «а кто ты» незачем. А вот когда класса нет, выбор нужен сразу — иначе
+     * новый игрок стоит с пустым экраном и не знает, что от него хотят.
+     */
+    private static void offerClassIfNeeded() {
+        MenuData current = menu;
+        if (current == null || !current.classId().isEmpty() || classOffered) {
+            return;
+        }
+        Minecraft client = Minecraft.getInstance();
+        Screen open = client.screen;
+        // Не перебиваем ни чат, ни чужое окно: открываем только на чистом экране.
+        if (open != null || client.player == null) {
+            return;
+        }
+        classOffered = true;
+        client.setScreen(new CharacterScreen());
     }
 
     static void onState(StatePayload payload, IPayloadContext context) {
