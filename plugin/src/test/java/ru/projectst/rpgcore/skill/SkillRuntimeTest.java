@@ -292,6 +292,8 @@ class SkillRuntimeTest {
         defs.put("effect_power", new StatDef("effect_power", "ep", 0, -90, 500, Rounding.NONE));
         defs.put("effect_duration",
                 new StatDef("effect_duration", "ed", 0, -90, 500, Rounding.NONE));
+        defs.put("skill_radius",
+                new StatDef("skill_radius", "sr", 0, -50, 200, Rounding.NONE));
         defs.put("incoming_healing",
                 new StatDef("incoming_healing", "ih", 0, -100, 300, Rounding.NONE));
         return new StatService(new StatEngine(new StatRegistry(defs)));
@@ -371,6 +373,29 @@ class SkillRuntimeTest {
         // шестьдесят: надбавка ставится по источнику, а не копится.
         assertEquals(30, f.stats.snapshot(CASTER).getOrZero("magic_damage"), 1e-9,
                 "иначе повторное применение раздувало бы статы, как в старом стеке");
+    }
+
+    @Test
+    @DisplayName("радиус навыка растёт от стата снаряжения")
+    void gearWidensSkillRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Шесть блоков из баланса плюс половина сверху — девять.
+        assertEquals("resolve ENEMIES_IN_RADIUS r=9.0", f.world.calls.get(0),
+                "стат, который виден в меню и ничего не меняет, — худший вид "
+                        + "объявления без исполнения");
     }
 
     @Test

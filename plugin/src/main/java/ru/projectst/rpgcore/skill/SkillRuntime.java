@@ -115,7 +115,12 @@ public final class SkillRuntime {
         // из цепочки вложенных вызовов.
         CastContext context = withStepOrigin(outer, step, table);
 
-        double radius = resolve(step.target().radius(), table, context, 0);
+        // Радиус шага — единственное место, где он вообще определяется, поэтому
+        // стат читается здесь и больше нигде: зоны и взрывы выбирают цели тем
+        // же шагом. Угол не трогаем — «шире по кругу» и «шире по дуге» это
+        // разные вещи, и общий множитель испортил бы конусы.
+        double radius = resolve(step.target().radius(), table, context, 0)
+                * radiusScale(context.caster());
         double angle = resolve(step.target().angle(), table, context, 0);
 
         // Единственное место, где определяются цели шага.
@@ -641,6 +646,12 @@ public final class SkillRuntime {
     private double incomingScale(UUID target) {
         return Math.max(0, 1 + stats.snapshot(target)
                 .getOrZero(ru.projectst.rpgcore.damage.StatIds.INCOMING_HEALING) / 100.0);
+    }
+
+    /** Во сколько раз шире площадь навыка: ноль и ниже невозможны. */
+    private double radiusScale(UUID caster) {
+        return Math.max(0.1, 1 + stats.snapshot(caster)
+                .getOrZero(ru.projectst.rpgcore.damage.StatIds.SKILL_RADIUS) / 100.0);
     }
 
     private double effectScale(UUID caster) {
