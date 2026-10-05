@@ -200,6 +200,7 @@ public final class StateCodec {
                 writeString(out, line.id());
                 writeString(out, line.display());
                 out.writeFloat((float) line.value());
+                writeString(out, line.note());
             }
         });
     }
@@ -251,7 +252,8 @@ public final class StateCodec {
             int statCount = in.readUnsignedByte();
             List<MenuData.StatLine> stats = new ArrayList<>(statCount);
             for (int i = 0; i < statCount; i++) {
-                stats.add(new MenuData.StatLine(readString(in), readString(in), in.readFloat()));
+                stats.add(new MenuData.StatLine(readString(in), readString(in),
+                        in.readFloat(), readString(in)));
             }
             return new MenuData(classId, level, xp, xpToNext, points, slots, classes, skills,
                     stats);

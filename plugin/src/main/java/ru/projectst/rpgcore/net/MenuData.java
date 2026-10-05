@@ -68,7 +68,22 @@ public record MenuData(String classId, int level, double xp, double xpToNext, in
         }
     }
 
-    /** Стат в меню: имя, значение и идентификатор для тех, кто правит файлы. */
-    public record StatLine(String id, String display, double value) {
+    /**
+     * Стат в меню.
+     *
+     * @param note пояснение, во что превращается значение: «режет 60% урона» у
+     *             защит, где рейтинг и проценты — разные числа. Считает и
+     *             формулирует сервер, потому что формула живёт у него; мод
+     *             только показывает. Пусто — пояснять нечего, и так понятно
+     */
+    public record StatLine(String id, String display, double value, String note) {
+
+        public StatLine(String id, String display, double value) {
+            this(id, display, value, "");
+        }
+
+        public StatLine {
+            note = note == null ? "" : note;
+        }
     }
 }

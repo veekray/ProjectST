@@ -32,7 +32,7 @@ public final class Protocol {
      * нужно и то, и другое, а выводить их на клиенте значило бы считать баланс
      * второй раз.
      */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
 
     /** Клиент говорит, что он есть, и называет свою версию формата. */
     public static final String CHANNEL_HELLO = "rpgcore:hello";

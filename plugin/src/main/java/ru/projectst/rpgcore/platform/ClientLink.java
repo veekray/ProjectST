@@ -312,6 +312,32 @@ public final class ClientLink implements PluginMessageListener {
      * <p>Урон, умноженный на счётчик каста, здесь ноль: сколько будет печатей,
      * до каста не знает никто, и выдумывать это в подсказке незачем.
      */
+    /**
+     * Во что превращается значение стата.
+     *
+     * <p>Пока только защиты: у них рейтинг и проценты — разные числа, и «150»
+     * в меню без пояснения не говорит игроку ничего. Считает ту же кривую, что
+     * и конвейер урона, и спрашивает её у него же: второй расчёт — хоть здесь,
+     * хоть в моде — однажды разошёлся бы с боем.
+     *
+     * <p>Формулирует тоже сервер. Если бы число слал он, а слова подставлял
+     * мод, они разъехались бы при первой же правке смысла.
+     */
+    private String noteFor(String statId, double value) {
+        if (!statId.equals(ru.projectst.rpgcore.damage.StatIds.PHYSICAL_DEFENSE)
+                && !statId.equals(ru.projectst.rpgcore.damage.StatIds.MAGIC_DEFENSE)
+                && !statId.equals(ru.projectst.rpgcore.damage.StatIds.GENERAL_DEFENSE)) {
+            return "";
+        }
+        double share = ru.projectst.rpgcore.damage.DamageEngine.defenceShare(value);
+        long percent = Math.round(Math.abs(share) * 100);
+        if (percent == 0) {
+            return "";
+        }
+        return share > 0 ? "режет " + percent + "% урона"
+                : "плюс " + percent + "% получаемого урона";
+    }
+
     private double damageOf(SkillDef skill, ru.projectst.rpgcore.balance.BalanceTable table,
                             int level) {
         double most = 0;

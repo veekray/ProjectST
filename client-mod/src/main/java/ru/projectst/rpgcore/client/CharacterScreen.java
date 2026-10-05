@@ -388,11 +388,18 @@ public final class CharacterScreen extends Screen {
         }
 
         if (hovered != null) {
-            graphics.renderComponentTooltip(font, List.of(
-                            Component.literal(hovered.display()),
-                            Component.literal(hovered.id())
-                                    .withStyle(style -> style.withColor(0xFFB9AC92))),
-                    mouseX, mouseY);
+            List<Component> about = new ArrayList<>();
+            about.add(Component.literal(hovered.display()));
+            // Пояснение пришло готовым. Мод не считает его сам: формула живёт в
+            // конвейере урона, и второй её расчёт здесь однажды разошёлся бы с
+            // тем, что происходит в бою.
+            if (!hovered.note().isEmpty()) {
+                about.add(Component.literal(hovered.note())
+                        .withStyle(style -> style.withColor(0xFF7FC25A)));
+            }
+            about.add(Component.literal(hovered.id())
+                    .withStyle(style -> style.withColor(0xFFB9AC92)));
+            graphics.renderComponentTooltip(font, about, mouseX, mouseY);
         }
     }
 
