@@ -362,6 +362,16 @@ public final class StatusService {
     }
 
     /** Для отладочной команды: сколько целей вообще под статусами. */
+    /**
+     * Кого вообще касались статусы.
+     *
+     * <p>Нужно сверке с миром: обездвиженных надо находить, не обходя все
+     * сущности всех миров.
+     */
+    public java.util.Set<UUID> targets() {
+        return java.util.Set.copyOf(byTarget.keySet());
+    }
+
     public int trackedTargets() {
         return byTarget.size();
     }

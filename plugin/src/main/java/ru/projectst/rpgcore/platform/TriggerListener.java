@@ -34,7 +34,13 @@ public final class TriggerListener implements Listener {
         this.minions = minions;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    /**
+     * Приоритет {@code HIGH}, а не {@code MONITOR}: отмена урона корой и коконом
+     * идёт позже, на {@code HIGHEST}. Пассивка «когда по мне попали» должна
+     * успеть ответить до того, как удар отменят, иначе кора гасила бы и урон, и
+     * собственный ответ.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         Entity victim = event.getEntity();
         Entity damager = event.getDamager();

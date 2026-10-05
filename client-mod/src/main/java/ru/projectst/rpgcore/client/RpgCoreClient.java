@@ -24,6 +24,8 @@ public final class RpgCoreClient {
 
     public RpgCoreClient(IEventBus modBus) {
         modBus.addListener(RpgCoreClient::registerPayloads);
+        // Раскладка читается при запуске: до первого кадра она уже нужна.
+        HudLayout.load();
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {

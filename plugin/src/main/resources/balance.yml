@@ -178,9 +178,8 @@ balance:
       base: 14.0
       per-level: -0.2
       min: 5.6
+    # Длительность коры: сколько ждёт заряд, если по тебе не бьют.
     duration: 200
-    shield: 14
-    empowered_shield: 28
     counter_duration: 300
 
   druid_bark_react:

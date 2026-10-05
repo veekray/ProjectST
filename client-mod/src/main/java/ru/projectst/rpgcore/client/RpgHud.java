@@ -1,7 +1,5 @@
 package ru.projectst.rpgcore.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -9,30 +7,49 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import ru.projectst.rpgcore.net.ClientState;
 
 /**
- * Полоса ресурса, значки статусов и перезарядки.
+ * Полосы, счётчики, слоты и статусы.
  *
- * <p>Рисуется только то, что пришло. Если состояния нет — мод не рисует ничего и
- * не занимает места: игрок без принятого рукопожатия видит обычный экран, и это
- * то же требование, что у всего этапа — отсутствие мода ничего не меняет.
+ * <p>Ванильные сердца и броня убираются: две шкалы здоровья на одном экране —
+ * это две правды, и игрок всё равно смотрит на одну. Остальное ванильное
+ * (голод, опыт, хотбар) остаётся: его мод не заменяет и трогать не должен.
  *
- * <p>Числа не пересчитываются. Полоса — это {@code resource / resourceMax} с
- * сервера, перезарядка — {@code remaining / total} с сервера. Любая арифметика
- * здесь означала бы, что экран может разойтись с боем.
+ * <p>Ничего не пересчитывается. Доли приходят с сервера, здоровье берётся у
+ * самого игрока. Любая арифметика здесь означала бы, что экран может разойтись с
+ * боем.
+ *
+ * <p>Где что стоит, решает игрок: {@link HudLayout}. Любое место, выбранное за
+ * него, рано или поздно окажется под чужим интерфейсом.
  */
 @EventBusSubscriber(modid = RpgCoreClient.MOD_ID, value = Dist.CLIENT)
 public final class RpgHud {
 
-    private static final int BAR_WIDTH = 92;
-    private static final int BAR_HEIGHT = 5;
-    private static final int COLOUR_BACK = 0xAA101010;
-    private static final int COLOUR_RESOURCE = 0xFF2E7FE0;
-    private static final int COLOUR_COOLDOWN = 0xFFB4421F;
-    private static final int COLOUR_READY = 0xFF3FA34D;
+    private static final int BAR_WIDTH = 110;
+    private static final int BAR_HEIGHT = 7;
 
     private RpgHud() {
+    }
+
+    /**
+     * Прячет ванильные сердца.
+     *
+     * <p>Броню тоже: она рисуется вплотную к сердцам и без них висит в пустоте.
+     * Голод остаётся — его мод не заменяет, и убирать чужую шкалу, ничего не
+     * давая взамен, нечестно.
+     */
+    @SubscribeEvent
+    public static void onLayer(RenderGuiLayerEvent.Pre event) {
+        if (ClientNetwork.state().isEmpty()) {
+            return;
+        }
+        if (event.getName().equals(VanillaGuiLayers.PLAYER_HEALTH)
+                || event.getName().equals(VanillaGuiLayers.ARMOR_LEVEL)) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent
@@ -50,120 +67,68 @@ public final class RpgHud {
         int width = client.getWindow().getGuiScaledWidth();
         int height = client.getWindow().getGuiScaledHeight();
 
-        drawResource(graphics, state, width, height);
-        drawSlots(graphics, client, state, width, height);
-        drawStatuses(graphics, client, state);
+        drawHealth(graphics, client, width, height);
+        drawResource(graphics, client, state, width, height);
         drawCounters(graphics, client, state, width, height);
+        drawSlots(graphics, client, state, width, height);
+        drawStatuses(graphics, client, state, width, height);
     }
 
-    /** Полоса ресурса — под ванильными полосами, чтобы не спорить с ними за место. */
-    private static void drawResource(GuiGraphics graphics, ClientState state,
-                                     int width, int height) {
+    // ------------------------------------------------------------------ полосы
+
+    /** Здоровье: число берётся у игрока, сервер здесь ни при чём. */
+    private static void drawHealth(GuiGraphics graphics, Minecraft client,
+                                   int width, int height) {
+        var player = client.player;
+        if (player == null) {
+            return;
+        }
+        double max = Math.max(1, player.getMaxHealth());
+        double now = Math.clamp(player.getHealth(), 0, max);
+        double share = now / max;
+
+        int x = HudLayout.screenX(HudLayout.Element.HEALTH, width) - BAR_WIDTH / 2;
+        int y = HudLayout.screenY(HudLayout.Element.HEALTH, height);
+
+        RpgStyle.bar(graphics, x, y, BAR_WIDTH, BAR_HEIGHT, share,
+                share < 0.3 ? RpgStyle.HEALTH_LOW : RpgStyle.HEALTH);
+        String text = Math.round(now) + " / " + Math.round(max);
+        graphics.drawString(client.font, Component.literal(text),
+                x + BAR_WIDTH / 2 - client.font.width(text) / 2, y - 1, RpgStyle.TEXT, true);
+    }
+
+    private static void drawResource(GuiGraphics graphics, Minecraft client,
+                                     ClientState state, int width, int height) {
         if (state.resourceMax() <= 0) {
             return;
         }
-        int x = width / 2 + 10;
-        int y = height - 48;
+        int x = HudLayout.screenX(HudLayout.Element.RESOURCE, width) - BAR_WIDTH / 2;
+        int y = HudLayout.screenY(HudLayout.Element.RESOURCE, height);
 
-        graphics.fill(x - 1, y - 1, x + BAR_WIDTH + 1, y + BAR_HEIGHT + 1, COLOUR_BACK);
-        double share = Math.clamp(state.resource() / state.resourceMax(), 0, 1);
-        graphics.fill(x, y, x + (int) Math.round(BAR_WIDTH * share), y + BAR_HEIGHT,
-                COLOUR_RESOURCE);
-
+        RpgStyle.bar(graphics, x, y, BAR_WIDTH, BAR_HEIGHT,
+                state.resource() / state.resourceMax(), RpgStyle.RESOURCE);
         String text = Math.round(Math.floor(state.resource())) + " / "
                 + Math.round(state.resourceMax());
-        graphics.drawString(Minecraft.getInstance().font, Component.literal(text),
-                x, y - 10, 0xFFFFFFFF, true);
+        graphics.drawString(client.font, Component.literal(text),
+                x + BAR_WIDTH / 2 - client.font.width(text) / 2, y - 1, RpgStyle.TEXT, true);
     }
+
+    // ------------------------------------------------------------------ ядро
 
     /**
-     * Слоты с перезарядками.
+     * Счётчики ядра класса: Рост и Увядание у друида, души у колдуна.
      *
-     * <p>Рядом с навыком написана та клавиша, которую игрок назначил в настройках
-     * управления. Пока не назначил — так и написано: «не назначено». Молчаливо
-     * подставить «цифру 1» было бы хуже, чем сказать правду, потому что нажатие
-     * всё равно ничего не сделает.
-     */
-    private static void drawSlots(GuiGraphics graphics, Minecraft client, ClientState state,
-                                  int width, int height) {
-        if (state.slots().isEmpty()) {
-            return;
-        }
-        int x = 8;
-        int y = height - 20 - state.slots().size() * 11;
-
-        if (!RpgKeys.anySlotBound()) {
-            // Одна строка вместо шести «не назначено»: игрок должен понять, что
-            // делать, а не читать один и тот же ответ шесть раз.
-            graphics.drawString(client.font, Component.literal(
-                            "Клавиши навыков не назначены — настройки управления, раздел RpgCore"),
-                    x, y - 12, 0xFFE0A24F, true);
-        }
-
-        for (ClientState.SlotLine slot : state.slots()) {
-            // Подпись — та клавиша, которую игрок назначил сам. Придуманная
-            // модом подсказка врала бы ровно до первой перенастройки.
-            String label = RpgKeys.slotKeyLabel(slot.slot()) + "  ";
-            if (slot.skillId().isEmpty()) {
-                graphics.drawString(client.font, Component.literal(label + "—"),
-                        x, y, 0xFF8A8A8A, true);
-                y += 11;
-                continue;
-            }
-            int remaining = remainingOf(state, slot.skillId());
-            int total = totalOf(state, slot.skillId());
-            int colour = remaining > 0 ? COLOUR_COOLDOWN : COLOUR_READY;
-
-            graphics.fill(x, y + 9, x + 70, y + 10, COLOUR_BACK);
-            if (remaining > 0 && total > 0) {
-                int filled = (int) Math.round(70.0 * (1.0 - (double) remaining / total));
-                graphics.fill(x, y + 9, x + filled, y + 10, colour);
-            } else {
-                graphics.fill(x, y + 9, x + 70, y + 10, colour);
-            }
-
-            String text = label + slot.display()
-                    + (remaining > 0 ? "  " + seconds(remaining) : "");
-            graphics.drawString(client.font, Component.literal(text), x, y,
-                    remaining > 0 ? 0xFFCCCCCC : 0xFFFFFFFF, true);
-            y += 11;
-        }
-    }
-
-    /** Значки статусов: имя, стаки и остаток. Цвет — по категории. */
-    private static void drawStatuses(GuiGraphics graphics, Minecraft client,
-                                     ClientState state) {
-        int x = 8;
-        int y = 8;
-        RenderSystem.enableBlend();
-        for (ClientState.StatusLine status : state.statuses()) {
-            String text = status.display()
-                    + (status.stacks() > 1 ? " x" + status.stacks() : "")
-                    + "  " + seconds(status.remaining());
-            graphics.drawString(client.font, Component.literal(text), x, y,
-                    colourOf(status.color(), status.category()), true);
-            y += 10;
-        }
-        RenderSystem.disableBlend();
-    }
-
-    /**
-     * Счётчики ядра класса: стаки Роста и Увядания у друида, души у колдуна.
-     *
-     * <p>Рисуются делениями, а не числом: «два из трёх» в бою читается взглядом,
-     * а «2/3» требует прочесть. Числа тоже есть — но мелкие и рядом, для тех
-     * случаев, когда делений больше пяти.
-     *
-     * <p>Место выбрано слева от полосы ресурса и над хотбаром: это то, на что
-     * игрок смотрит, принимая решение, и смотреть он должен в одну точку.
+     * <p>Ромбами, а не числом: «два из трёх» читается взглядом, «2/3» нужно
+     * прочесть. Когда делений больше десяти, вместо них полоса — двадцать
+     * ромбов уже не считаются взглядом тоже.
      */
     private static void drawCounters(GuiGraphics graphics, Minecraft client,
                                      ClientState state, int width, int height) {
         if (state.counters().isEmpty()) {
             return;
         }
-        int x = width / 2 - 182;
-        int y = height - 54 - (state.counters().size() - 1) * 14;
+        int x = HudLayout.screenX(HudLayout.Element.COUNTERS, width);
+        int y = HudLayout.screenY(HudLayout.Element.COUNTERS, height);
 
         for (ClientState.CounterLine counter : state.counters()) {
             int colour = colourOf(counter.color(), "BUFF");
@@ -172,27 +137,81 @@ public final class RpgHud {
 
             int pips = Math.max(1, counter.maxStacks());
             if (pips <= 10) {
-                // Делениями: видно не читая.
-                int pipWidth = Math.max(4, Math.min(12, 72 / pips));
                 int pipX = x;
                 for (int i = 0; i < pips; i++) {
-                    boolean filled = i < counter.stacks();
-                    graphics.fill(pipX, y + 10, pipX + pipWidth - 2, y + 14,
-                            filled ? colour : 0x66101010);
-                    pipX += pipWidth;
+                    RpgStyle.pip(graphics, pipX, y + 10, 8, i < counter.stacks(), colour);
+                    pipX += 10;
                 }
             } else {
-                // Делений было бы двадцать — вместо них полоса и число.
-                double share = Math.clamp((double) counter.stacks() / pips, 0, 1);
-                graphics.fill(x, y + 10, x + 72, y + 14, 0x66101010);
-                graphics.fill(x, y + 10, x + (int) Math.round(72 * share), y + 14, colour);
+                RpgStyle.bar(graphics, x, y + 11, 72, 5,
+                        (double) counter.stacks() / pips, colour);
                 graphics.drawString(client.font,
                         Component.literal(counter.stacks() + "/" + pips),
-                        x + 76, y + 7, colour, true);
+                        x + 78, y + 10, colour, true);
             }
-            y += 14;
+            y += 22;
         }
     }
+
+    // ------------------------------------------------------------------ слоты
+
+    private static void drawSlots(GuiGraphics graphics, Minecraft client,
+                                  ClientState state, int width, int height) {
+        if (state.slots().isEmpty()) {
+            return;
+        }
+        int x = HudLayout.screenX(HudLayout.Element.SLOTS, width);
+        int y = HudLayout.screenY(HudLayout.Element.SLOTS, height);
+
+        if (!RpgKeys.anySlotBound()) {
+            graphics.drawString(client.font, Component.literal(
+                            "Клавиши навыков не назначены — настройки управления, RpgCore"),
+                    x, y - 12, RpgStyle.TEXT_WARN, true);
+        }
+
+        for (ClientState.SlotLine slot : state.slots()) {
+            String key = RpgKeys.slotKeyLabel(slot.slot());
+            if (slot.skillId().isEmpty()) {
+                graphics.drawString(client.font, Component.literal(key + "  —"),
+                        x, y, RpgStyle.TEXT_DIM, true);
+                y += 13;
+                continue;
+            }
+            int remaining = remainingOf(state, slot.skillId());
+            int total = totalOf(state, slot.skillId());
+            boolean ready = remaining <= 0;
+
+            RpgStyle.bar(graphics, x, y + 9, 84, 3,
+                    ready ? 1 : 1.0 - (double) remaining / Math.max(1, total),
+                    ready ? RpgStyle.READY : RpgStyle.COOLDOWN);
+
+            String text = key + "  " + slot.display()
+                    + (ready ? "" : "  " + seconds(remaining));
+            graphics.drawString(client.font, Component.literal(text), x, y,
+                    ready ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
+            y += 15;
+        }
+    }
+
+    private static void drawStatuses(GuiGraphics graphics, Minecraft client,
+                                     ClientState state, int width, int height) {
+        if (state.statuses().isEmpty()) {
+            return;
+        }
+        int x = HudLayout.screenX(HudLayout.Element.STATUSES, width);
+        int y = HudLayout.screenY(HudLayout.Element.STATUSES, height);
+
+        for (ClientState.StatusLine status : state.statuses()) {
+            String text = status.display()
+                    + (status.stacks() > 1 ? " ×" + status.stacks() : "")
+                    + "  " + seconds(status.remaining());
+            graphics.drawString(client.font, Component.literal(text), x, y,
+                    colourOf(status.color(), status.category()), true);
+            y += 11;
+        }
+    }
+
+    // ------------------------------------------------------------------ мелочи
 
     private static int remainingOf(ClientState state, String skillId) {
         for (ClientState.CooldownLine line : state.cooldowns()) {
@@ -222,8 +241,8 @@ public final class RpgHud {
      * Цвет: сначала свой из файла статуса, иначе по категории.
      *
      * <p>Цвет в контенте, а не в коде, по той же причине, что иконки навыков:
-     * иначе новый статус нельзя покрасить, не трогая мод, то есть не пересобрав
-     * и не раздав его заново всем игрокам.
+     * иначе новый статус нельзя покрасить, не пересобрав мод и не раздав его
+     * заново всем игрокам.
      */
     static int colourOf(String own, String category) {
         if (own != null && !own.isEmpty()) {
@@ -238,34 +257,34 @@ public final class RpgHud {
     /** Ванильные имена цветов: те же, что в файлах статусов и редкостей. */
     private static Integer named(String name) {
         return switch (name) {
-            case "BLACK" -> 0xFF000000;
-            case "DARK_BLUE" -> 0xFF0000AA;
-            case "DARK_GREEN" -> 0xFF00AA00;
-            case "DARK_AQUA" -> 0xFF00AAAA;
-            case "DARK_RED" -> 0xFFAA0000;
-            case "DARK_PURPLE" -> 0xFFAA00AA;
-            case "GOLD" -> 0xFFFFAA00;
-            case "GRAY" -> 0xFFAAAAAA;
-            case "DARK_GRAY" -> 0xFF555555;
-            case "BLUE" -> 0xFF5555FF;
-            case "GREEN" -> 0xFF55FF55;
-            case "AQUA" -> 0xFF55FFFF;
-            case "RED" -> 0xFFFF5555;
-            case "LIGHT_PURPLE" -> 0xFFFF55FF;
-            case "YELLOW" -> 0xFFFFFF55;
-            case "WHITE" -> 0xFFFFFFFF;
+            case "BLACK" -> 0xFF101010;
+            case "DARK_BLUE" -> 0xFF1E3A8A;
+            case "DARK_GREEN" -> 0xFF2F6B2F;
+            case "DARK_AQUA" -> 0xFF2E7F7F;
+            case "DARK_RED" -> 0xFF8B1A1A;
+            case "DARK_PURPLE" -> 0xFF6B2E8B;
+            case "GOLD" -> 0xFFC9A227;
+            case "GRAY" -> 0xFFA39B88;
+            case "DARK_GRAY" -> 0xFF5A5346;
+            case "BLUE" -> 0xFF4A7FC1;
+            case "GREEN" -> 0xFF6FA84F;
+            case "AQUA" -> 0xFF6FC1C1;
+            case "RED" -> 0xFFC14A3D;
+            case "LIGHT_PURPLE" -> 0xFFB06FC1;
+            case "YELLOW" -> 0xFFE0C65A;
+            case "WHITE" -> 0xFFE8DCC0;
             default -> null;
         };
     }
 
     private static int byCategory(String category) {
         return switch (category) {
-            case "CONTROL" -> 0xFFE05A4F;
-            case "DEBUFF" -> 0xFFE0A24F;
-            case "SHIELD" -> 0xFF4F9FE0;
-            case "IMMUNITY" -> 0xFFE0D74F;
-            case "BUFF" -> 0xFF6FD07A;
-            default -> 0xFFBFBFBF;
+            case "CONTROL" -> 0xFFC14A3D;
+            case "DEBUFF" -> 0xFFC98A3D;
+            case "SHIELD" -> 0xFF4A7FC1;
+            case "IMMUNITY" -> 0xFFE0C65A;
+            case "BUFF" -> 0xFF6FA84F;
+            default -> RpgStyle.TEXT_DIM;
         };
     }
 }

@@ -32,7 +32,9 @@ statuses:
     stacking: refresh
     priority: 20
     exclusive: control
-    tags: [hard, blocks-cast]
+    # immobilize — это не описание, а поведение: пока статус держится, цель не
+    # ходит. Что именно он делает, решает контент, а не имя статуса в коде.
+    tags: [hard, blocks-cast, immobilize]
 
   root:
     display: "Корни"
@@ -42,7 +44,7 @@ statuses:
     stacking: refresh
     priority: 10
     exclusive: control
-    tags: [soft]
+    tags: [soft, immobilize]
 
   # Метка blocks-cast — единственное место, где написано «нельзя кастовать».
   # Проверка в CastService читает её, а не перечисляет статусы по именам:
@@ -70,7 +72,7 @@ statuses:
     exclusive: control
     suppresses: [stun, root]
     blocks: [stun, root]
-    tags: [hard, immunity, blocks-cast]
+    tags: [hard, immunity, blocks-cast, immobilize]
 
   # ---------------------------------------------------------------- щиты
   # Запас берётся из amount при наложении, поэтому один статус обслуживает
@@ -135,7 +137,10 @@ statuses:
     duration: 200
     stacking: stacks
     max-stacks: 2
-    tags: [soft]
+    # absorb-hit: каждый стак гасит один удар целиком. Прежде кора была щитом на
+    # величину, и «поглощает удар» означало «уменьшает урон» — не то, что
+    # обещано её описанием.
+    tags: [soft, absorb-hit]
 
   # Метка фазы поля: есть — значит прошлый тик был ростом.
   bloom_phase:

@@ -24,6 +24,9 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.platform.ClientLink;
+import ru.projectst.rpgcore.platform.DamageGuardListener;
+import ru.projectst.rpgcore.platform.ModGate;
+import ru.projectst.rpgcore.platform.StatusEffects;
 import ru.projectst.rpgcore.platform.EquipmentWatcher;
 import ru.projectst.rpgcore.platform.ItemAbilityListener;
 import ru.projectst.rpgcore.platform.MobListener;
@@ -63,6 +66,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private RecipeRegistrar recipes;
     private MobService mobService;
     private ClientLink clientLink;
+    private StatusEffects statusEffects;
+    private ModGate modGate;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -138,15 +143,27 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             getLogger().severe("команда rpg не объявлена в plugin.yml");
         }
 
+        // Настройки сервера: единственный файл, который не про контент.
+        saveDefaultConfig();
+        modGate = new ModGate(this, clientLink, getConfig().getBoolean("require-mod", true),
+                getConfig().getInt("mod-grace-seconds", 12));
+
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(new ExperienceListener(classService), this);
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
         Bukkit.getPluginManager().registerEvents(
+                new DamageGuardListener(statuses, content.statuses()), this);
+        Bukkit.getPluginManager().registerEvents(
                 new ItemAbilityListener(rpgItems, casts), this);
         Bukkit.getPluginManager().registerEvents(
                 new MobListener(mobService, rpgItems, random), this);
+
+        // Контроль: статусы с меткой immobilize становятся настоящими. Сверка
+        // раз в полсекунды — чаще незачем, реже заметно по инерции.
+        statusEffects = new StatusEffects(statuses, content.statuses());
+        Bukkit.getScheduler().runTaskTimer(this, () -> statusEffects.tick(), 20L, 10L);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память
@@ -218,6 +235,11 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        // Отпустить обездвиженных до остановки: иначе игрок останется с нулевой
+        // скоростью ходьбы, и чинить это придётся ему, а не нам.
+        if (statusEffects != null) {
+            statusEffects.releaseAll();
+        }
         if (data != null) {
             data.shutdown();
         }
@@ -233,6 +255,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             // Полный запас при входе: ноль выглядел бы как поломка.
             resources.fill(event.getPlayer().getUniqueId());
             vitals.apply(event.getPlayer());
+            // Проверка мода ставится последней: к этому времени данные игрока
+            // уже прочитаны, и если он выйдет, выйдет с целым файлом.
+            modGate.watch(event.getPlayer());
         } catch (PlayerDataException e) {
             // Испорченный файл не затирается пустышкой: игрок получает отказ,
             // администратор — строку в логе с причиной.
@@ -249,6 +274,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         data.unload(uuid);
         stats.forget(uuid);
         statuses.forget(uuid);
+        // Статусы ушли — обездвиженность снимется сверкой, но игрока уже нет;
+        // скорость ходьбы вернём сразу, иначе она приедет с ним в следующий вход.
+        statusEffects.release(event.getPlayer());
         resources.forget(uuid);
         equipment.forget(uuid);
         clientLink.forget(uuid);
