@@ -24,7 +24,7 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.platform.ClientLink;
-import ru.projectst.rpgcore.platform.DamageGuardListener;
+import ru.projectst.rpgcore.platform.VanillaDamageListener;
 import ru.projectst.rpgcore.platform.ModGate;
 import ru.projectst.rpgcore.platform.StatusEffects;
 import ru.projectst.rpgcore.platform.EquipmentWatcher;
@@ -153,8 +153,10 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
-        Bukkit.getPluginManager().registerEvents(
-                new DamageGuardListener(statuses, content.statuses()), this);
+        // Обычный урон через тот же конвейер, что и урон навыков: иначе
+        // физический урон, защита, крит, щиты и проклятия не делают ничего.
+        Bukkit.getPluginManager().registerEvents(new VanillaDamageListener(
+                damage, stats, statuses, content.statuses(), world), this);
         Bukkit.getPluginManager().registerEvents(
                 new ItemAbilityListener(rpgItems, casts), this);
         Bukkit.getPluginManager().registerEvents(

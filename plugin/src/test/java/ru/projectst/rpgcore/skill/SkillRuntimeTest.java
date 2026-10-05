@@ -21,6 +21,8 @@ import ru.projectst.rpgcore.stat.Rounding;
 import ru.projectst.rpgcore.stat.StatDef;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatRegistry;
+import ru.projectst.rpgcore.stat.StatModifier;
+import ru.projectst.rpgcore.stat.StatOp;
 import ru.projectst.rpgcore.stat.StatService;
 import ru.projectst.rpgcore.status.StatusApplication;
 import ru.projectst.rpgcore.status.StatusDefLoader;
@@ -219,6 +221,9 @@ class SkillRuntimeTest {
     private static StatService stats() {
         Map<String, StatDef> defs = new LinkedHashMap<>();
         defs.put("magic_damage", new StatDef("magic_damage", "md", 0, -100, 1000, Rounding.NONE));
+        defs.put("effect_power", new StatDef("effect_power", "ep", 0, -90, 500, Rounding.NONE));
+        defs.put("effect_duration",
+                new StatDef("effect_duration", "ed", 0, -90, 500, Rounding.NONE));
         return new StatService(new StatEngine(new StatRegistry(defs)));
     }
 
@@ -1105,6 +1110,69 @@ class SkillRuntimeTest {
         f.runtime.cast(CASTER, skill, 1);
 
         assertEquals(List.of("later 6"), f.world.calls, "radius в балансе равен шести");
+    }
+
+    // ------------------------------------------------------------------ статы эффектов
+
+    @Test
+    @DisplayName("усиление эффектов увеличивает лечение")
+    void effectPowerScalesHealing() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 10 }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear", List.of(
+                new StatModifier("effect_power", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("heal caster 15.0"),
+                "плюс пятьдесят процентов к десяти: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("удлинение эффектов растягивает статус")
+    void effectDurationScalesStatus() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: status, id: mark, duration: 100 }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+        f.stats.setSource(CASTER, "gear", List.of(
+                new StatModifier("effect_duration", StatOp.FLAT, 20, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(120, f.statuses.all(A).get(0).remaining(0),
+                "сто тиков плюс двадцать процентов");
+    }
+
+    @Test
+    @DisplayName("без статов эффекты остаются ровно такими, как в балансе")
+    void withoutStatsNothingChanges() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 10 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("heal caster 10.0"), f.world.calls.toString());
     }
 
     // ------------------------------------------------------------------ прочее

@@ -10,6 +10,12 @@ package ru.projectst.rpgcore.damage;
  */
 public final class StatIds {
 
+    /** Усиление эффектов: лечение и величины статусов. */
+    public static final String EFFECT_POWER = "effect_power";
+
+    /** Удлинение эффектов: длительность накладываемых статусов. */
+    public static final String EFFECT_DURATION = "effect_duration";
+
     /** Запас здоровья. Переносится в ванильный атрибут игрока. */
     public static final String MAX_HEALTH = "max_health";
 

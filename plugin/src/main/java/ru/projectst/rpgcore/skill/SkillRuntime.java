@@ -234,14 +234,25 @@ public final class SkillRuntime {
             case Action.Damage a -> forEach(targets, t -> world.dealDamage(context.caster(), t,
                     a.amount().resolve(table, level, context.counters()), a.school(), skill.id()));
 
-            case Action.Heal a -> forEach(targets,
-                    t -> world.heal(t, a.amount().resolve(table, level, context.counters())));
+            // Лечение и длительности статусов усиливаются статами кастера.
+            // Эти два стата были объявлены и не читались никем: числа, которые
+            // игрок видит в меню и которые ничего не меняют, — худший вид
+            // объявления без исполнения.
+            case Action.Heal a -> {
+                double healed = a.amount().resolve(table, level, context.counters())
+                        * effectScale(context.caster());
+                forEach(targets, t -> world.heal(t, healed));
+            }
 
-            case Action.ApplyStatus a -> forEach(targets, t -> statuses.apply(t,
-                    new StatusApplication(a.statusId(),
-                            (int) resolve(a.duration(), table, context, 0),
-                            resolve(a.amount(), table, context, 0),
-                            "skill:" + skill.id())));
+            case Action.ApplyStatus a -> {
+                int duration = (int) Math.round(resolve(a.duration(), table, context, 0)
+                        * durationScale(context.caster()));
+                double amount = resolve(a.amount(), table, context, 0)
+                        * effectScale(context.caster());
+                forEach(targets, t -> statuses.apply(t,
+                        new StatusApplication(a.statusId(), duration, amount,
+                                "skill:" + skill.id())));
+            }
 
             case Action.RemoveStatus a -> forEach(targets, t -> {
                 if (a.stacks() > 0) {
@@ -501,6 +512,25 @@ public final class SkillRuntime {
                         sub, depth + 1));
             }
         }
+    }
+
+    /**
+     * Во сколько раз сильнее эффекты этого кастера.
+     *
+     * <p>Стат задан процентами: ноль — как написано в балансе, двадцать — в
+     * полтора... нет, ровно в 1.2 раза. Отрицательные значения тоже работают, и
+     * нижняя граница в ноль обязательна: усиление «минус двести процентов»
+     * лечило бы уроном.
+     */
+    private double effectScale(UUID caster) {
+        return Math.max(0, 1 + stats.snapshot(caster)
+                .getOrZero(ru.projectst.rpgcore.damage.StatIds.EFFECT_POWER) / 100.0);
+    }
+
+    /** Во сколько раз дольше держатся статусы от этого кастера. */
+    private double durationScale(UUID caster) {
+        return Math.max(0, 1 + stats.snapshot(caster)
+                .getOrZero(ru.projectst.rpgcore.damage.StatIds.EFFECT_DURATION) / 100.0);
     }
 
     private Optional<Position> positionFor(CastContext context) {

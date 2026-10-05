@@ -59,6 +59,19 @@ public final class BukkitSkillWorld implements SkillWorld {
     private final StatService stats;
     private final StatusService statuses;
     private final MinionService minions;
+    /**
+     * Идёт ли прямо сейчас применение урона от навыка.
+     *
+     * <p>Урон навыка применяется через {@code LivingEntity#damage}, то есть по
+     * тому же событийному пути, что и удар мечом. Без этой отметки слушатель
+     * обычного урона пересчитал бы его второй раз, и навыки били бы слабее, чем
+     * написано в балансе — а искали бы это в балансе.
+     *
+     * <p>Поле обычное, не потокобезопасное, и это верно: события Bukkit идут в
+     * главном потоке, и урон применяется только там.
+     */
+    private boolean applyingSkillDamage;
+
     /** Частицы, о которых уже предупредили: в лог по одному разу. */
     private final Set<String> badParticles = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -187,10 +200,18 @@ public final class BukkitSkillWorld implements SkillWorld {
 
         // Единственный вызов, отнимающий здоровье. Событие Bukkit испускается
         // им же, поэтому региональные плагины могут отменить урон штатно.
-        if (caster instanceof LivingEntity livingCaster) {
-            target.damage(result.applied(), livingCaster);
-        } else {
-            target.damage(result.applied());
+        applyingSkillDamage = true;
+        try {
+            if (caster instanceof LivingEntity livingCaster) {
+                target.damage(result.applied(), livingCaster);
+            } else {
+                target.damage(result.applied());
+            }
+        } finally {
+            // finally обязателен: отменивший урон плагин бросит исключение, и
+            // отметка осталась бы включённой навсегда — то есть весь обычный
+            // урон на сервере перестал бы считаться.
+            applyingSkillDamage = false;
         }
     }
 
@@ -350,6 +371,11 @@ public final class BukkitSkillWorld implements SkillWorld {
             return Optional.of(toPosition(entity.getLocation()));
         }
         return Optional.of(toPosition(at));
+    }
+
+    /** Идёт ли сейчас применение урона от навыка: см. поле выше. */
+    public boolean applyingSkillDamage() {
+        return applyingSkillDamage;
     }
 
     // ------------------------------------------------------------------ призыв
