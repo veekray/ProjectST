@@ -24,6 +24,7 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
+import ru.projectst.rpgcore.platform.ClientLink;
 import ru.projectst.rpgcore.platform.EquipmentWatcher;
 import ru.projectst.rpgcore.platform.ItemAbilityListener;
 import ru.projectst.rpgcore.platform.MobListener;
@@ -62,6 +63,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private EquipmentWatcher equipment;
     private RecipeRegistrar recipes;
     private MobService mobService;
+    private ClientLink clientLink;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -119,11 +121,17 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
                 content.stats(), classService, casts, stats, statuses);
 
+        // Канал клиентского мода. Регистрируется всегда: мод может появиться у
+        // игрока в любой момент, а отсутствие мода ничего не меняет — состояние
+        // уходит только тем, кто поздоровался.
+        clientLink = new ClientLink(this, classService, casts, statuses);
+        clientLink.register();
+
         var command = getCommand("rpg");
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
                     classService, casts, menus, rpgItems, equipment, recipes,
-                    mobService, getDataFolder().toPath());
+                    mobService, clientLink, getDataFolder().toPath());
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -172,6 +180,11 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 }
             }
         }, 20L, 20L);
+
+        // Состояние для мода: раз в пять тиков, и только при изменении. Чаще
+        // незачем — глаз не различит, а сравнение со прошлым снимком избавляет
+        // от выбора частоты вовсе.
+        Bukkit.getScheduler().runTaskTimer(this, () -> clientLink.tick(), 20L, 5L);
 
         // Периодические навыки мобов. Промежуток считается от тика сервера, а
         // не от собственного счётчика: так два моба с одинаковым навыком не
@@ -239,6 +252,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         statuses.forget(uuid);
         resources.forget(uuid);
         equipment.forget(uuid);
+        clientLink.forget(uuid);
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);

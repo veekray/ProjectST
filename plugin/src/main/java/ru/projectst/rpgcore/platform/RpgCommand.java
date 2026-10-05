@@ -30,7 +30,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
-            "progress", "xp", "give", "items", "mobs", "spawn", "convert");
+            "progress", "xp", "give", "items", "mobs", "spawn", "convert", "client");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
@@ -49,6 +49,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final EquipmentWatcher equipment;
     private final RecipeRegistrar recipes;
     private final MobService mobs;
+    private final ClientLink clientLink;
     private final java.nio.file.Path dataFolder;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
@@ -57,7 +58,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                       ru.projectst.rpgcore.cast.CastService casts,
                       ru.projectst.rpgcore.platform.gui.MenuContext menus,
                       RpgItems rpgItems, EquipmentWatcher equipment,
-                      RecipeRegistrar recipes, MobService mobs,
+                      RecipeRegistrar recipes, MobService mobs, ClientLink clientLink,
                       java.nio.file.Path dataFolder) {
         this.content = content;
         this.stats = stats;
@@ -70,6 +71,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         this.equipment = equipment;
         this.recipes = recipes;
         this.mobs = mobs;
+        this.clientLink = clientLink;
         this.dataFolder = dataFolder;
     }
 
@@ -104,6 +106,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg mobs §7— список мобов и правил спавна");
             sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
             sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
+            sender.sendMessage("§e/rpg client §7— у кого стоит клиентский мод");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
             sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
@@ -128,6 +131,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "mobs" -> listMobs(sender);
             case "spawn" -> spawnMob(sender, args);
             case "convert" -> convert(sender);
+            case "client" -> clientStatus(sender);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
             case "upgrade" -> upgrade(sender, args);
@@ -194,6 +198,26 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         // секунды до пересчёта статов незачем.
         equipment.apply(player);
         sender.sendMessage("§aВыдано: §f" + def.get().display() + " §7x" + amount);
+        return true;
+    }
+
+    /**
+     * Кто играет с модом.
+     *
+     * <p>Нужна ровно для того, чтобы не гадать: мод ничего не меняет в правилах,
+     * поэтому его наличие иначе никак не проверить, а при разборе жалобы «у меня
+     * не видно полосы» это первый вопрос.
+     */
+    private boolean clientStatus(CommandSender sender) {
+        sender.sendMessage("§6Протокол канала: §f" + ru.projectst.rpgcore.net.Protocol.VERSION);
+        sender.sendMessage("§7С модом сейчас: §f" + clientLink.connectedCount()
+                + " §7из §f" + Bukkit.getOnlinePlayers().size());
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            String version = clientLink.modVersion(online.getUniqueId()).orElse(null);
+            sender.sendMessage("§8- §f" + online.getName() + " §7"
+                    + (version == null ? "§8без мода" : "мод " + version));
+        }
+        sender.sendMessage("§8Плагин работает полностью и без мода: мод только показывает.");
         return true;
     }
 

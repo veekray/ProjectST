@@ -1,0 +1,27 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All rights reserved"
+
+[[mods]]
+modId = "rpgcore"
+version = "1.0.0"
+displayName = "RpgCore"
+description = """
+Показывает то, что считает сервер: запас ресурса, действующие статусы и
+перезарядки слотов. Ничего не решает и ничему не мешает: сервер работает без
+мода полностью.
+"""
+
+[[dependencies.rpgcore]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.rpgcore]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "CLIENT"
