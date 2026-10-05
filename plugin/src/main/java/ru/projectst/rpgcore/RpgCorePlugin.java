@@ -21,8 +21,11 @@ import ru.projectst.rpgcore.classes.ClassService;
 import ru.projectst.rpgcore.platform.BukkitSkillWorld;
 import ru.projectst.rpgcore.platform.ExperienceListener;
 import ru.projectst.rpgcore.platform.RpgCommand;
+import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
+import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.skill.SkillRuntime;
+import ru.projectst.rpgcore.skill.MinionService;
 import ru.projectst.rpgcore.skill.ZoneService;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatService;
@@ -46,6 +49,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private ManaPool mana;
     private CooldownTracker cooldowns;
     private ZoneService zones;
+    private MinionService minions;
+    private BukkitSkillWorld world;
 
     @Override
     public void onEnable() {
@@ -66,10 +71,11 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         DoubleSupplier random = Math::random;
         DamageEngine damage = new DamageEngine(random);
 
-        BukkitSkillWorld world = new BukkitSkillWorld(this, damage, stats, statuses);
         zones = new ZoneService(clock);
+        minions = new MinionService(clock);
+        world = new BukkitSkillWorld(this, damage, stats, statuses, minions);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats,
-                content.balance(), content.skills(), zones, random);
+                content.balance(), content.skills(), zones, minions, random);
 
         data = new PlayerDataStore(getDataFolder().toPath().resolve("players"),
                 message -> getLogger().warning(message));
@@ -95,6 +101,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(new SkillInputListener(casts), this);
         Bukkit.getPluginManager().registerEvents(new ExperienceListener(classService), this);
+        Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
+        Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память
@@ -107,6 +115,27 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (var online : Bukkit.getOnlinePlayers()) {
                 mana.regenerate(online.getUniqueId(), 1.0);
+            }
+        }, 20L, 20L);
+
+        // Призванные: срок жизни и поиск цели. Одна задача на оба дела, потому
+        // что оба — про одно и то же существо и обе должны идти с одним шагом.
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            minions.expired().forEach(world::despawn);
+            for (var minion : minions.all()) {
+                if (minion.attacksEnemies()) {
+                    world.retargetMinion(minion);
+                }
+            }
+        }, 20L, 20L);
+
+        // Периодические навыки. Шаг задачи — секунда, а частоту каждого навыка
+        // держит его собственный промежуток через перезарядку: иначе «каждые
+        // две секунды» означало бы «как часто успевает задача».
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (var online : Bukkit.getOnlinePlayers()) {
+                casts.fire(online.getUniqueId(),
+                        ru.projectst.rpgcore.skill.SkillTrigger.ON_INTERVAL, null);
             }
         }, 20L, 20L);
 
@@ -161,12 +190,16 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);
+        // Призванные уходят с владельцем: бесхозный зверь остался бы бить
+        // игроков, и снять его было бы нечем.
+        minions.forgetOwner(uuid).forEach(world::despawn);
     }
 
     private void saveDefaultContent() {
         for (String name : new String[] {"stats.yml", "statuses.yml", "balance.yml",
                 "skills/mage_mana_bolt.yml", "skills/mage_mana_bolt_impact.yml",
                 "skills/mage_flux_loop.yml", "skills/mage_collapse.yml",
+                "skills/mage_mana_ward.yml",
                 "classes/mage.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);

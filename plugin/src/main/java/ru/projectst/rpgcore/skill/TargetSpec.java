@@ -58,6 +58,11 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle) {
             return needsAngle;
         }
 
+        /** Бьёт ли этот тип по своим: от этого зависит защита призванных. */
+        public boolean hitsAllies() {
+            return this == SELF || this == ALLIES_IN_RADIUS;
+        }
+
         /** Нужна ли этому типу точка действия. */
         public boolean needsOrigin() {
             return this == ENEMIES_NEAR_ORIGIN || this == ALL_NEAR_ORIGIN;

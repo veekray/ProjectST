@@ -207,6 +207,11 @@ public final class ClassService {
         return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.UNLOCKED, null);
     }
 
+    /** Изученные навыки игрока: по ним ищут пассивки для срабатывания. */
+    public java.util.Collection<String> unlockedSkills(UUID player) {
+        return java.util.List.copyOf(data.load(player).unlockedSkills());
+    }
+
     /** Уровень навыка у игрока; ноль означает «не изучен». */
     public int skillLevel(UUID player, String skillId) {
         return data.load(player).skillLevel(skillId);
@@ -262,6 +267,14 @@ public final class ClassService {
         }
         if (!d.isUnlocked(skillId)) {
             return new ClassOutcome.Bind(ClassOutcome.Bind.Kind.NOT_UNLOCKED, skillId);
+        }
+        // Пассивный навык в слоте — классическое «неправильное использование,
+        // неотличимое от правильного»: слот занят, кнопка не делает ничего.
+        Optional<SkillDef> bound = skills.find(skillId);
+        if (bound.isPresent() && bound.get().passive()) {
+            return new ClassOutcome.Bind(ClassOutcome.Bind.Kind.PASSIVE_SKILL,
+                    "навык срабатывает сам: " + bound.get().trigger().name().toLowerCase(
+                            java.util.Locale.ROOT));
         }
 
         String previous = d.slotBindings().get(slot);

@@ -112,6 +112,11 @@ public final class SkillLinker {
                     if (action instanceof Action.Ray r && r.onHit().equals(skill.id())) {
                         return true;
                     }
+                    if (action instanceof Action.Projectile p
+                            && (p.onHit().equals(skill.id())
+                                || skill.id().equals(p.onEnd()))) {
+                        return true;
+                    }
                     if (action instanceof Action.Cast c && c.skillId().equals(skill.id())) {
                         return true;
                     }
@@ -148,6 +153,10 @@ public final class SkillLinker {
             case Action.Teleport a -> refs(a.forward());
             case Action.Particles a -> refs(a.count(), a.size());
             case Action.Ray a -> refs(a.range());
+            case Action.Projectile a ->
+                    refs(a.speed(), a.range(), a.hitRadius(), a.gravity());
+            case Action.Summon a -> refs(a.count(), a.duration(), a.health());
+            case Action.Dismiss ignored -> List.of();
             case Action.PlaceZone a -> refs(a.radius(), a.duration());
             case Action.ConsumeZones a -> refs(a.radius());
             case Action.RemoveStatus ignored -> List.of();
@@ -220,6 +229,28 @@ public final class SkillLinker {
                     errors.add(where, path + ".on-hit",
                             "ссылка на несуществующий навык \"" + r.onHit() + "\"");
                 }
+            }
+            case Action.Projectile p -> {
+                checkBalance(skill, where, table, path + ".speed", p.speed(), errors);
+                checkBalance(skill, where, table, path + ".range", p.range(), errors);
+                checkBalance(skill, where, table, path + ".hit-radius", p.hitRadius(), errors);
+                checkBalance(skill, where, table, path + ".gravity", p.gravity(), errors);
+                if (!skillIds.contains(p.onHit())) {
+                    errors.add(where, path + ".on-hit",
+                            "ссылка на несуществующий навык \"" + p.onHit() + "\"");
+                }
+                if (p.onEnd() != null && !skillIds.contains(p.onEnd())) {
+                    errors.add(where, path + ".on-end",
+                            "ссылка на несуществующий навык \"" + p.onEnd() + "\"");
+                }
+            }
+            case Action.Summon s -> {
+                checkBalance(skill, where, table, path + ".count", s.count(), errors);
+                checkBalance(skill, where, table, path + ".duration", s.duration(), errors);
+                checkBalance(skill, where, table, path + ".health", s.health(), errors);
+            }
+            case Action.Dismiss ignored -> {
+                // ссылок не содержит: тег проверить нечем, своих мобов пока нет
             }
             case Action.PlaceZone z -> {
                 checkBalance(skill, where, table, path + ".radius", z.radius(), errors);

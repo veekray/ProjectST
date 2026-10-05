@@ -20,6 +20,9 @@ balance:
   mage_mana_bolt:
     mana: 8
     range: 24
+    # Блоков за тик. Полтора — это примерно скорость стрелы: снаряд видно, и
+    # от него можно отойти, иначе он ничем не отличался бы от мгновенного луча.
+    speed: 1.5
     cooldown:
       base: 4.0
       per-level: -0.1
@@ -78,3 +81,16 @@ balance:
       base: 7
       per-level: 0.8
       max: 40
+
+  mage_mana_ward:
+    mana: 6
+    push: 0.9
+    duration: 100
+    cooldown:
+      base: 12.0
+      per-level: -0.5
+      min: 7.0
+    shield:
+      base: 12
+      per-level: 3
+      max: 60

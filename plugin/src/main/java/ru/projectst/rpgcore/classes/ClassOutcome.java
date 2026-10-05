@@ -52,6 +52,8 @@ public final class ClassOutcome {
             NOT_UNLOCKED,
             /** Номер слота вне диапазона класса. */
             BAD_SLOT,
+            /** Навык срабатывает сам: в слоте ему делать нечего. */
+            PASSIVE_SKILL,
             UNKNOWN_SKILL,
             NO_CLASS
         }

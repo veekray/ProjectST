@@ -32,6 +32,7 @@ import ru.projectst.rpgcore.skill.SkillDef;
 import ru.projectst.rpgcore.skill.SkillLoader;
 import ru.projectst.rpgcore.skill.SkillRegistry;
 import ru.projectst.rpgcore.skill.SkillRuntime;
+import ru.projectst.rpgcore.skill.SkillTrigger;
 import ru.projectst.rpgcore.skill.SkillWorld;
 import ru.projectst.rpgcore.skill.TargetSpec;
 import ru.projectst.rpgcore.skill.ZoneService;
@@ -60,6 +61,8 @@ class CastServiceTest {
     /** Мир, который только считает нанесённый урон. */
     private static final class FakeWorld implements SkillWorld {
         final List<Double> damage = new ArrayList<>();
+        /** Что случается в момент нанесения урона: нужно для проверки рекурсии. */
+        Runnable onDamage;
 
         @Override
         public List<UUID> resolveTargets(CastContext context, TargetSpec.Type type,
@@ -81,6 +84,9 @@ class CastServiceTest {
         public void dealDamage(UUID caster, UUID target, double amount,
                                DamageSchool school, String skillId) {
             damage.add(amount);
+            if (onDamage != null) {
+                onDamage.run();
+            }
         }
 
         @Override
@@ -118,6 +124,25 @@ class CastServiceTest {
         }
 
         @Override
+        public Optional<UUID> spawnMob(String type, Position at, double health) {
+            return Optional.empty();
+        }
+
+        @Override
+        public void despawn(UUID entity) {
+        }
+
+        @Override
+        public void setAttackTarget(UUID mob, UUID target) {
+        }
+
+        @Override
+        public void launchProjectile(UUID caster, ru.projectst.rpgcore.skill.ProjectileSpec spec,
+                                     ProjectileHandler handler) {
+            handler.hit(new Position(UUID.randomUUID(), 0, 0, 0), ENEMY);
+        }
+
+        @Override
         public void particles(Position at, String particle, Action.Particles.Shape shape,
                               int count, double size) {
         }
@@ -144,6 +169,35 @@ class CastServiceTest {
                   - { action: damage, amount: $damage }
             """;
 
+    /** Пассивка: когда по мне попали, бью ударившего. */
+    private static final String THORNS = """
+            id: thorns
+            class: mage
+            tier: 1
+            on: damaged
+            mana: 0
+            cooldown: 0
+            steps:
+              - target: { type: trigger }
+                do:
+                  - { action: damage, amount: 3 }
+            """;
+
+    /** Периодическая пассивка. */
+    private static final String AURA = """
+            id: aura
+            class: mage
+            tier: 1
+            on: interval
+            every: 40
+            mana: 0
+            cooldown: 0
+            steps:
+              - target: { type: self }
+                do:
+                  - { action: heal, amount: 1 }
+            """;
+
     private static final String BALANCE = """
             balance:
               bolt:
@@ -165,6 +219,7 @@ class CastServiceTest {
     private FakeWorld world;
     private SkillDef skill;
     private ZoneService zones;
+    private ru.projectst.rpgcore.skill.MinionService minions;
     private long tick;
 
     @BeforeEach
@@ -201,7 +256,13 @@ class CastServiceTest {
         statuses = new StatusService(statusDefs, () -> tick);
 
         skill = SkillLoader.load("bolt.yml", SKILL, errors).orElseThrow();
-        SkillRegistry skills = new SkillRegistry(Map.of("bolt", skill));
+        SkillDef thorns = SkillLoader.load("thorns.yml", THORNS, errors).orElseThrow();
+        SkillDef aura = SkillLoader.load("aura.yml", AURA, errors).orElseThrow();
+        Map<String, SkillDef> byId = new LinkedHashMap<>();
+        byId.put("bolt", skill);
+        byId.put("thorns", thorns);
+        byId.put("aura", aura);
+        SkillRegistry skills = new SkillRegistry(byId);
         BalanceBook balance = BalanceLoader.load("balance.yml", BALANCE, errors).orElseThrow();
         assertTrue(errors.isEmpty(), () -> errors.all().toString());
 
@@ -224,8 +285,9 @@ class CastServiceTest {
 
         world = new FakeWorld();
         zones = new ZoneService(() -> tick);
+        minions = new ru.projectst.rpgcore.skill.MinionService(() -> tick);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats, balance, skills,
-                zones, () -> 0.0);
+                zones, minions, () -> 0.0);
         mana = new ManaPool(stats);
         cooldowns = new CooldownTracker(() -> tick);
         casts = new CastService(classes, skills, balance, statuses, statusDefs, stats,
@@ -412,5 +474,103 @@ class CastServiceTest {
         mana.regenerate(PLAYER, 1000);
         assertEquals(100, mana.current(PLAYER), 1e-9);
         assertFalse(mana.has(PLAYER, 101));
+    }
+
+    // ------------------------------------------------------------------ триггеры
+
+    @Test
+    @DisplayName("пассивка срабатывает по событию и бьёт того, кто ударил")
+    void passiveFiresOnTrigger() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+
+        var out = casts.fire(PLAYER, SkillTrigger.ON_DAMAGED, ENEMY);
+
+        assertEquals(1, out.size(), out::toString);
+        assertEquals(CastOutcome.Kind.CAST, out.get(0).kind(), out::toString);
+        assertEquals(List.of(3.0), world.damage, "урон ушёл по триггеру");
+    }
+
+    @Test
+    @DisplayName("не изученная пассивка не срабатывает")
+    void passiveNeedsUnlock() {
+        var out = casts.fire(PLAYER, SkillTrigger.ON_DAMAGED, ENEMY);
+
+        assertTrue(out.isEmpty(), out::toString);
+        assertTrue(world.damage.isEmpty());
+    }
+
+    @Test
+    @DisplayName("чужой триггер пассивку не трогает")
+    void wrongTriggerDoesNothing() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+
+        assertTrue(casts.fire(PLAYER, SkillTrigger.ON_KILL, ENEMY).isEmpty());
+        assertTrue(world.damage.isEmpty());
+    }
+
+    @Test
+    @DisplayName("пассивка, наносящая урон по триггеру урона, не зовёт себя бесконечно")
+    void reentryIsBlocked() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+
+        // Изнутри каста приходит то же событие: ровно так выглядит отдача по
+        // отдаче. Второй вход обязан быть отброшен.
+        world.onDamage = () -> casts.fire(PLAYER, SkillTrigger.ON_DAMAGED, ENEMY);
+        casts.fire(PLAYER, SkillTrigger.ON_DAMAGED, ENEMY);
+
+        assertEquals(1, world.damage.size(), "один удар, а не лавина: " + world.damage);
+    }
+
+    @Test
+    @DisplayName("периодическая пассивка держит свой промежуток перезарядкой")
+    void intervalKeepsItsPeriod() {
+        assertTrue(classes.unlock(PLAYER, "aura").succeeded());
+
+        assertEquals(CastOutcome.Kind.CAST,
+                casts.fire(PLAYER, SkillTrigger.ON_INTERVAL, null).get(0).kind());
+        assertEquals(40, cooldowns.remaining(PLAYER, "aura"),
+                "у навыка нулевая перезарядка, промежуток держит её сам");
+
+        assertTrue(casts.fire(PLAYER, SkillTrigger.ON_INTERVAL, null).isEmpty(),
+                "отказ по перезарядке не попадает в ответ: пассивки не шумят");
+
+        tick += 40;
+        assertEquals(CastOutcome.Kind.CAST,
+                casts.fire(PLAYER, SkillTrigger.ON_INTERVAL, null).get(0).kind());
+    }
+
+    @Test
+    @DisplayName("пассивку нельзя применить вручную, и причина названа")
+    void passiveCannotBeCastManually() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+
+        CastOutcome out = casts.cast(PLAYER, "thorns");
+
+        assertEquals(CastOutcome.Kind.NOT_MANUAL, out.kind(), out::toString);
+        assertTrue(out.detail().contains("damaged"), out.detail());
+        assertTrue(world.damage.isEmpty());
+    }
+
+    @Test
+    @DisplayName("пассивку нельзя повесить на слот: кнопка не делала бы ничего")
+    void passiveCannotBeBound() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+
+        var out = classes.bind(PLAYER, 1, "thorns");
+
+        assertEquals(ru.projectst.rpgcore.classes.ClassOutcome.Bind.Kind.PASSIVE_SKILL,
+                out.kind(), out::toString);
+    }
+
+    @Test
+    @DisplayName("тишина глушит и пассивки тоже")
+    void silenceBlocksPassives() {
+        assertTrue(classes.unlock(PLAYER, "thorns").succeeded());
+        statuses.apply(PLAYER, StatusApplication.of("silence", "test"));
+
+        var out = casts.fire(PLAYER, SkillTrigger.ON_DAMAGED, ENEMY);
+
+        assertEquals(CastOutcome.Kind.BLOCKED, out.get(0).kind(), out::toString);
+        assertTrue(world.damage.isEmpty());
     }
 }

@@ -43,6 +43,12 @@ class SkillRuntimeTest {
         final List<Runnable> delayed = new ArrayList<>();
         List<UUID> nextTargets = List.of(A, B);
         int resolveCount;
+        /** Куда «попадёт» следующий снаряд; null — промах до конца дальности. */
+        UUID nextProjectileTarget = A;
+        ProjectileSpec lastProjectile;
+        /** Призванные: тип и место. */
+        final List<String> spawned = new ArrayList<>();
+        UUID nextSpawn = UUID.randomUUID();
         RayHit nextRayHit = new RayHit(new Position(WORLD, 10, 64, 10), A);
         boolean playersOnly = true;
 
@@ -114,6 +120,36 @@ class SkillRuntimeTest {
         public RayHit castRay(UUID caster, double range, boolean stopAtEntity) {
             calls.add("ray " + range);
             return nextRayHit;
+        }
+
+        @Override
+        public Optional<UUID> spawnMob(String type, Position at, double health) {
+            calls.add("spawn " + type + " hp=" + health + " @" + at.x());
+            spawned.add(type);
+            return Optional.of(nextSpawn);
+        }
+
+        @Override
+        public void despawn(UUID entity) {
+            calls.add("despawn");
+        }
+
+        @Override
+        public void setAttackTarget(UUID mob, UUID target) {
+            calls.add("target");
+        }
+
+        @Override
+        public void launchProjectile(UUID caster, ProjectileSpec spec,
+                                     ProjectileHandler handler) {
+            lastProjectile = spec;
+            calls.add("projectile v=" + spec.speed() + " range=" + spec.range()
+                    + " pierce=" + spec.pierce());
+            if (nextProjectileTarget != null) {
+                handler.hit(new Position(WORLD, 7, 64, 7), nextProjectileTarget);
+            } else {
+                handler.end(new Position(WORLD, 20, 64, 20));
+            }
         }
 
         @Override
@@ -190,7 +226,8 @@ class SkillRuntimeTest {
     }
 
     private record Fixture(FakeWorld world, SkillRuntime runtime,
-                           StatusService statuses, StatService stats, ZoneService zones) {
+                           StatusService statuses, StatService stats, ZoneService zones,
+                           MinionService minions) {
     }
 
     private static Fixture fixture(DoubleSupplier random, SkillDef... defs) {
@@ -202,9 +239,11 @@ class SkillRuntimeTest {
             map.put(def.id(), def);
         }
         ZoneService zoneService = new ZoneService(() -> 0L);
+        MinionService minionService = new MinionService(() -> 0L);
         SkillRuntime runtime = new SkillRuntime(world, statusService, statService,
-                balance(), new SkillRegistry(map), zoneService, random);
-        return new Fixture(world, runtime, statusService, statService, zoneService);
+                balance(), new SkillRegistry(map), zoneService, minionService, random);
+        return new Fixture(world, runtime, statusService, statService, zoneService,
+                minionService);
     }
 
     private static Fixture fixture(SkillDef... defs) {
@@ -719,6 +758,135 @@ class SkillRuntimeTest {
         f.zones.place("seal", CASTER, here, 3, 200);
         f.runtime.cast(CASTER, skill, 1);
         assertTrue(f.world.calls.contains("message caster две"));
+    }
+
+    // ------------------------------------------------------------------ снаряд и призыв
+
+    @Test
+    @DisplayName("снаряд уходит с посчитанными числами и бьёт в точке попадания")
+    void projectileHitsAtImpact() {
+        SkillDef impact = parse("boom", """
+                id: boom
+                class: mage
+                steps:
+                  - target: { type: enemies_near_origin, radius: 3 }
+                    do:
+                      - { action: damage, amount: 9 }
+                """);
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: projectile, speed: 2.5, range: 30, pierce: 2, on-hit: boom }
+                """);
+        Fixture f = fixture(skill, impact);
+        f.world.nextTargets = List.of(A);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(2.5, f.world.lastProjectile.speed(), 1e-9);
+        assertEquals(30, f.world.lastProjectile.range(), 1e-9);
+        assertEquals(2, f.world.lastProjectile.pierce());
+        assertTrue(f.world.calls.stream().anyMatch(c -> c.contains("origin=7.0")),
+                "навык попадания получил точку попадания: " + f.world.calls);
+        assertTrue(f.world.calls.contains("damage A 9.0 MAGIC"));
+    }
+
+    @Test
+    @DisplayName("промах выполняет навык конца, а не навык попадания")
+    void projectileMissRunsOnEnd() {
+        SkillDef impact = parse("boom", """
+                id: boom
+                class: mage
+                steps:
+                  - target: { type: enemies_near_origin, radius: 3 }
+                    do:
+                      - { action: damage, amount: 9 }
+                """);
+        SkillDef fizzle = parse("fizzle", """
+                id: fizzle
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "мимо" }
+                """);
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: projectile, range: 30, on-hit: boom, on-end: fizzle }
+                """);
+        Fixture f = fixture(skill, impact, fizzle);
+        f.world.nextProjectileTarget = null;
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("message caster мимо"), f.world.calls.toString());
+        assertFalse(f.world.calls.stream().anyMatch(c -> c.startsWith("damage")),
+                "промах никого не задел");
+    }
+
+    @Test
+    @DisplayName("призванный берётся на учёт с владельцем и снимается по сроку")
+    void summonIsOwnedAndExpires() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: summon, mob: wolf, tag: beast, duration: 200, health: 40 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("wolf"), f.world.spawned);
+        assertEquals(1, f.minions.size());
+        assertTrue(f.minions.of(f.world.nextSpawn).orElseThrow().ownedBy(CASTER),
+                "владелец записан сразу, а не штампуется обработчиком спавна");
+
+        f.world.runAllDelayed();
+        assertEquals(0, f.minions.size(), "срок жизни снял существо");
+        assertTrue(f.world.calls.contains("despawn"));
+    }
+
+    @Test
+    @DisplayName("свой призванный не попадает под свои площадные навыки")
+    void ownMinionIsNotAnEnemy() {
+        // Фильтр живёт в реализации мира, поэтому здесь проверяется само
+        // правило службы: именно его читает BukkitSkillWorld.
+        Fixture f = fixture();
+        f.minions.register(A, CASTER, "beast", 200, true);
+
+        assertTrue(f.minions.isOwnMinion(CASTER, A));
+        assertFalse(f.minions.isOwnMinion(B, A), "чужой зверь — обычная цель");
+    }
+
+    @Test
+    @DisplayName("отзыв убирает своих призванных с этим тегом")
+    void dismissRemovesOwnMinions() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: dismiss, tag: beast }
+                """);
+        Fixture f = fixture(skill);
+        f.minions.register(A, CASTER, "beast", 200, true);
+        f.minions.register(B, CASTER, "other", 200, true);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(1, f.minions.size(), "чужой тег остался");
+        assertTrue(f.minions.of(B).isPresent());
     }
 
     // ------------------------------------------------------------------ прочее

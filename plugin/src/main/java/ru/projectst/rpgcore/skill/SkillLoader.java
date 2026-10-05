@@ -36,7 +36,8 @@ public final class SkillLoader {
 
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
-                    + "teleport, particles, sound, message, cast, ray, zone, consume-zones";
+                    + "teleport, particles, sound, message, cast, ray, projectile, summon, "
+                    + "dismiss, zone, consume-zones";
 
     private SkillLoader() {
     }
@@ -57,6 +58,8 @@ public final class SkillLoader {
         int tier = root.integer("tier", 1, 5, 1);
         NumberRef mana = number(root, "mana", errors, "skill", new NumberRef.Literal(0));
         NumberRef cooldown = number(root, "cooldown", errors, "skill", new NumberRef.Literal(0));
+        SkillTrigger trigger = readTrigger(root, errors);
+        int interval = root.integer("every", 1, 12_000, 0);
         List<Step> steps = readSteps(root, errors);
 
         doc.finish();
@@ -77,10 +80,46 @@ public final class SkillLoader {
             errors.add(root.at(), "steps", "навык без шагов ничего не делает");
             ok = false;
         }
+        if (trigger == SkillTrigger.ON_INTERVAL && interval < 1) {
+            errors.add(root.at(), "every",
+                    "периодическому навыку нужен ключ every: как часто он срабатывает");
+            ok = false;
+        }
+        if (trigger != SkillTrigger.ON_INTERVAL && interval > 0) {
+            errors.add(root.at(), "every",
+                    "ключ every имеет смысл только при on: interval");
+            ok = false;
+        }
         if (!ok) {
             return Optional.empty();
         }
-        return Optional.of(new SkillDef(id, display, classId, tier, mana, cooldown, steps));
+        return Optional.of(new SkillDef(id, display, classId, tier, mana, cooldown, steps,
+                trigger, interval));
+    }
+
+    /**
+     * Что запускает навык. Отсутствие ключа — ручное применение: самый частый
+     * случай не должен требовать строки.
+     */
+    private static SkillTrigger readTrigger(YmlMap root, ContentErrors errors) {
+        String raw = root.str("on", "");
+        if (raw.isBlank()) {
+            return SkillTrigger.MANUAL;
+        }
+        SkillTrigger trigger = switch (raw) {
+            case "manual" -> SkillTrigger.MANUAL;
+            case "damaged" -> SkillTrigger.ON_DAMAGED;
+            case "deal-damage" -> SkillTrigger.ON_DEAL_DAMAGE;
+            case "kill" -> SkillTrigger.ON_KILL;
+            case "interval" -> SkillTrigger.ON_INTERVAL;
+            default -> null;
+        };
+        if (trigger == null) {
+            errors.add(root.at(), "on", "неизвестный триггер \"" + raw
+                    + "\", допустимы: manual, damaged, deal-damage, kill, interval");
+            return SkillTrigger.MANUAL;
+        }
+        return trigger;
     }
 
     // ------------------------------------------------------------------ шаги
@@ -320,6 +359,59 @@ public final class SkillLoader {
                     yield Optional.empty();
                 }
                 yield Optional.of(new Action.Sound(sound, volume, pitch, atOrigin));
+            }
+
+            case "projectile" -> {
+                NumberRef speed = number(b, "speed", errors, path, new NumberRef.Literal(1.2));
+                NumberRef range = number(b, "range", errors, path, null);
+                NumberRef hitRadius = number(b, "hit-radius", errors, path,
+                        new NumberRef.Literal(1.2));
+                NumberRef gravity = number(b, "gravity", errors, path, new NumberRef.Literal(0));
+                int pierce = b.integer("pierce", 1, 20, 1);
+                boolean hitPlayers = b.bool("hit-players", true);
+                boolean hitMobs = b.bool("hit-mobs", true);
+                boolean stopAtBlock = b.bool("stop-at-block", true);
+                String particle = b.str("particle", "");
+                String onHit = b.str("on-hit", "");
+                String onEnd = b.str("on-end", "");
+                if (range == null || onHit.isBlank()) {
+                    errors.add(b.at(), path, "нужны ключи range и on-hit");
+                    yield Optional.empty();
+                }
+                if (!hitPlayers && !hitMobs) {
+                    errors.add(b.at(), path,
+                            "снаряд не задевает ни игроков, ни мобов: он ни во что не попадёт");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Projectile(speed, range, hitRadius, gravity, pierce,
+                        hitPlayers, hitMobs, stopAtBlock,
+                        particle.isBlank() ? null : particle,
+                        onHit, onEnd.isBlank() ? null : onEnd));
+            }
+
+            case "summon" -> {
+                String mob = b.str("mob", "");
+                String tag = b.str("tag", "");
+                NumberRef count = number(b, "count", errors, path, new NumberRef.Literal(1));
+                NumberRef duration = number(b, "duration", errors, path, null);
+                NumberRef health = number(b, "health", errors, path, new NumberRef.Literal(0));
+                boolean attacks = b.bool("attacks-enemies", true);
+                boolean atOrigin = b.bool("at-origin", false);
+                if (mob.isBlank() || tag.isBlank() || duration == null) {
+                    errors.add(b.at(), path, "нужны ключи mob, tag и duration");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Summon(mob, count, duration, health, tag,
+                        attacks, atOrigin));
+            }
+
+            case "dismiss" -> {
+                String tag = b.str("tag", "");
+                if (tag.isBlank()) {
+                    errors.add(b.at(), path + ".tag", "обязательный ключ tag отсутствует");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Dismiss(tag));
             }
 
             case "zone" -> {

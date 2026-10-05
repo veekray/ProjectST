@@ -17,9 +17,18 @@ import java.util.Locale;
  * @param manaCost    стоимость маны
  * @param cooldown    перезарядка в секундах
  * @param steps       тело навыка
+ * @param trigger     что его запускает
+ * @param intervalTicks для {@link SkillTrigger#ON_INTERVAL} — как часто
  */
 public record SkillDef(String id, String display, String classId, int tier,
-                       NumberRef manaCost, NumberRef cooldown, List<Step> steps) {
+                       NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                       SkillTrigger trigger, int intervalTicks) {
+
+    /** Навык, который применяют вручную: самый частый случай. */
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef manaCost, NumberRef cooldown, List<Step> steps) {
+        this(id, display, classId, tier, manaCost, cooldown, steps, SkillTrigger.MANUAL, 0);
+    }
 
     public SkillDef {
         if (id == null || !id.equals(id.toLowerCase(Locale.ROOT))) {
@@ -29,5 +38,14 @@ public record SkillDef(String id, String display, String classId, int tier,
             throw new IllegalArgumentException("ступень навыка от 1 до 5: " + id);
         }
         steps = steps == null ? List.of() : List.copyOf(steps);
+        trigger = trigger == null ? SkillTrigger.MANUAL : trigger;
+        if (trigger == SkillTrigger.ON_INTERVAL && intervalTicks < 1) {
+            throw new IllegalArgumentException(
+                    "периодическому навыку нужен промежуток: " + id);
+        }
+    }
+
+    public boolean passive() {
+        return trigger.passive();
     }
 }

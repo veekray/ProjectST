@@ -1,14 +1,20 @@
 package ru.projectst.rpgcore.cast;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.classes.ClassDef;
 import ru.projectst.rpgcore.classes.ClassService;
 import ru.projectst.rpgcore.damage.StatIds;
+import ru.projectst.rpgcore.skill.CastContext;
 import ru.projectst.rpgcore.skill.SkillDef;
 import ru.projectst.rpgcore.skill.SkillRegistry;
 import ru.projectst.rpgcore.skill.SkillRuntime;
+import ru.projectst.rpgcore.skill.SkillTrigger;
 import ru.projectst.rpgcore.stat.StatService;
 import ru.projectst.rpgcore.status.ActiveStatus;
 import ru.projectst.rpgcore.status.StatusRegistry;
@@ -41,6 +47,9 @@ public final class CastService {
     private final CooldownTracker cooldowns;
     private final SkillRuntime runtime;
 
+    /** Игроки, чьи пассивки сейчас срабатывают: защита от повторного входа. */
+    private final Set<UUID> firing = java.util.Collections.synchronizedSet(new HashSet<>());
+
     public CastService(ClassService classes, SkillRegistry skills, BalanceBook balance,
                        StatusService statuses, StatusRegistry statusDefs, StatService stats,
                        ManaPool mana, CooldownTracker cooldowns, SkillRuntime runtime) {
@@ -72,6 +81,48 @@ public final class CastService {
         return cast(player, skill.get().id());
     }
 
+    /**
+     * Срабатывание пассивных навыков игрока по событию.
+     *
+     * <p>Идёт через те же ворота, что и нажатие: пассивный навык тоже стоит
+     * маны, тоже уходит в перезарядку и тоже не работает под тишиной. Отдельный
+     * путь означал бы второй набор правил, а именно от этого проект и уходит.
+     *
+     * <p>Повторный вход запрещён: навык на «я нанёс урон», который сам наносит
+     * урон, иначе вызвал бы себя до переполнения стека. Защита по игроку, а не
+     * по навыку — цепочка из двух навыков замкнулась бы так же.
+     *
+     * @param trigger что случилось
+     * @param source  кто участвовал: ударивший, получивший, убитый
+     * @return исходы по каждому сработавшему навыку; пусто — ни один не подошёл
+     */
+    public List<CastOutcome> fire(UUID player, SkillTrigger trigger, UUID source) {
+        if (trigger == SkillTrigger.MANUAL) {
+            throw new IllegalArgumentException("ручной триггер не срабатывает сам");
+        }
+        if (!firing.add(player)) {
+            return List.of();
+        }
+        try {
+            List<CastOutcome> out = new ArrayList<>();
+            for (String skillId : classes.unlockedSkills(player)) {
+                Optional<SkillDef> skill = skills.find(skillId);
+                if (skill.isEmpty() || skill.get().trigger() != trigger) {
+                    continue;
+                }
+                CastOutcome outcome = attempt(player, skill.get(), source);
+                // Молчаливые отказы пассивок не копим: интересны только те, что
+                // сработали, и те, что отказали по делу.
+                if (outcome.kind() != CastOutcome.Kind.ON_COOLDOWN) {
+                    out.add(outcome);
+                }
+            }
+            return out;
+        } finally {
+            firing.remove(player);
+        }
+    }
+
     /** Применить навык по идентификатору. */
     public CastOutcome cast(UUID player, String skillId) {
         Optional<SkillDef> found = skills.find(skillId);
@@ -88,6 +139,24 @@ public final class CastService {
             return CastOutcome.of(CastOutcome.Kind.WRONG_CLASS,
                     "навык принадлежит классу " + skill.classId());
         }
+        if (skill.passive()) {
+            return CastOutcome.of(CastOutcome.Kind.NOT_MANUAL,
+                    "навык срабатывает сам: "
+                            + skill.trigger().name().toLowerCase(java.util.Locale.ROOT));
+        }
+        return attempt(player, skill, null);
+    }
+
+    /**
+     * Общая часть ручного и автоматического применения.
+     *
+     * <p>Порядок проверок здесь один для обоих путей — это и есть смысл
+     * «единственного входа». Отдельная проверка права на навык осталась у
+     * вызывающих: ручному касту нужно сказать «не изучен», а срабатыванию
+     * проверять нечего, оно идёт по изученным.
+     */
+    private CastOutcome attempt(UUID player, SkillDef skill, UUID source) {
+        String skillId = skill.id();
         int level = classes.skillLevel(player, skillId);
         if (level == 0) {
             return CastOutcome.of(CastOutcome.Kind.NOT_UNLOCKED, skillId);
@@ -114,8 +183,12 @@ public final class CastService {
         // Всё проверено — только теперь тратим. Обратного порядка быть не
         // может: списанная мана при последующем отказе не возвращается ничем.
         mana.spend(player, cost);
-        cooldowns.start(player, skillId, cooldownTicks(player, skill, level));
-        runtime.cast(player, skill, level);
+        // Периодический навык не может сработать чаще своего промежутка, даже
+        // если перезарядка у него нулевая: иначе «каждые две секунды» зависело
+        // бы от того, как часто его зовёт слушатель.
+        cooldowns.start(player, skillId,
+                Math.max(cooldownTicks(player, skill, level), skill.intervalTicks()));
+        runtime.cast(new CastContext(player, level, null, source), skill, 0);
         return CastOutcome.cast();
     }
 

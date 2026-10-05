@@ -15,7 +15,9 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -29,7 +31,9 @@ import ru.projectst.rpgcore.damage.DamageSchool;
 import ru.projectst.rpgcore.damage.DefenderState;
 import ru.projectst.rpgcore.skill.Action;
 import ru.projectst.rpgcore.skill.CastContext;
+import ru.projectst.rpgcore.skill.MinionService;
 import ru.projectst.rpgcore.skill.Position;
+import ru.projectst.rpgcore.skill.ProjectileSpec;
 import ru.projectst.rpgcore.skill.SkillWorld;
 import ru.projectst.rpgcore.skill.TargetSpec;
 import ru.projectst.rpgcore.stat.StatService;
@@ -54,13 +58,15 @@ public final class BukkitSkillWorld implements SkillWorld {
     private final DamageEngine engine;
     private final StatService stats;
     private final StatusService statuses;
+    private final MinionService minions;
 
-    public BukkitSkillWorld(Plugin plugin, DamageEngine engine,
-                            StatService stats, StatusService statuses) {
+    public BukkitSkillWorld(Plugin plugin, DamageEngine engine, StatService stats,
+                            StatusService statuses, MinionService minions) {
         this.plugin = plugin;
         this.engine = engine;
         this.stats = stats;
         this.statuses = statuses;
+        this.minions = minions;
     }
 
     // ------------------------------------------------------------------ цели
@@ -106,11 +112,21 @@ public final class BukkitSkillWorld implements SkillWorld {
             if (centre.distance(nearby.getLocation()) > radius) {
                 continue;
             }
-            if (type == TargetSpec.Type.ALLIES_IN_RADIUS && !(nearby instanceof Player)) {
-                continue;
-            }
             if (type == TargetSpec.Type.ENEMIES_IN_CONE
                     && (caster == null || !insideCone(caster, nearby, angle))) {
+                continue;
+            }
+            // Свой призванный не попадает под свои же площадные навыки. Одно
+            // правило в одном месте: иначе каждый навык с радиусом нёс бы
+            // собственный фильтр, и девятый по счёту про него забыл бы.
+            if (!type.hitsAllies() && minions.isOwnMinion(context.caster(), nearby.getUniqueId())) {
+                continue;
+            }
+            // Призванный владельца попадает в выборку союзников: лечить и
+            // усиливать своего зверя можно, и это тоже сказано здесь.
+            if (type == TargetSpec.Type.ALLIES_IN_RADIUS
+                    && !(nearby instanceof Player)
+                    && !minions.isOwnMinion(context.caster(), nearby.getUniqueId())) {
                 continue;
             }
             out.add(nearby.getUniqueId());
@@ -285,6 +301,237 @@ public final class BukkitSkillWorld implements SkillWorld {
         Location point = hit.getHitPosition().toLocation(caster.getWorld());
         return new RayHit(toPosition(point),
                 hit.getHitEntity() == null ? null : hit.getHitEntity().getUniqueId());
+    }
+
+    // ------------------------------------------------------------------ призыв
+
+    @Override
+    public Optional<UUID> spawnMob(String type, Position at, double health) {
+        Optional<Location> where = toLocation(at);
+        if (where.isEmpty()) {
+            return Optional.empty();
+        }
+        EntityType entityType = fromKey(type, EntityType.class);
+        if (entityType == null || entityType.getEntityClass() == null) {
+            plugin.getLogger().warning("неизвестный тип существа: " + type);
+            return Optional.empty();
+        }
+        Entity spawned = where.get().getWorld().spawnEntity(where.get(), entityType);
+        if (!(spawned instanceof LivingEntity living)) {
+            spawned.remove();
+            plugin.getLogger().warning("тип " + type + " не живое существо");
+            return Optional.empty();
+        }
+        if (health > 0) {
+            var attribute = living.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            if (attribute != null) {
+                attribute.setBaseValue(health);
+            }
+            living.setHealth(Math.min(health, living.getHealth() + health));
+        }
+        return Optional.of(living.getUniqueId());
+    }
+
+    @Override
+    public void despawn(UUID entity) {
+        Entity e = Bukkit.getEntity(entity);
+        if (e != null) {
+            e.remove();
+        }
+    }
+
+    @Override
+    public void setAttackTarget(UUID mob, UUID target) {
+        if (!(Bukkit.getEntity(mob) instanceof Mob attacker)) {
+            return;
+        }
+        if (Bukkit.getEntity(target) instanceof LivingEntity victim) {
+            attacker.setTarget(victim);
+        } else {
+            attacker.setTarget(null);
+        }
+    }
+
+    /**
+     * Находит призванному цель, если он без дела.
+     *
+     * <p>Не входит в порт: это поведение существа в мире, а не примитив навыка.
+     * Своих и владельца зверь не трогает, чужих игроков — трогает: иначе
+     * призванные были бы бесполезны в бою игрок против игрока, о чём и просили.
+     *
+     * <p>Радиус поиска небольшой намеренно. Зверь, уходящий за врагом через пол
+     * карты, превращается в отдельную проблему: его теряют, и он бьёт кого-то в
+     * другом бою.
+     */
+    public void retargetMinion(ru.projectst.rpgcore.skill.Minion minion) {
+        if (!(Bukkit.getEntity(minion.entityId()) instanceof Mob mob) || mob.isDead()) {
+            return;
+        }
+        LivingEntity current = mob.getTarget();
+        if (current != null && !current.isDead() && !isFriendly(minion, current)) {
+            return;
+        }
+        double radius = 12;
+        LivingEntity best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Entity nearby : mob.getNearbyEntities(radius, radius / 2, radius)) {
+            if (!(nearby instanceof LivingEntity living) || living.isDead()
+                    || isFriendly(minion, living)) {
+                continue;
+            }
+            double distance = mob.getLocation().distanceSquared(living.getLocation());
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = living;
+            }
+        }
+        mob.setTarget(best);
+    }
+
+    /** Владелец и его же призванные — не цели. */
+    private boolean isFriendly(ru.projectst.rpgcore.skill.Minion minion, LivingEntity candidate) {
+        return candidate.getUniqueId().equals(minion.owner())
+                || minions.isOwnMinion(minion.owner(), candidate.getUniqueId());
+    }
+
+    // ------------------------------------------------------------------ снаряды
+
+    /**
+     * Полёт снаряда.
+     *
+     * <p>Шаг полёта делится на отрезки не длиннее половины блока, и каждый
+     * проверяется отдельно. Иначе быстрый снаряд за тик перескакивал бы цель:
+     * на скорости три блока в тик он проходил мимо всего, что уже прошло, и
+     * выглядело это как «иногда не попадает», что в старом стеке лечили
+     * увеличением радиуса попадания, то есть делали хуже.
+     *
+     * <p>Снаряд не является сущностью Minecraft. Своя сущность означала бы
+     * физику, хитбокс и попадание в выборку целей других навыков — всё то, из
+     * чего вырастали взаимные помехи: печати мешали снарядам, снаряды —
+     * печатям.
+     */
+    @Override
+    public void launchProjectile(UUID casterId, ProjectileSpec spec,
+                                 ProjectileHandler handler) {
+        Entity caster = Bukkit.getEntity(casterId);
+        if (!(caster instanceof LivingEntity living)) {
+            return;
+        }
+        Location start = living.getEyeLocation();
+        Vector direction = start.getDirection().normalize();
+
+        new ProjectileFlight(spec, handler, casterId, start, direction).start();
+    }
+
+    /** Один летящий снаряд. Живёт до попадания, блока или конца дальности. */
+    private final class ProjectileFlight implements Runnable {
+
+        private static final double MAX_SEGMENT = 0.5;
+
+        private final ProjectileSpec spec;
+        private final ProjectileHandler handler;
+        private final UUID casterId;
+        private final Set<UUID> alreadyHit = new java.util.HashSet<>();
+        private Location at;
+        private Vector direction;
+        private double travelled;
+        private int hits;
+        private org.bukkit.scheduler.BukkitTask task;
+
+        private ProjectileFlight(ProjectileSpec spec, ProjectileHandler handler, UUID casterId,
+                                 Location start, Vector direction) {
+            this.spec = spec;
+            this.handler = handler;
+            this.casterId = casterId;
+            this.at = start.clone();
+            this.direction = direction.clone();
+        }
+
+        void start() {
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this, 0L, 1L);
+        }
+
+        private void stop() {
+            if (task != null) {
+                task.cancel();
+            }
+        }
+
+        @Override
+        public void run() {
+            double remaining = Math.min(spec.speed(), spec.range() - travelled);
+            int segments = (int) Math.ceil(remaining / MAX_SEGMENT);
+            double step = remaining / Math.max(1, segments);
+
+            for (int i = 0; i < segments; i++) {
+                Location before = at.clone();
+                at = at.add(direction.clone().multiply(step));
+                travelled += step;
+
+                if (spec.gravity() > 0) {
+                    // Снижение задаётся в блоках за тик и делится между
+                    // отрезками, иначе снаряд падал бы рывками.
+                    direction = direction.clone()
+                            .add(new Vector(0, -spec.gravity() / segments, 0));
+                }
+
+                if (spec.particle() != null) {
+                    particles(toPosition(at), spec.particle(),
+                            Action.Particles.Shape.POINT, 1, 0);
+                }
+
+                if (spec.stopAtBlock() && at.getBlock().getType().isSolid()) {
+                    // Назад на отрезок: взрыв должен гремить перед стеной, а не
+                    // внутри неё, иначе его не видно.
+                    stop();
+                    handler.end(toPosition(before));
+                    return;
+                }
+
+                UUID victim = firstTarget();
+                if (victim != null) {
+                    alreadyHit.add(victim);
+                    hits++;
+                    handler.hit(toPosition(at), victim);
+                    if (hits >= spec.pierce()) {
+                        stop();
+                        return;
+                    }
+                }
+
+                if (travelled >= spec.range()) {
+                    stop();
+                    handler.end(toPosition(at));
+                    return;
+                }
+            }
+        }
+
+        /** Первая подходящая цель в радиусе попадания. */
+        private UUID firstTarget() {
+            double r = spec.hitRadius();
+            for (Entity nearby : at.getWorld().getNearbyEntities(at, r, r, r)) {
+                if (!(nearby instanceof LivingEntity living) || living.isDead()) {
+                    continue;
+                }
+                UUID id = nearby.getUniqueId();
+                if (id.equals(casterId) || alreadyHit.contains(id)) {
+                    continue;
+                }
+                boolean player = nearby instanceof Player;
+                if (player && !spec.hitPlayers()) {
+                    continue;
+                }
+                if (!player && !spec.hitMobs()) {
+                    continue;
+                }
+                if (at.distance(nearby.getLocation().add(0, living.getHeight() / 2, 0)) > r) {
+                    continue;
+                }
+                return id;
+            }
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------ видимое

@@ -18,10 +18,19 @@ cooldown: $cooldown
 
 steps:
 
-  # Шаг от лица самого мага: звук выстрела и собственно луч. Попадание — это
-  # отдельный навык, и у него своя точка действия, поэтому взрыв гремит там,
-  # куда прилетело, а не под ногами у кастующего.
+  # Снаряд летит, его видно и его можно обогнать — этим он и отличается от
+  # мгновенного луча, поэтому примитив называется иначе.
+  #
+  # on-hit и on-end здесь один и тот же навык, и это не экономия: «разорваться
+  # в этой точке» — одно и то же действие, попал снаряд в кого-то или просто
+  # закончился. Поэтому печать остаётся там, куда прилетело, в обоих случаях.
   - target: { type: self }
     do:
       - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.4 }
-      - { action: ray, range: $range, on-hit: mage_mana_bolt_impact }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.3
+        particle: electric_spark
+        on-hit: mage_mana_bolt_impact
+        on-end: mage_mana_bolt_impact

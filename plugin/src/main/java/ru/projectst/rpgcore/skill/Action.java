@@ -174,6 +174,83 @@ public sealed interface Action {
         }
     }
 
+    /**
+     * Летящий снаряд.
+     *
+     * <p>Отдельно от {@link Ray} и назван иначе, потому что ведёт себя иначе:
+     * его видно, его можно обогнать, и он может никуда не попасть. В старом
+     * стеке «projectile» и мгновенный луч настраивались почти одинаковыми
+     * ключами, и перепутать их было проще, чем заметить разницу.
+     *
+     * @param onHit навык в точке попадания; цель становится его trigger
+     * @param onEnd навык в точке, где снаряд закончился, никого не задев;
+     *              {@code null} — ничего. Явный второй ключ, а не флаг: промах
+     *              и попадание — разные события
+     */
+    record Projectile(NumberRef speed, NumberRef range, NumberRef hitRadius, NumberRef gravity,
+                      int pierce, boolean hitPlayers, boolean hitMobs, boolean stopAtBlock,
+                      String particle, String onHit, String onEnd) implements Action {
+        public Projectile {
+            if (onHit == null || onHit.isBlank()) {
+                throw new IllegalArgumentException("снаряд без onHit ничего не делает");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "projectile";
+        }
+    }
+
+    // ------------------------------------------------------------------ призыв
+
+    /**
+     * Призывает существо.
+     *
+     * <p>Владелец записывается сразу, при постановке на учёт, а не штампуется
+     * обработчиком спавна. В старом стеке именно это опаздывало: заявка на
+     * владение уходила раньше, чем моб появлялся, и зверь оставался бесхозным —
+     * то есть своим для любого друида на карте.
+     *
+     * @param mob      тип существа
+     * @param count    сколько призвать
+     * @param duration сколько тиков живёт
+     * @param health   здоровье; ноль — штатное для типа
+     * @param tag      по нему навыки находят своих призванных
+     * @param attacksEnemies само ищет врагов владельца
+     * @param atOrigin призывать в точке действия, а не у целей шага
+     */
+    record Summon(String mob, NumberRef count, NumberRef duration, NumberRef health,
+                  String tag, boolean attacksEnemies, boolean atOrigin) implements Action {
+        public Summon {
+            if (mob == null || mob.isBlank()) {
+                throw new IllegalArgumentException("нужен тип существа");
+            }
+            if (tag == null || tag.isBlank()) {
+                throw new IllegalArgumentException("у призванного обязателен тег");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "summon";
+        }
+    }
+
+    /** Снимает своих призванных с этим тегом: отзыв зверя, конец эффекта. */
+    record Dismiss(String tag) implements Action {
+        public Dismiss {
+            if (tag == null || tag.isBlank()) {
+                throw new IllegalArgumentException("нужен тег призванных");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "dismiss";
+        }
+    }
+
     // ------------------------------------------------------------------ зоны
 
     /**

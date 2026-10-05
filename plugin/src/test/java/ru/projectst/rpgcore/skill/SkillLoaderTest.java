@@ -1,6 +1,7 @@
 package ru.projectst.rpgcore.skill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -435,6 +436,148 @@ class SkillLoaderTest {
                   - target: { type: self }
                     do:
                       - { action: zone, tag: seal, radius: 4 }
+                """, errors);
+
+        assertTrue(errors.all().get(0).what().contains("duration"),
+                errors.all().get(0).what());
+    }
+
+    // ------------------------------------------------------------------ триггеры
+
+    @Test
+    @DisplayName("без ключа on навык применяется вручную")
+    void defaultTriggerIsManual() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "раз" }
+                """).orElseThrow();
+
+        assertEquals(SkillTrigger.MANUAL, skill.trigger());
+        assertFalse(skill.passive());
+    }
+
+    @Test
+    @DisplayName("триггер читается из навыка, а не из чужого файла")
+    void triggerIsReadFromTheSkill() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                on: damaged
+                steps:
+                  - target: { type: trigger }
+                    do:
+                      - { action: damage, amount: 3 }
+                """).orElseThrow();
+
+        assertEquals(SkillTrigger.ON_DAMAGED, skill.trigger());
+        assertTrue(skill.passive());
+    }
+
+    @Test
+    @DisplayName("неизвестный триггер назван ошибкой со списком допустимых")
+    void unknownTriggerIsNamed() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                on: когда_захочется
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: message, text: "раз" }
+                """, errors);
+
+        assertTrue(errors.all().get(0).what().contains("damaged"),
+                errors.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("периодический навык без промежутка — ошибка")
+    void intervalNeedsEvery() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                on: interval
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 1 }
+                """, errors);
+
+        assertEquals(1, errors.count(), () -> errors.all().toString());
+        assertTrue(errors.all().get(0).what().contains("every"), errors.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("промежуток без периодического триггера — тоже ошибка, а не мусор")
+    void everyWithoutIntervalIsRefused() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                every: 40
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 1 }
+                """, errors);
+
+        assertEquals(1, errors.count(), () -> errors.all().toString());
+        assertTrue(errors.all().get(0).what().contains("interval"), errors.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("снаряд, который никого не задевает, ловится при загрузке")
+    void projectileMustHitSomething() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: projectile, range: 20, on-hit: boom, hit-players: false, hit-mobs: false }
+                """, errors);
+
+        assertTrue(errors.all().get(0).what().contains("ни во что не попадёт"),
+                errors.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("ссылка снаряда на несуществующий навык ловится связыванием")
+    void projectileReferencesAreChecked() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: projectile, range: 20, on-hit: нет_такого }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("несуществующий навык"));
+    }
+
+    @Test
+    @DisplayName("призыв требует тип, тег и срок жизни")
+    void summonNeedsItsKeys() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: summon, mob: wolf, tag: beast }
                 """, errors);
 
         assertTrue(errors.all().get(0).what().contains("duration"),

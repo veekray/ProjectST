@@ -33,17 +33,19 @@ public final class SkillRuntime {
     private final BalanceBook balance;
     private final SkillRegistry skills;
     private final ZoneService zones;
+    private final MinionService minions;
     private final DoubleSupplier random;
 
     public SkillRuntime(SkillWorld world, StatusService statuses, StatService stats,
                         BalanceBook balance, SkillRegistry skills, ZoneService zones,
-                        DoubleSupplier random) {
+                        MinionService minions, DoubleSupplier random) {
         this.world = world;
         this.statuses = statuses;
         this.stats = stats;
         this.balance = balance;
         this.skills = skills;
         this.zones = zones;
+        this.minions = minions;
         this.random = random;
     }
 
@@ -293,6 +295,70 @@ public final class SkillRuntime {
                                 context.withOrigin(p).withTrigger(target), sub.get(), depth + 1));
                     }
                 }
+            }
+
+            case Action.Summon a -> {
+                int count = (int) resolve(a.count(), table, context, 1);
+                int ticks = (int) resolve(a.duration(), table, context, 200);
+                double health = resolve(a.health(), table, context, 0);
+                List<Position> places = new ArrayList<>();
+                if (a.atOrigin()) {
+                    positionFor(context).ifPresent(places::add);
+                } else {
+                    for (UUID target : targets) {
+                        world.positionOf(target).ifPresent(places::add);
+                    }
+                }
+                for (Position place : places) {
+                    for (int i = 0; i < count; i++) {
+                        world.spawnMob(a.mob(), place, health).ifPresent(spawned -> {
+                            minions.register(spawned, context.caster(), a.tag(), ticks,
+                                    a.attacksEnemies()).ifPresent(world::despawn);
+                            // Срок жизни снимает существо сам: иначе он зависел
+                            // бы от того, тикает ли кто-то снаружи.
+                            world.runLater(ticks, () -> {
+                                if (minions.forget(spawned)) {
+                                    world.despawn(spawned);
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+
+            case Action.Dismiss a -> {
+                for (Minion minion : minions.ofOwner(context.caster(), a.tag())) {
+                    minions.forget(minion.entityId());
+                    world.despawn(minion.entityId());
+                }
+            }
+
+            case Action.Projectile a -> {
+                ProjectileSpec spec = new ProjectileSpec(
+                        resolve(a.speed(), table, context, 1.2),
+                        a.range().resolve(table, level, context.counters()),
+                        resolve(a.hitRadius(), table, context, 1.2),
+                        resolve(a.gravity(), table, context, 0),
+                        a.pierce(), a.hitPlayers(), a.hitMobs(), a.stopAtBlock(),
+                        a.particle());
+                world.launchProjectile(context.caster(), spec, new SkillWorld.ProjectileHandler() {
+                    @Override
+                    public void hit(Position point, UUID target) {
+                        skills.find(a.onHit()).ifPresent(sub -> cast(
+                                context.withOrigin(point).withTrigger(target),
+                                sub, depth + 1));
+                    }
+
+                    @Override
+                    public void end(Position point) {
+                        if (a.onEnd() == null) {
+                            return;
+                        }
+                        skills.find(a.onEnd()).ifPresent(sub -> cast(
+                                context.withOrigin(point).withTrigger(null),
+                                sub, depth + 1));
+                    }
+                });
             }
 
             case Action.Ray a -> {

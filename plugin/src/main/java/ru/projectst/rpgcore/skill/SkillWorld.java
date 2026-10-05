@@ -55,12 +55,53 @@ public interface SkillWorld {
      */
     RayHit castRay(UUID caster, double range, boolean stopAtEntity);
 
+    /**
+     * Создаёт существо в мире.
+     *
+     * @param type   тип: пока ванильный, свои мобы придут с их модулем
+     * @param health сколько у него здоровья; ноль — оставить штатное
+     * @return сущность, если тип известен и место нашлось
+     */
+    Optional<UUID> spawnMob(String type, Position at, double health);
+
+    /** Убирает существо из мира. */
+    void despawn(UUID entity);
+
+    /** Указывает существу, кого бить. */
+    void setAttackTarget(UUID mob, UUID target);
+
+    /**
+     * Запускает снаряд от глаз кастера по направлению взгляда.
+     *
+     * <p>Порт отвечает за полёт и попадания, исполнитель — за то, что
+     * происходит в точке попадания. Обработчик зовётся на каждое попадание и,
+     * отдельным вызовом, на исчерпание дальности.
+     */
+    void launchProjectile(UUID caster, ProjectileSpec spec, ProjectileHandler handler);
+
     void particles(Position at, String particle, Action.Particles.Shape shape,
                    int count, double size);
 
     void sound(Position at, String sound, double volume, double pitch);
 
     void runLater(int ticks, Runnable task);
+
+    /**
+     * Что делать с попаданием снаряда.
+     *
+     * <p>Два метода, а не один с флагом: «попал» и «не попал ни в кого» — это
+     * разные события, и навык обязан различать их явно. В старом стеке и то и
+     * другое приходило одним {@code onTick}, из-за чего взрыв на промахе
+     * отличался от взрыва на попадании только порядком условий.
+     */
+    interface ProjectileHandler {
+
+        /** Снаряд задел цель в этой точке. */
+        void hit(Position point, UUID target);
+
+        /** Снаряд исчерпал дальность или упёрся в блок, никого не задев. */
+        void end(Position point);
+    }
 
     /** Что нашёл луч. */
     record RayHit(Position point, UUID entity) {

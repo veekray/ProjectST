@@ -33,7 +33,9 @@ public record CastOutcome(Kind kind, String detail) {
         /** Не хватает маны. */
         NOT_ENOUGH_MANA,
         /** Каст запрещён действующим статусом. */
-        BLOCKED
+        BLOCKED,
+        /** Навык срабатывает сам, вручную его не применить. */
+        NOT_MANUAL
     }
 
     public boolean succeeded() {

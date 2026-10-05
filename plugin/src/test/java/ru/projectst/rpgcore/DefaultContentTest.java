@@ -96,7 +96,8 @@ class DefaultContentTest {
 
     /** Все навыки, которые плагин кладёт при первом запуске. */
     private static final String[] SKILLS = {
-            "mage_mana_bolt", "mage_mana_bolt_impact", "mage_flux_loop", "mage_collapse"};
+            "mage_mana_bolt", "mage_mana_bolt_impact", "mage_flux_loop", "mage_collapse",
+            "mage_mana_ward"};
 
     private static java.util.List<ru.projectst.rpgcore.skill.SkillDef> skills(
             ContentErrors errors) throws IOException {
@@ -166,5 +167,32 @@ class DefaultContentTest {
             assertTrue(stats.has(statId),
                     "класс даёт базу стату " + statId + ", которого нет в stats.yml");
         }
+    }
+
+    @Test
+    @DisplayName("пассивный навык объявлен триггером и в слот не ставится")
+    void passiveSkillIsDeclaredAsSuch() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        var ward = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_ward.yml",
+                resource("skills/mage_mana_ward.yml"), errors).orElseThrow();
+
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        assertEquals(ru.projectst.rpgcore.skill.SkillTrigger.ON_DAMAGED, ward.trigger());
+        assertTrue(ward.passive(), "иначе его можно было бы повесить на слот");
+    }
+
+    @Test
+    @DisplayName("снаряд поставляемого разряда ссылается на существующий навык попадания")
+    void projectileReferenceResolves() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        var bolt = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_bolt.yml",
+                resource("skills/mage_mana_bolt.yml"), errors).orElseThrow();
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+
+        var action = bolt.steps().get(0).actions().get(1);
+        var projectile = (ru.projectst.rpgcore.skill.Action.Projectile) action;
+        assertEquals("mage_mana_bolt_impact", projectile.onHit());
+        assertEquals("mage_mana_bolt_impact", projectile.onEnd(),
+                "разрыв в точке падения — то же действие, что и разрыв в цели");
     }
 }
