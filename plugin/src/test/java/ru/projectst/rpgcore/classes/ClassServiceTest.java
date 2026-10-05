@@ -63,6 +63,11 @@ class ClassServiceTest {
         ClassDef rogue = ClassDefLoader.load("rogue.yml", """
                 id: rogue
                 slots: 4
+                max-level: 3
+                points-per-level: 2
+                xp:
+                  base: 100
+                  per-level: 100
                 """, errors).orElseThrow();
         Map<String, ClassDef> map = new LinkedHashMap<>();
         map.put(mage.id(), mage);
@@ -253,5 +258,143 @@ class ClassServiceTest {
         assertEquals(ClassOutcome.Bind.Kind.REPLACED, out.kind());
         assertEquals("bolt", out.detail());
         assertEquals("collapse", service.skillInSlot(PLAYER, 1).orElseThrow().id());
+    }
+
+    // ------------------------------------------------------------------ опыт
+
+    @Test
+    @DisplayName("опыта хватило на уровень — выданы очки и пересчитана база")
+    void experienceGivesLevelAndPoints() {
+        service.setClass(PLAYER, "rogue");
+
+        var out = service.addExperience(PLAYER, 100);
+
+        assertEquals(1, out.levelsGained());
+        assertEquals(2, out.pointsGained(), "по два очка за уровень у этого класса");
+        assertEquals(2, out.level());
+        assertEquals(0, out.xp(), 1e-9);
+        assertEquals(2, service.snapshot(PLAYER).unspentPoints());
+    }
+
+    @Test
+    @DisplayName("крупная награда поднимает сразу на несколько уровней, излишек остаётся")
+    void experienceCanSkipSeveralLevels() {
+        service.setClass(PLAYER, "rogue");
+
+        var out = service.addExperience(PLAYER, 350);
+
+        assertEquals(2, out.levelsGained(), "100 на второй, 200 на третий");
+        assertEquals(3, out.level());
+        assertTrue(out.atMaxLevel(), "третий уровень — предел этого класса");
+        assertEquals(4, service.snapshot(PLAYER).unspentPoints());
+    }
+
+    @Test
+    @DisplayName("недостаточный опыт копится, уровень не растёт")
+    void experienceAccumulates() {
+        service.setClass(PLAYER, "rogue");
+
+        service.addExperience(PLAYER, 40);
+        var out = service.addExperience(PLAYER, 30);
+
+        assertFalse(out.leveledUp());
+        assertEquals(70, out.xp(), 1e-9);
+        assertEquals(30, service.xpToNextLevel(PLAYER), 1e-9);
+    }
+
+    @Test
+    @DisplayName("на пределе уровня опыт не копится совсем")
+    void experienceStopsAtMaxLevel() {
+        service.setClass(PLAYER, "rogue");
+        service.addExperience(PLAYER, 300);
+
+        var out = service.addExperience(PLAYER, 1000);
+
+        assertTrue(out.atMaxLevel());
+        assertEquals(0, out.levelsGained());
+        assertEquals(0, service.snapshot(PLAYER).xp(), 1e-9,
+                "иначе поднятый позже предел выдал бы пачку уровней сразу");
+    }
+
+    @Test
+    @DisplayName("без класса опыт никуда не копится")
+    void experienceNeedsClass() {
+        var out = service.addExperience(PLAYER, 500);
+
+        assertEquals(0, out.levelsGained());
+        assertEquals(0, service.snapshot(PLAYER).xp(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("уровень от опыта пересчитывает базовые статы класса")
+    void experienceReappliesBaseStats() {
+        service.setClass(PLAYER, "mage");
+        double before = stats.snapshot(PLAYER).get("magic_damage");
+
+        service.addExperience(PLAYER, 10_000);
+
+        assertTrue(stats.snapshot(PLAYER).get("magic_damage") > before,
+                "кривая класса считается от уровня, значит уровень обязан её сдвинуть");
+    }
+
+    // ------------------------------------------------------------------ уровни навыков
+
+    @Test
+    @DisplayName("вложенное очко поднимает уровень навыка, а не только счётчик")
+    void upgradeRaisesSkillLevel() {
+        service.setClass(PLAYER, "mage");
+        service.setLevel(PLAYER, 10);
+        service.grantPoints(PLAYER, 3);
+        assertTrue(service.unlock(PLAYER, "bolt").succeeded());
+
+        assertEquals(1, service.skillLevel(PLAYER, "bolt"), "изученный — первый уровень");
+        assertTrue(service.upgrade(PLAYER, "bolt").succeeded());
+        assertEquals(2, service.skillLevel(PLAYER, "bolt"));
+        assertEquals(1, service.snapshot(PLAYER).unspentPoints(), "очко списано");
+    }
+
+    @Test
+    @DisplayName("в неизученный навык очко не вложить")
+    void upgradeNeedsUnlock() {
+        service.setClass(PLAYER, "mage");
+        service.grantPoints(PLAYER, 5);
+
+        var out = service.upgrade(PLAYER, "bolt");
+
+        assertEquals(ClassOutcome.Upgrade.Kind.NOT_UNLOCKED, out.kind(), out::toString);
+        assertEquals(5, service.snapshot(PLAYER).unspentPoints());
+    }
+
+    @Test
+    @DisplayName("выше предела уровень навыка не поднимается, очки не тратятся")
+    void upgradeStopsAtMax() {
+        service.setClass(PLAYER, "mage");
+        service.setLevel(PLAYER, 10);
+        service.grantPoints(PLAYER, 20);
+        assertTrue(service.unlock(PLAYER, "bolt").succeeded());
+        for (int i = 1; i < ClassService.MAX_SKILL_LEVEL; i++) {
+            assertTrue(service.upgrade(PLAYER, "bolt").succeeded());
+        }
+        int left = service.snapshot(PLAYER).unspentPoints();
+
+        var out = service.upgrade(PLAYER, "bolt");
+
+        assertEquals(ClassOutcome.Upgrade.Kind.MAX_LEVEL, out.kind());
+        assertEquals(left, service.snapshot(PLAYER).unspentPoints(), "отказ ничего не тратит");
+    }
+
+    @Test
+    @DisplayName("смена класса сбрасывает и уровни навыков вместе с изученным")
+    void changingClassClearsSkillLevels() {
+        service.setClass(PLAYER, "mage");
+        service.setLevel(PLAYER, 10);
+        service.grantPoints(PLAYER, 5);
+        service.unlock(PLAYER, "bolt");
+        service.upgrade(PLAYER, "bolt");
+
+        service.setClass(PLAYER, "rogue");
+
+        assertEquals(0, service.skillLevel(PLAYER, "bolt"));
+        assertTrue(service.snapshot(PLAYER).skillLevels().isEmpty());
     }
 }

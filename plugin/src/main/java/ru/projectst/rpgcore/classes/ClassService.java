@@ -104,6 +104,75 @@ public final class ClassService {
         data.saveLater(d);
     }
 
+    /**
+     * Начисляет опыт и поднимает уровни, пока его хватает.
+     *
+     * <p>Цикл, а не один уровень за вызов: крупная награда обязана поднять
+     * сразу на столько, на сколько её хватило. Иначе излишек терялся бы молча,
+     * и объяснить игроку, куда он делся, было бы нечем.
+     *
+     * <p>На пределе уровня опыт не копится совсем. Копить его «в запас» значило
+     * бы, что поднятый позже предел выдаёт пачку уровней сразу, и отличить это
+     * от ошибки будет невозможно.
+     */
+    public ClassOutcome.Experience addExperience(UUID player, double amount) {
+        PlayerData d = data.load(player);
+        Optional<ClassDef> def = classOf(player);
+        if (def.isEmpty()) {
+            return new ClassOutcome.Experience(0, 0, d.level(), d.xp(), false);
+        }
+        ClassDef c = def.get();
+        if (d.level() >= c.maxLevel()) {
+            return new ClassOutcome.Experience(0, 0, d.level(), 0, true);
+        }
+        if (amount <= 0) {
+            return new ClassOutcome.Experience(0, 0, d.level(), d.xp(), false);
+        }
+
+        double pool = d.xp() + amount;
+        int levels = 0;
+        int level = d.level();
+        while (level < c.maxLevel() && pool >= c.xpToNext(level)) {
+            pool -= c.xpToNext(level);
+            level++;
+            levels++;
+        }
+        boolean atMax = level >= c.maxLevel();
+        if (atMax) {
+            pool = 0;
+        }
+
+        int points = levels * c.pointsPerLevel();
+        d.setXp(pool);
+        if (levels > 0) {
+            d.setLevel(level);
+            d.setUnspentPoints(d.unspentPoints() + points);
+            applyBaseStats(player);
+        }
+        data.saveLater(d);
+        return new ClassOutcome.Experience(levels, points, level, pool, atMax);
+    }
+
+    /**
+     * Данные игрока для показа: уровень, опыт, очки, слоты.
+     *
+     * <p>Отдаётся тот же объект, что живёт в хранилище, а не копия. Менять его
+     * мимо этого сервиса нельзя — иначе правило окажется в двух местах, и одно
+     * из них однажды забудут.
+     */
+    public PlayerData snapshot(UUID player) {
+        return data.load(player);
+    }
+
+    /** Сколько опыта осталось до следующего уровня; ноль на пределе. */
+    public double xpToNextLevel(UUID player) {
+        PlayerData d = data.load(player);
+        return classOf(player)
+                .filter(c -> d.level() < c.maxLevel())
+                .map(c -> c.xpToNext(d.level()) - d.xp())
+                .orElse(0.0);
+    }
+
     // ------------------------------------------------------------------ изучение
 
     public ClassOutcome.Unlock unlock(UUID player, String skillId) {

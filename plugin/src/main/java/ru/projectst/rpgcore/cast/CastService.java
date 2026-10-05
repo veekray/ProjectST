@@ -144,6 +144,11 @@ public final class CastService {
         return Math.round(seconds * 20 * (1 - reduction / 100));
     }
 
+    /** Навык в слоте: нужен, чтобы ответ игроку называл навык, а не номер. */
+    public Optional<SkillDef> skillInSlot(UUID player, int slot) {
+        return classes.skillInSlot(player, slot);
+    }
+
     public ManaPool mana() {
         return mana;
     }

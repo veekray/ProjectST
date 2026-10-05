@@ -90,4 +90,31 @@ public final class ClassOutcome {
             return detail == null ? kind.name() : kind + ": " + detail;
         }
     }
+
+    /**
+     * Результат начисления опыта.
+     *
+     * @param levelsGained сколько уровней взято этим начислением
+     * @param pointsGained сколько очков навыков выдано
+     * @param level        уровень после начисления
+     * @param xp           остаток опыта на текущем уровне
+     * @param atMaxLevel   предел достигнут, опыт больше не копится
+     */
+    public record Experience(int levelsGained, int pointsGained, int level, double xp,
+                             boolean atMaxLevel) {
+
+        public boolean leveledUp() {
+            return levelsGained > 0;
+        }
+
+        @Override
+        public String toString() {
+            if (atMaxLevel) {
+                return "предел уровня " + level;
+            }
+            return leveledUp()
+                    ? "уровень " + level + " (+" + pointsGained + " очк.)"
+                    : "опыт " + Math.round(xp);
+        }
+    }
 }

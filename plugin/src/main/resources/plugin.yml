@@ -9,13 +9,18 @@ description: Статы, статусы, скиллы, предметы и мо�
 # базе Mohist), и поддержка нового формата у гибридов отстаёт. Терять запуск
 # ради синтаксиса не стоит.
 
+# Права разделены: игровые подкоманды доступны всем, админские — только
+# операторам. Одно право на всю команду означало бы, что игрок не может ни
+# выбрать класс, ни разложить навыки по слотам.
 commands:
   rpg:
-    description: Проверка контента и отладка статов и статусов
-    usage: /rpg validate | reload | debug <игрок> | why <игрок> <статус>
-    permission: rpgcore.admin
+    description: Классы, навыки, прогресс и отладка контента
+    usage: /rpg class | unlock | upgrade | bind | slot | mana | progress | validate
 
 permissions:
+  rpgcore.play:
+    description: Свои класс, навыки и слоты
+    default: true
   rpgcore.admin:
-    description: Доступ к /rpg
+    description: Проверка контента, отладка, выдача опыта
     default: op

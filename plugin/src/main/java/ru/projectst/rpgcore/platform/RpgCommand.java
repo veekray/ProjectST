@@ -3,6 +3,7 @@ package ru.projectst.rpgcore.platform;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -28,7 +29,13 @@ import ru.projectst.rpgcore.status.StatusService;
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
-            "cast", "slot", "class", "unlock", "upgrade", "bind", "mana");
+            "cast", "slot", "class", "unlock", "upgrade", "bind", "mana", "progress", "xp");
+
+    /** Подкоманды, которые меняют мир или смотрят чужие данные. */
+    private static final Set<String> ADMIN_ONLY =
+            Set.of("validate", "reload", "debug", "why", "xp");
+
+    private static final String PERMISSION_ADMIN = "rpgcore.admin";
 
     private final ContentService content;
     private final StatService stats;
@@ -51,6 +58,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length > 0 && ADMIN_ONLY.contains(args[0].toLowerCase(Locale.ROOT))
+                && !sender.hasPermission(PERMISSION_ADMIN)) {
+            sender.sendMessage("§cЭта подкоманда только для администраторов");
+            return true;
+        }
         if (args.length == 0) {
             sender.sendMessage("§e/rpg validate §7— проверить контент, ничего не применяя");
             sender.sendMessage("§e/rpg reload §7— перечитать контент");
@@ -60,6 +72,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg cast <навык> raw [ур] §7— в обход маны и перезарядки");
             sender.sendMessage("§e/rpg slot <номер> §7— применить навык из слота");
             sender.sendMessage("§e/rpg mana §7— запас маны и перезарядки");
+            sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
+            sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
             sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
@@ -75,6 +89,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "cast" -> cast(sender, args);
             case "slot" -> castSlot(sender, args);
             case "mana" -> mana(sender);
+            case "progress" -> progress(sender);
+            case "xp" -> giveXp(sender, args);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
             case "upgrade" -> upgrade(sender, args);
@@ -190,6 +206,10 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         }
         String id = args[1].toLowerCase(Locale.ROOT);
         boolean raw = args.length > 2 && args[2].equalsIgnoreCase("raw");
+        if (raw && !sender.hasPermission(PERMISSION_ADMIN)) {
+            sender.sendMessage("§cОбход проверок — только для администраторов");
+            return true;
+        }
 
         if (!raw) {
             var out = casts.cast(player.getUniqueId(), id);
@@ -262,6 +282,61 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         if (!any) {
             sender.sendMessage("§7перезарядок нет");
         }
+        return true;
+    }
+
+    /** Уровень, опыт и очки: то, по чему игрок решает, куда вкладываться. */
+    private boolean progress(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        UUID id = player.getUniqueId();
+        var def = playerClasses.classOf(id);
+        if (def.isEmpty()) {
+            sender.sendMessage("§cКласс не выбран: /rpg class <класс>");
+            return true;
+        }
+        var data = playerClasses.snapshot(id);
+        sender.sendMessage("§6" + def.get().display() + " §7— уровень §f" + data.level()
+                + "§7/§f" + def.get().maxLevel());
+        double left = playerClasses.xpToNextLevel(id);
+        sender.sendMessage(left > 0
+                ? "§7опыт: §f" + trim(Math.floor(data.xp()))
+                        + " §7— до следующего §f" + trim(Math.ceil(left))
+                : "§7предел уровня");
+        sender.sendMessage("§7свободных очков: §f" + data.unspentPoints());
+
+        for (var entry : data.slotBindings().entrySet()) {
+            int level = data.skillLevel(entry.getValue());
+            sender.sendMessage("§8слот " + entry.getKey() + ": §f" + entry.getValue()
+                    + " §7ур. §f" + level);
+        }
+        return true;
+    }
+
+    /**
+     * Выдача опыта себе. Нужна, чтобы проверять кривую и уровни, не убивая
+     * мобов руками; доступ ограничен правом в plugin.yml.
+     */
+    private boolean giveXp(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужно число: /rpg xp <сколько>");
+            return true;
+        }
+        double amount;
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cОпыт должен быть числом");
+            return true;
+        }
+        var out = playerClasses.addExperience(player.getUniqueId(), amount);
+        sender.sendMessage("§a" + out);
         return true;
     }
 
@@ -359,7 +434,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
         if (args.length == 1) {
-            return SUB.stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
+            boolean admin = sender.hasPermission(PERMISSION_ADMIN);
+            return SUB.stream()
+                    .filter(s -> admin || !ADMIN_ONLY.contains(s))
+                    .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
+                    .toList();
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();

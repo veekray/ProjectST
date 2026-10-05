@@ -39,7 +39,9 @@ class DependencyDirectionTest {
             "balance", Set.of("loader"),
             "classes", Set.of("loader", "stat", "balance", "skill", "data"),
             "skill", Set.of("loader", "stat", "damage", "status", "balance"),
-            "platform", Set.of("loader", "stat", "damage", "status", "data", "balance", "skill", "classes")
+            "cast", Set.of("loader", "stat", "damage", "status", "balance", "skill", "classes"),
+            "platform", Set.of("loader", "stat", "damage", "status", "data", "balance", "skill",
+                    "classes", "cast")
     );
 
     @Test

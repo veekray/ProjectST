@@ -19,10 +19,14 @@ import ru.projectst.rpgcore.balance.BalanceValue;
  * @param slots      сколько слотов навыков у класса
  * @param tierLevels минимальный уровень игрока для каждой ступени
  * @param statCurves базовые статы класса и их рост по уровню
+ * @param maxLevel   предел уровня: выше опыт не копится
+ * @param xpCurve    сколько опыта нужно, чтобы уйти с уровня N на N+1
+ * @param pointsPerLevel сколько очков навыков даёт уровень
  */
 public record ClassDef(String id, String display, int slots,
                        Map<Integer, Integer> tierLevels,
-                       Map<String, BalanceValue> statCurves) {
+                       Map<String, BalanceValue> statCurves,
+                       int maxLevel, BalanceValue xpCurve, int pointsPerLevel) {
 
     public ClassDef {
         if (id == null || !id.equals(id.toLowerCase(Locale.ROOT))) {
@@ -30,6 +34,12 @@ public record ClassDef(String id, String display, int slots,
         }
         if (slots < 1) {
             throw new IllegalArgumentException("у класса должен быть хотя бы один слот: " + id);
+        }
+        if (maxLevel < 1) {
+            throw new IllegalArgumentException("предел уровня не меньше 1: " + id);
+        }
+        if (xpCurve == null) {
+            throw new IllegalArgumentException("кривая опыта обязательна: " + id);
         }
         tierLevels = Collections.unmodifiableMap(new LinkedHashMap<>(
                 tierLevels == null ? Map.of() : tierLevels));
@@ -47,5 +57,15 @@ public record ClassDef(String id, String display, int slots,
 
     public boolean declaresTier(int tier) {
         return tierLevels.containsKey(tier);
+    }
+
+    /**
+     * Сколько опыта нужно для перехода с этого уровня на следующий.
+     *
+     * <p>Кривая считается от уровня, а не от общего накопленного опыта: так
+     * правка числа в файле не сдвигает уже достигнутые уровни игроков.
+     */
+    public double xpToNext(int level) {
+        return Math.max(1, xpCurve.at(level));
     }
 }

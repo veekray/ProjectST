@@ -19,7 +19,9 @@ import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.platform.ContentService;
 import ru.projectst.rpgcore.classes.ClassService;
 import ru.projectst.rpgcore.platform.BukkitSkillWorld;
+import ru.projectst.rpgcore.platform.ExperienceListener;
 import ru.projectst.rpgcore.platform.RpgCommand;
+import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatService;
@@ -88,6 +90,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         }
 
         Bukkit.getPluginManager().registerEvents(this, this);
+        Bukkit.getPluginManager().registerEvents(new SkillInputListener(casts), this);
+        Bukkit.getPluginManager().registerEvents(new ExperienceListener(classService), this);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память

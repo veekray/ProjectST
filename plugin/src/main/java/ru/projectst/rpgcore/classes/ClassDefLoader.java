@@ -16,6 +16,12 @@ import ru.projectst.rpgcore.loader.YmlMap;
  * id: mage
  * display: "&amp;bМаг"
  * slots: 6
+ * max-level: 60
+ * points-per-level: 1
+ *
+ * xp:
+ *   base: 100
+ *   per-level: 50
  *
  * tiers:
  *   1: 1
@@ -50,6 +56,9 @@ public final class ClassDefLoader {
         String id = root.str("id");
         String display = root.str("display", id);
         int slots = root.integer("slots", 1, 12, 6);
+        int maxLevel = root.integer("max-level", 1, 1000, 60);
+        int pointsPerLevel = root.integer("points-per-level", 0, 10, 1);
+        BalanceValue xp = readXp(root, errors);
         Map<Integer, Integer> tiers = readTiers(root, errors);
         Map<String, BalanceValue> stats = readStats(root, errors);
 
@@ -66,7 +75,30 @@ public final class ClassDefLoader {
         if (!ok) {
             return Optional.empty();
         }
-        return Optional.of(new ClassDef(id, display, slots, tiers, stats));
+        return Optional.of(new ClassDef(id, display, slots, tiers, stats,
+                maxLevel, xp, pointsPerLevel));
+    }
+
+    /**
+     * Кривая опыта. Отсутствие раздела — это осознанный ответ «сто плюс
+     * пятьдесят за уровень», а не нулевая стоимость: с нулём один убитый моб
+     * поднимал бы игрока до предела.
+     */
+    private static BalanceValue readXp(YmlMap root, ContentErrors errors) {
+        Optional<YmlMap> section = root.mapOpt("xp");
+        if (section.isEmpty()) {
+            return new BalanceValue.Curve(100, 50, 1, LIMIT);
+        }
+        YmlMap c = section.get();
+        double first = c.number("base", 1, LIMIT, 100);
+        double perLevel = c.number("per-level", -LIMIT, LIMIT, 50);
+        double min = c.number("min", 1, LIMIT, 1);
+        double max = c.number("max", 1, LIMIT, LIMIT);
+        if (min > max) {
+            errors.add(c.at(), "xp", "min больше max");
+            return new BalanceValue.Curve(first, perLevel, 1, LIMIT);
+        }
+        return new BalanceValue.Curve(first, perLevel, min, max);
     }
 
     private static Map<Integer, Integer> readTiers(YmlMap root, ContentErrors errors) {
