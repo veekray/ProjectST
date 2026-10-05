@@ -1,7 +1,6 @@
 package ru.projectst.rpgcore.client;
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -33,15 +32,9 @@ public final class HudEditScreen extends Screen {
 
     @Override
     protected void init() {
-        addRenderableWidget(Button.builder(Component.literal("Готово"), button -> {
-            HudLayout.save();
-            minecraft.setScreen(parent);
-        }).bounds(width / 2 - 104, height - 28, 100, 20).build());
-
-        addRenderableWidget(Button.builder(Component.literal("Вернуть как было"), button -> {
-            HudLayout.reset();
-            HudLayout.save();
-        }).bounds(width / 2 + 4, height - 28, 100, 20).build());
+        // Виджетов нет: кнопки рисуются и проверяются руками, в том же стиле,
+        // что панель. Ванильная серая кнопка посреди бронзы выглядит как чужое
+        // окно, вставленное в наше.
     }
 
     @Override
@@ -79,7 +72,10 @@ public final class HudEditScreen extends Screen {
             graphics.drawCenteredString(font, Component.literal(element.title()),
                     x + BOX_WIDTH / 2, y + 6, hovered ? RpgStyle.TEXT_WARN : RpgStyle.TEXT);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        RpgStyle.button(graphics, width / 2 - 104, height - 28, 100, 20, "Готово",
+                RpgStyle.hit(mouseX, mouseY, width / 2 - 104, height - 28, 100, 20), false);
+        RpgStyle.button(graphics, width / 2 + 4, height - 28, 100, 20, "Вернуть как было",
+                RpgStyle.hit(mouseX, mouseY, width / 2 + 4, height - 28, 100, 20), false);
     }
 
     private boolean inside(double mouseX, double mouseY, int x, int y) {
@@ -88,6 +84,16 @@ public final class HudEditScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (RpgStyle.hit(mouseX, mouseY, width / 2 - 104, height - 28, 100, 20)) {
+            HudLayout.save();
+            minecraft.setScreen(parent);
+            return true;
+        }
+        if (RpgStyle.hit(mouseX, mouseY, width / 2 + 4, height - 28, 100, 20)) {
+            HudLayout.reset();
+            HudLayout.save();
+            return true;
+        }
         for (HudLayout.Element element : HudLayout.Element.values()) {
             int x = HudLayout.screenX(element, width) - BOX_WIDTH / 2;
             int y = HudLayout.screenY(element, height);
