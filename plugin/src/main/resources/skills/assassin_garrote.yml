@@ -1,0 +1,40 @@
+# 5. Удавка — работает только по подготовленной жертве.
+#
+# Подготовленной считается та, на которой уже висит кровотечение, яд или
+# клеймо. Проверки удара со спины нет по той же причине, что и в ядре: она
+# врала. Условие здесь то же самое, что качает Тень, поэтому подкласс держится
+# на одной идее, а не на двух.
+
+id: assassin_garrote
+display: "Удавка"
+class: assassin
+icon: STRING
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Душит подготовленную жертву:"
+  - "оглушение, тишина и полный запрет"
+  - "лечения. По неподготовленной не работает."
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    if:
+      - { target: has-status, value: bleed }
+    do:
+      - { action: cast, skill: assassin_garrote_apply, at-targets: false }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    if:
+      - { target: has-status, value: venom }
+    do:
+      - { action: cast, skill: assassin_garrote_apply, at-targets: false }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    if:
+      - { target: has-status, value: reaper_brand }
+    do:
+      - { action: cast, skill: assassin_garrote_apply, at-targets: false }

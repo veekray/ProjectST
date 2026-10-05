@@ -1,0 +1,32 @@
+# Собственно удавка. Отдельным навыком, потому что подготовленность цели
+# проверяется тремя способами, а накинуться она должна один раз: замок
+# garrote_lock держит повтор, если на цели висит сразу несколько меток.
+
+id: assassin_garrote_apply
+display: "Удавка"
+class: assassin
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $apply_radius, limit: 1 }
+    if:
+      - { caster: has-status, value: garrote_lock, not: true }
+    do:
+      - { action: status, id: stun, duration: $hold_duration }
+      - { action: status, id: silence, duration: $hold_duration }
+      - action: modify-stat
+        stat: incoming_healing
+        op: flat
+        value: $heal_block
+        duration: $hold_duration
+      - { action: damage, amount: $damage, school: physical }
+      - { action: sound, sound: entity_player_attack_strong, volume: 1.0, pitch: 0.6 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.3 }
+
+  - target: { type: enemies_near_origin, radius: $apply_radius, limit: 1 }
+    if:
+      - { caster: has-status, value: garrote_lock, not: true }
+    do:
+      - { action: cast, skill: assassin_garrote_lock, at-targets: false }

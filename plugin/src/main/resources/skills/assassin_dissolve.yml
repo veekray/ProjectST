@@ -1,0 +1,42 @@
+# 2. Растворение — невидимость, скорость и Тень.
+#
+# Силуэт, державший агро, перенесён призванным: он ничего не бьёт, но ходит
+# рядом и тянет внимание на себя. Сброс цели у мобов сделан отдельным
+# действием — невидимость на их ИИ не влияет, и в старом стеке это чинили
+# тиком, который раз в полсекунды чистил цели.
+
+id: assassin_dissolve
+display: "Растворение"
+class: assassin
+icon: GLASS_BOTTLE
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Невидимость, скорость и Тень."
+  - "На месте остаётся силуэт,"
+  - "который тянет внимание на себя."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: clear-threat, radius: $threat_radius }
+      - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
+      - { action: status, id: veil, duration: $duration }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - action: summon
+        mob: assassin_afterimage
+        count: 1
+        duration: $duration
+        tag: afterimage
+        attacks-enemies: false
+      - { action: cast, skill: assassin_shadow_grant, at-targets: true }
+      - { action: sound, sound: entity_illusioner_prepare_mirror, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 30, size: 0.5 }

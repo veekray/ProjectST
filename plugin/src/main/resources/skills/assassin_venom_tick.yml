@@ -1,0 +1,19 @@
+# Яд тикает по отравленным вокруг.
+
+id: assassin_venom_tick
+display: "Трупный Яд"
+class: assassin
+tier: 4
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: venom }
+    do:
+      - { action: damage, amount: $damage, school: true }
+      - { action: particles, particle: squid_ink, shape: point, count: 4, size: 0.2 }

@@ -1,0 +1,40 @@
+# Удар по подготовленной жертве даёт Тень.
+#
+# Проверки удара со спины здесь нет, и это сознательно: она врала на разворотах
+# и зависела от того, как клиент шлёт поворот головы. Награда даётся за свою же
+# ротацию — кровотечение, яд или клеймо, — а не за то, где игрок стоит.
+#
+# Три одинаковых шага вместо одного «или»: условия шага складываются только
+# через «и», и три честных шага понятнее одного хитрого. Повторную выдачу
+# держит пауза vuln_cd внутри assassin_shadow_grant.
+
+id: assassin_vuln_check
+display: "Вскрытие"
+class: assassin
+tier: 1
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: vuln_cd, not: true }
+      - { target: has-status, value: bleed }
+    do:
+      - { action: cast, skill: assassin_shadow_grant, at-targets: false }
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: vuln_cd, not: true }
+      - { target: has-status, value: venom }
+    do:
+      - { action: cast, skill: assassin_shadow_grant, at-targets: false }
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: vuln_cd, not: true }
+      - { target: has-status, value: reaper_brand }
+    do:
+      - { action: cast, skill: assassin_shadow_grant, at-targets: false }

@@ -1,0 +1,42 @@
+# 10. Час Палача — Тень горит постоянно и не тратится.
+#
+# Расход Тени блокируется статусом executioner: это единственное место, где
+# ротация подкласса отключается, и отключается она целиком, а не наполовину.
+# Добивание раненых живёт в assassin_execute — оно от удара, а не от нажатия.
+
+id: assassin_executioners_hour
+display: "Час Палача"
+class: assassin
+icon: WITHER_SKELETON_SKULL
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Тень горит постоянно и не тратится."
+  - "Невидимость, усиленный крит,"
+  - "а добитый враг сбрасывает перезарядки."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: executioner, duration: $duration }
+      - { action: status, id: shadow, duration: $duration }
+      - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
+      - action: modify-stat
+        stat: critical_strike_power
+        op: flat
+        value: $crit_power
+        duration: $duration
+      - { action: sound, sound: entity_wither_spawn, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: squid_ink, shape: ring, count: 40, size: 4.0 }
+
+  # Час кончился — Тень гаснет вместе с ним, а не остаётся подарком.
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: remove-status, id: shadow }
+      - { action: clear-potion, effect: invisibility }
+      - { action: sound, sound: block_beacon_deactivate, volume: 0.8, pitch: 1.2 }

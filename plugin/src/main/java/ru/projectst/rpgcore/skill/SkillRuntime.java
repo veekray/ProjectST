@@ -42,6 +42,15 @@ public final class SkillRuntime {
      */
     private java.util.function.ObjDoubleConsumer<UUID> resources = (player, amount) -> { };
 
+    /**
+     * Чем сбрасывать перезарядку.
+     *
+     * <p>Тоже через приёмник, а не прямой ссылкой: учёт перезарядок живёт в
+     * воротах каста, а ворота вызывают исполнитель. Прямая ссылка замкнула бы
+     * круг, и это поймал бы тест направления зависимостей.
+     */
+    private java.util.function.BiConsumer<UUID, String> cooldownReset = (player, skill) -> { };
+
     public SkillRuntime(SkillWorld world, StatusService statuses, StatService stats,
                         BalanceBook balance, SkillRegistry skills, ZoneService zones,
                         MinionService minions, DoubleSupplier random) {
@@ -63,6 +72,11 @@ public final class SkillRuntime {
      */
     public void useResources(java.util.function.ObjDoubleConsumer<UUID> sink) {
         this.resources = sink == null ? (player, amount) -> { } : sink;
+    }
+
+    /** Подключает сброс перезарядок; см. {@link #cooldownReset}. */
+    public void useCooldowns(java.util.function.BiConsumer<UUID, String> sink) {
+        this.cooldownReset = sink == null ? (player, skill) -> { } : sink;
     }
 
     public void cast(UUID caster, SkillDef skill, int level) {
@@ -231,8 +245,14 @@ public final class SkillRuntime {
         int level = context.level();
         switch (action) {
 
-            case Action.Damage a -> forEach(targets, t -> world.dealDamage(context.caster(), t,
-                    a.amount().resolve(table, level, context.counters()), a.school(), skill.id()));
+            // Доля здоровья считается здесь, а не в конвейере: конвейер должен
+            // получать одно число и обходиться с ним одинаково, иначе защита и
+            // крит однажды перестанут применяться к одной из основ.
+            case Action.Damage a -> {
+                double written = a.amount().resolve(table, level, context.counters());
+                forEach(targets, t -> world.dealDamage(context.caster(), t,
+                        basisOf(a.basis(), written, t), a.school(), skill.id()));
+            }
 
             // Лечение и длительности статусов усиливаются статами кастера.
             // Эти два стата были объявлены и не читались никем: числа, которые
@@ -241,7 +261,11 @@ public final class SkillRuntime {
             case Action.Heal a -> {
                 double healed = a.amount().resolve(table, level, context.counters())
                         * effectScale(context.caster());
-                forEach(targets, t -> world.heal(t, healed));
+                // Получаемое лечение — стат цели, а не кастера, и читается
+                // здесь, в единственном месте, где лечение считается. В мире он
+                // был бы недоступен, и анти-хил пришлось бы повторять в каждом
+                // навыке, который лечит.
+                forEach(targets, t -> world.heal(t, healed * incomingScale(t)));
             }
 
             case Action.ApplyStatus a -> {
@@ -416,6 +440,18 @@ public final class SkillRuntime {
                 context.count(a.counter(), count);
             }
 
+            case Action.Swap ignored -> forEach(targets, t -> world.swap(context.caster(), t));
+
+            case Action.Scatter a -> {
+                double radius = a.radius().resolve(table, level, context.counters());
+                forEach(targets, t -> world.scatter(t, radius));
+            }
+
+            case Action.ClearThreat a -> world.clearThreat(context.caster(),
+                    a.radius().resolve(table, level, context.counters()));
+
+            case Action.ResetCooldown a -> cooldownReset.accept(context.caster(), a.skillId());
+
             case Action.Cast a -> {
                 Optional<SkillDef> sub = skills.find(a.skillId());
                 if (sub.isEmpty()) {
@@ -522,6 +558,27 @@ public final class SkillRuntime {
      * нижняя граница в ноль обязательна: усиление «минус двести процентов»
      * лечило бы уроном.
      */
+    /**
+     * Число, которое войдёт в конвейер.
+     *
+     * <p>Доля здоровья считается от цели, а не от кастера: клеймо тем больнее,
+     * чем крупнее жертва, и это единственное, чем основа отличается. Дальше
+     * конвейер обходится с числом одинаково.
+     */
+    private double basisOf(Action.Basis basis, double written, UUID target) {
+        return switch (basis) {
+            case FLAT -> written;
+            case TARGET_MAX_HEALTH -> written * world.maxHealthOf(target);
+            case TARGET_CURRENT_HEALTH -> written * world.healthOf(target);
+        };
+    }
+
+    /** Во сколько раз лечение доходит до цели: ноль и ниже — не доходит вовсе. */
+    private double incomingScale(UUID target) {
+        return Math.max(0, 1 + stats.snapshot(target)
+                .getOrZero(ru.projectst.rpgcore.damage.StatIds.INCOMING_HEALING) / 100.0);
+    }
+
     private double effectScale(UUID caster) {
         return Math.max(0, 1 + stats.snapshot(caster)
                 .getOrZero(ru.projectst.rpgcore.damage.StatIds.EFFECT_POWER) / 100.0);

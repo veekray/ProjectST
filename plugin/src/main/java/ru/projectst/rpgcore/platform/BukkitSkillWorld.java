@@ -427,6 +427,87 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
+    @Override
+    public double maxHealthOf(UUID entity) {
+        if (!(Bukkit.getEntity(entity) instanceof LivingEntity living)) {
+            return 0;
+        }
+        var attribute = living.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        return attribute == null ? living.getHealth() : attribute.getValue();
+    }
+
+    @Override
+    public double healthOf(UUID entity) {
+        return Bukkit.getEntity(entity) instanceof LivingEntity living ? living.getHealth() : 0;
+    }
+
+    /**
+     * Обмен местами.
+     *
+     * <p>Обе точки снимаются до первого переноса. Переносить по очереди нельзя:
+     * второй уехал бы в точку, где уже стоит первый, и один из двоих оказался бы
+     * в блоке.
+     */
+    @Override
+    public void swap(UUID first, UUID second) {
+        Entity one = Bukkit.getEntity(first);
+        Entity two = Bukkit.getEntity(second);
+        if (one == null || two == null || !one.getWorld().equals(two.getWorld())) {
+            return;
+        }
+        Location here = one.getLocation().clone();
+        Location there = two.getLocation().clone();
+        // Взгляд остаётся своим: обмен местами не должен разворачивать игрока,
+        // иначе после него он смотрит туда, куда смотрел противник.
+        here.setYaw(two.getLocation().getYaw());
+        here.setPitch(two.getLocation().getPitch());
+        there.setYaw(one.getLocation().getYaw());
+        there.setPitch(one.getLocation().getPitch());
+        one.teleport(there);
+        two.teleport(here);
+    }
+
+    @Override
+    public void scatter(UUID target, double radius) {
+        Entity entity = Bukkit.getEntity(target);
+        if (entity == null || radius <= 0) {
+            return;
+        }
+        Location from = entity.getLocation();
+        // Случайная точка берётся заново для каждой цели: один общий сдвиг
+        // переставил бы строй целиком, а он должен рассыпаться.
+        double offsetX = (Math.random() * 2 - 1) * radius;
+        double offsetZ = (Math.random() * 2 - 1) * radius;
+        Location to = from.clone().add(offsetX, 0, offsetZ);
+        to.setY(to.getWorld().getHighestBlockYAt(to) + 1.0);
+        // Если наверху оказалось слишком далеко от исходной высоты, оставляем
+        // цель на месте: телепорт на крышу горы вместо шага в сторону — это уже
+        // другое действие, и оно удивило бы.
+        if (Math.abs(to.getY() - from.getY()) > radius) {
+            return;
+        }
+        entity.teleport(to);
+    }
+
+    @Override
+    public void clearThreat(UUID caster, double radius) {
+        Entity source = Bukkit.getEntity(caster);
+        if (source == null || radius <= 0) {
+            return;
+        }
+        for (Entity nearby : source.getNearbyEntities(radius, radius, radius)) {
+            if (nearby instanceof Mob mob && caster.equals(targetIdOf(mob))) {
+                mob.setTarget(null);
+            }
+        }
+    }
+
+    /** На кого смотрит моб; null — ни на кого. */
+    private UUID targetIdOf(Mob mob) {
+        LivingEntity victim = mob.getTarget();
+        return victim == null ? null : victim.getUniqueId();
+    }
+
     /**
      * Находит призванному цель, если он без дела.
      *

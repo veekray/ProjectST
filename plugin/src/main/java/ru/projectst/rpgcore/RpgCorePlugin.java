@@ -111,6 +111,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // Возврат ресурса навыком: исполнитель не знает, мана это или
         // выносливость, и знать ему незачем.
         runtime.useResources(resources::restore);
+        // Сброс перезарядки навыком: учёт живёт в воротах каста, и прямая
+        // ссылка из исполнителя замкнула бы круг.
+        runtime.useCooldowns(cooldowns::clear);
 
         // Мобы: те же статы, те же навыки, своя метка.
         mobService = new MobService(this, content.mobs(), stats, content.skills(), runtime,

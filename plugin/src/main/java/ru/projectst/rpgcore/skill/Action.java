@@ -23,8 +23,36 @@ public sealed interface Action {
 
     // ------------------------------------------------------------------ бой
 
+    /**
+     * От чего считается урон.
+     *
+     * <p>Доля здоровья — отдельная основа, а не отдельное действие: иначе
+     * «нанести урон» было бы двумя разными путями в конвейере, и однажды один
+     * из них перестал бы учитывать защиту или крит. Основа решает только, какое
+     * число войдёт в конвейер; дальше всё одинаково.
+     */
+    enum Basis {
+        /** Число как написано. */
+        FLAT,
+        /** Доля от предела здоровья цели: толстая жертва получает больше. */
+        TARGET_MAX_HEALTH,
+        /** Доля от текущего здоровья цели: добивание не докручивает раненого. */
+        TARGET_CURRENT_HEALTH
+    }
+
     /** Урон по целям шага. Проходит через единый конвейер. */
-    record Damage(NumberRef amount, DamageSchool school) implements Action {
+    record Damage(NumberRef amount, DamageSchool school, Basis basis) implements Action {
+
+        public Damage(NumberRef amount, DamageSchool school) {
+            this(amount, school, Basis.FLAT);
+        }
+
+        public Damage {
+            if (basis == null) {
+                basis = Basis.FLAT;
+            }
+        }
+
         @Override
         public String name() {
             return "damage";
@@ -424,6 +452,67 @@ public sealed interface Action {
     }
 
     /** Сообщение целям шага. */
+    /**
+     * Обмен местами с целью.
+     *
+     * <p>Не два телепорта подряд: между ними цель успела бы оказаться в точке,
+     * куда уже перенесли кастера, и один из двоих застревал бы в блоке. Обмен
+     * считается от обеих позиций сразу.
+     */
+    record Swap() implements Action {
+        @Override
+        public String name() {
+            return "swap";
+        }
+    }
+
+    /**
+     * Раскидать цель в случайную точку рядом.
+     *
+     * <p>Точка берётся заново для каждой цели: иначе строй не рассыпается, а
+     * переезжает целиком, и смысл теряется.
+     */
+    record Scatter(NumberRef radius) implements Action {
+        @Override
+        public String name() {
+            return "scatter";
+        }
+    }
+
+    /**
+     * Сбросить перезарядку навыка у кастера.
+     *
+     * <p>Имя навыка проверяет компоновщик: сброс несуществующей перезарядки
+     * молча не делал бы ничего, а это ровно тот класс ошибок, ради которого всё
+     * это и затевалось.
+     */
+    record ResetCooldown(String skillId) implements Action {
+        public ResetCooldown {
+            if (skillId == null || skillId.isBlank()) {
+                throw new IllegalArgumentException("skillId обязателен");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "reset-cooldown";
+        }
+    }
+
+    /**
+     * Заставить существ вокруг забыть цель.
+     *
+     * <p>Работает по тем, кто вообще умеет кого-то выбирать целью, то есть по
+     * мобам. На игроков не действует и действовать не должно: отнимать у игрока
+     * управление — это уже контроль, а он делается статусами.
+     */
+    record ClearThreat(NumberRef radius) implements Action {
+        @Override
+        public String name() {
+            return "clear-threat";
+        }
+    }
+
     record Message(String text) implements Action {
         @Override
         public String name() {

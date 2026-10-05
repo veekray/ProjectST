@@ -1,0 +1,19 @@
+# Один прыжок каскада: ближайший ещё не задетый враг.
+
+id: assassin_cascade_jump
+display: "Каскад Теней — прыжок"
+class: assassin
+tier: 5
+internal: true
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
+    if:
+      - { target: has-status, value: cascade_hit, not: true }
+    do:
+      - { action: status, id: cascade_hit, duration: $mark_duration }
+      - { action: approach, distance: $behind_distance, behind: true }
+      - { action: damage, amount: $damage, school: physical }
+      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.6 }
+      - { action: particles, particle: squid_ink, shape: point, count: 20, size: 0.3 }

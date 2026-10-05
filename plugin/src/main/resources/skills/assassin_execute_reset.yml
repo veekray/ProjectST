@@ -1,0 +1,18 @@
+# Сброс перезарядок за казнь. Замок execute_lock не даёт казни срабатывать
+# каждым тычком: иначе Час Палача превращался бы в вечный сброс всего.
+
+id: assassin_execute_reset
+display: "Казнь — сброс"
+class: assassin
+tier: 5
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: execute_lock, duration: $lock_duration }
+      - { action: reset-cooldown, skill: assassin_nowhere_blade }
+      - { action: reset-cooldown, skill: assassin_shadow_cascade }
+      - { action: reset-cooldown, skill: assassin_arterial_cut }
+      - { action: message, text: "&8&lКазнь &7— перезарядки сброшены" }

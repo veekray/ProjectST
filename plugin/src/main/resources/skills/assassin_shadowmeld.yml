@@ -1,0 +1,30 @@
+# 7. Сход в Тень — враги теряют ассасина из виду.
+#
+# Сброс цели отдельным действием, а не одной невидимостью: невидимость прячет
+# от глаз, но не от чужого ИИ, и в старом стеке это чинили тиком, который
+# каждые полсекунды чистил цели у всех мобов вокруг.
+
+id: assassin_shadowmeld
+display: "Сход в Тень"
+class: assassin
+icon: BLACK_DYE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Враги вокруг забывают, кого били."
+  - "Невидимость на несколько секунд"
+  - "и готовая Тень."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: clear-threat, radius: $radius }
+      - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
+      - { action: status, id: veil, duration: $duration }
+      - { action: cast, skill: assassin_shadow_grant, at-targets: true }
+      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 0.7 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 40, size: 0.8 }

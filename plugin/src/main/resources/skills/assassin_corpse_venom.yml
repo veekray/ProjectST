@@ -1,0 +1,26 @@
+# 6. Трупный Яд — следующие удары разносят яд.
+#
+# Заряды — это стаки статуса на самом ассасине: каждый удар снимает один.
+# Счётчика нет, и поэтому ему негде разойтись с тем, что видно на экране.
+
+id: assassin_corpse_venom
+display: "Трупный Яд"
+class: assassin
+icon: SPIDER_EYE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Смазывает клинки ядом на несколько"
+  - "ударов. Отравленные хуже лечатся"
+  - "и тают со временем."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: venom_coat, duration: $coat_duration, amount: $charges }
+      - { action: sound, sound: entity_witch_throw, volume: 1.0, pitch: 1.3 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 20, size: 0.4 }

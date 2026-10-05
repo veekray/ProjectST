@@ -205,3 +205,103 @@ statuses:
     display: "Удары по метке"
     color: RED
     tags: [counter]
+
+  # ---------------------------------------------------------------- ассасин
+  # Ядро подкласса — Тень: есть или нет. Отдельного числа нет намеренно, иначе
+  # «готова ли Тень» пришлось бы спрашивать у счётчика, а показывать игроку —
+  # у статуса, и однажды они разошлись бы.
+  shadow:
+    display: "Тень"
+    color: DARK_PURPLE
+    category: buff
+    duration: 6000
+    stacking: stacks
+    max-stacks: 1
+    tags: [counter]
+
+  # Метка боя. Пока висит — Тень не копится; её длительность и есть тот самый
+  # «таймер тишины», отдельного счётчика нет.
+  combat_mark:
+    display: "В бою"
+    color: GRAY
+    category: debuff
+    duration: 60
+    tags: [soft]
+
+  # Пауза между выдачами Тени за удар по подготовленной жертве: без неё Тень
+  # качалась бы каждым тычком.
+  vuln_cd:
+    category: buff
+    duration: 60
+    tags: [soft]
+
+  bleed:
+    display: "Кровотечение"
+    color: DARK_RED
+    category: debuff
+    duration: 100
+    tags: [soft]
+
+  venom:
+    display: "Трупный Яд"
+    color: DARK_GREEN
+    category: debuff
+    duration: 120
+    stacking: stacks
+    max-stacks: 3
+    tags: [soft]
+
+  # Заряды яда на клинках: каждый удар снимает один стак.
+  venom_coat:
+    display: "Яд на клинках"
+    color: GREEN
+    category: buff
+    duration: 200
+    stacking: stacks
+    max-stacks: 4
+    tags: [soft]
+
+  reaper_brand:
+    display: "Клеймо Жнеца"
+    color: DARK_PURPLE
+    category: mark
+    duration: 160
+    tags: [mark]
+
+  veil:
+    display: "Покров"
+    color: DARK_GRAY
+    category: buff
+    duration: 60
+    tags: [soft]
+
+  riposte_window:
+    display: "Готов к ответу"
+    color: YELLOW
+    category: buff
+    duration: 16
+    tags: [soft]
+
+  executioner:
+    display: "Час Палача"
+    color: RED
+    category: buff
+    duration: 160
+    tags: [soft]
+
+  # Замки: короткие статусы, не дающие сработать дважды там, где условие
+  # проверяется несколькими путями.
+  garrote_lock:
+    category: buff
+    duration: 10
+    tags: [soft]
+
+  execute_lock:
+    category: buff
+    duration: 20
+    tags: [soft]
+
+  cascade_hit:
+    category: mark
+    duration: 60
+    tags: [mark]

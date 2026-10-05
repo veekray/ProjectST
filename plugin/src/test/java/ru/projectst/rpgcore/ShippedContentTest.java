@@ -48,7 +48,7 @@ class ShippedContentTest {
     private static final Path RESOURCES = Path.of("src", "main", "resources");
 
     /** Сколько активных навыков должно быть перенесено, по шесть на класс. */
-    private static final int EXPECTED_SELECTABLE = 24;
+    private static final int EXPECTED_SELECTABLE = 34;
 
     private static String read(String name) throws IOException {
         return Files.readString(RESOURCES.resolve(name), StandardCharsets.UTF_8);
@@ -159,7 +159,7 @@ class ShippedContentTest {
     }
 
     @Test
-    @DisplayName("перенесены все двадцать четыре активных навыка, по шесть на класс")
+    @DisplayName("перенесены все активные навыки, и у каждого класса их столько, сколько было")
     void allTwentyFourAreThere() throws IOException {
         Content content = load();
 
@@ -174,7 +174,8 @@ class ShippedContentTest {
 
         assertEquals(EXPECTED_SELECTABLE, selectable,
                 () -> "активных навыков по классам: " + perClass);
-        assertEquals(Map.of("mage", 6, "druid", 6, "warlock", 6, "rogue", 6), perClass);
+        assertEquals(Map.of("mage", 6, "druid", 6, "warlock", 6, "rogue", 6,
+                "assassin", 10), perClass);
     }
 
     @Test

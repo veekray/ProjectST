@@ -1,0 +1,29 @@
+# Удар смазанным клинком: яд переходит на цель, заряд тратится.
+
+id: assassin_venom_apply
+display: "Трупный Яд"
+class: assassin
+tier: 4
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: venom_coat }
+    do:
+      - { action: status, id: venom, duration: $venom_duration }
+      - action: modify-stat
+        stat: incoming_healing
+        op: flat
+        value: $heal_cut
+        duration: $venom_duration
+      - { action: particles, particle: squid_ink, shape: point, count: 10, size: 0.3 }
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: venom_coat }
+    do:
+      - { action: cast, skill: assassin_venom_spend, at-targets: false }

@@ -1,0 +1,13 @@
+# Снять один заряд яда с клинков.
+
+id: assassin_venom_spend
+display: "Трупный Яд — заряд"
+class: assassin
+tier: 4
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: venom_coat, stacks: 1 }

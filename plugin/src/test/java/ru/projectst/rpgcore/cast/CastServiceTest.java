@@ -60,6 +60,28 @@ class CastServiceTest {
 
     /** Мир, который только считает нанесённый урон. */
     private static final class FakeWorld implements SkillWorld {
+        @Override
+        public double maxHealthOf(UUID entity) {
+            return 20;
+        }
+
+        @Override
+        public double healthOf(UUID entity) {
+            return 20;
+        }
+
+        @Override
+        public void swap(UUID first, UUID second) {
+        }
+
+        @Override
+        public void scatter(UUID target, double radius) {
+        }
+
+        @Override
+        public void clearThreat(UUID caster, double radius) {
+        }
+
         final List<Double> damage = new ArrayList<>();
         /** Что случается в момент нанесения урона: нужно для проверки рекурсии. */
         Runnable onDamage;

@@ -1,0 +1,47 @@
+# 8. Каскад Теней — три прыжка подряд, каждый по новой цели.
+#
+# Метка cascade_hit держит очередь: уже задетый в этом каскаде не выбирается
+# снова, иначе все три прыжка уходили бы в одного и того же ближайшего врага.
+
+id: assassin_shadow_cascade
+display: "Каскад Теней"
+class: assassin
+icon: ENDER_PEARL
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Три прыжка подряд, каждый"
+  - "по новому врагу."
+  - "Дважды в одного не бьёт."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: assassin_cascade_jump, at-targets: true }
+
+  - target: { type: self }
+    delay: 8
+    do:
+      - { action: cast, skill: assassin_cascade_jump, at-targets: true }
+
+  - target: { type: self }
+    delay: 16
+    do:
+      - { action: cast, skill: assassin_cascade_jump, at-targets: true }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    delay: 24
+    do:
+      - { action: remove-status, id: cascade_hit }
+
+  - target: { type: self }
+    delay: 24
+    if:
+      - { caster: has-status, value: shadow }
+      - { caster: has-status, value: executioner, not: true }
+    do:
+      - { action: remove-status, id: shadow }

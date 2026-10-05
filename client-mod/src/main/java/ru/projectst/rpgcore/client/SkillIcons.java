@@ -30,6 +30,7 @@ public final class SkillIcons {
             "druid", 0xFF4F8A3A,
             "warlock", 0xFF7F3A6B,
             "rogue", 0xFF5B5B6B,
+            "assassin", 0xFF4A3A5B,
             "item", 0xFFC9A227);
 
     private SkillIcons() {
@@ -300,6 +301,128 @@ public final class SkillIcons {
                 "..bbbbb..",
                 "...b.b...",
                 "..b...b.."}));
+
+        // ------------------------------------------------------------ ассасин
+        // клинок из ниоткуда: кинжал, выходящий из разрыва
+        ICONS.put("assassin_nowhere_blade", new Icon(0xFF2A1A3A, 0xFF6B5A8A, 0xFFE8E0F0,
+                new String[] {
+                        "a.....cc.",
+                        ".a...cc..",
+                        "..a.cc...",
+                        "...bcc...",
+                        "..bbc....",
+                        ".bba.....",
+                        "bb..a....",
+                        "b....a...",
+                        "......a.."}));
+        // растворение: силуэт, рассыпающийся в точки
+        ICONS.put("assassin_dissolve", new Icon(0xFF1A1A24, 0xFF4A4A5B, 0xFFA09AB0,
+                new String[] {
+                        "...bbb...",
+                        "...bbb...",
+                        "..bbbbb..",
+                        "..bbbbb..",
+                        ".b.bbb.c.",
+                        "...b.b..c",
+                        "..c.b.c..",
+                        "..b...c..",
+                        ".c.....c."}));
+        // клеймо жнеца: печать с косой чертой
+        ICONS.put("assassin_reaper_brand", new Icon(0xFF2A0A1E, 0xFF8A2A5B, 0xFFE08AC0,
+                new String[] {
+                        "..bbbbb..",
+                        ".b.....b.",
+                        "b....cc.b",
+                        "b...cc..b",
+                        "b..cc...b",
+                        "b.cc....b",
+                        "b.......b",
+                        ".b.....b.",
+                        "..bbbbb.."}));
+        // вскрытие артерии: порез и капли
+        ICONS.put("assassin_arterial_cut", new Icon(0xFF4A0A0A, 0xFFB02A24, 0xFFF08078,
+                new String[] {
+                        ".......cc",
+                        "......cc.",
+                        ".....cc..",
+                        "....cc...",
+                        "...cc....",
+                        "..cc.....",
+                        ".cc..b.b.",
+                        "cc..bbbb.",
+                        "....b.b.."}));
+        // удавка: петля с хвостом
+        ICONS.put("assassin_garrote", new Icon(0xFF2A2418, 0xFF8A7A5B, 0xFFE0D4B0,
+                new String[] {
+                        "..bbbbb..",
+                        ".b.....b.",
+                        "b.......b",
+                        "b.......b",
+                        ".b.....b.",
+                        "..bb.bb..",
+                        "...c.c...",
+                        "...c.c...",
+                        "...ccc..."}));
+        // трупный яд: флакон с черепом
+        ICONS.put("assassin_corpse_venom", new Icon(0xFF1A2A0E, 0xFF4E7A1E, 0xFFBCE88A,
+                new String[] {
+                        "...aaa...",
+                        "....a....",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        ".bcb.bcb.",
+                        ".bbbbbbb.",
+                        ".bb.c.bb.",
+                        ".bbbbbbb.",
+                        "..bbbbb.."}));
+        // сход в тень: силуэт в клубах
+        ICONS.put("assassin_shadowmeld", new Icon(0xFF140F1C, 0xFF3A3448, 0xFF8A82A0,
+                new String[] {
+                        ".c.....c.",
+                        "c..bbb..c",
+                        ".c.bbb.c.",
+                        "..bbbbb..",
+                        "c.bbbbb.c",
+                        ".cbbbbbc.",
+                        "c..bbb..c",
+                        ".c.....c.",
+                        "c.......c"}));
+        // каскад теней: три прыжка зигзагом
+        ICONS.put("assassin_shadow_cascade", new Icon(0xFF1A1428, 0xFF5B4A8A, 0xFFC0B0F0,
+                new String[] {
+                        "cc.......",
+                        ".cc......",
+                        "..cb.....",
+                        "...bcc...",
+                        "....bcc..",
+                        ".....cb..",
+                        "......bcc",
+                        ".......cc",
+                        "........c"}));
+        // ответный клинок: скрещённые лезвия
+        ICONS.put("assassin_riposte", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFF0F0F8,
+                new String[] {
+                        "c.......c",
+                        ".c.....c.",
+                        "..c...c..",
+                        "...c.c...",
+                        "....b....",
+                        "...c.c...",
+                        "..c...c..",
+                        ".a.....a.",
+                        "a.......a"}));
+        // час палача: череп в кольце
+        ICONS.put("assassin_executioners_hour", new Icon(0xFF2A0A0A, 0xFFB02A24, 0xFFF0E8D8,
+                new String[] {
+                        "..bbbbb..",
+                        ".b.....b.",
+                        "b.ccccc.b",
+                        "b.c.c.c.b",
+                        "b.ccccc.b",
+                        "b..c.c..b",
+                        "b.ccccc.b",
+                        ".b.....b.",
+                        "..bbbbb.."}));
     }
 
     /**

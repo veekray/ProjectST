@@ -181,6 +181,10 @@ public final class SkillLinker {
             case Action.Sound ignored -> List.of();
             case Action.Message ignored -> List.of();
             case Action.Cast ignored -> List.of();
+            case Action.Swap ignored -> List.of();
+            case Action.Scatter a -> refs(a.radius());
+            case Action.ClearThreat a -> refs(a.radius());
+            case Action.ResetCooldown ignored -> List.of();
         };
     }
 
@@ -242,6 +246,21 @@ public final class SkillLinker {
                 }
                 if (c.skillId().equals(skill.id())) {
                     errors.add(where, path + ".skill", "навык вызывает сам себя");
+                }
+            }
+            case Action.Swap ignored -> {
+                // ссылок не содержит
+            }
+            case Action.Scatter sc ->
+                    checkBalance(skill, where, table, path + ".radius", sc.radius(), errors);
+            case Action.ClearThreat ct ->
+                    checkBalance(skill, where, table, path + ".radius", ct.radius(), errors);
+            case Action.ResetCooldown rc -> {
+                // Сброс перезарядки несуществующего навыка молча не делал бы
+                // ничего — ровно тот класс ошибок, ради которого всё затевалось.
+                if (!skillIds.contains(rc.skillId())) {
+                    errors.add(where, path + ".skill",
+                            "ссылка на несуществующий навык \"" + rc.skillId() + "\"");
                 }
             }
             case Action.Ray r -> {

@@ -462,3 +462,170 @@ balance:
     damage: 8
     push: 0.8
     blind_duration: 40
+
+  # ================================================================ ассасин
+  # Перезарядки взяты те же, что были у подкласса до отладки: в исходных файлах
+  # они стояли в нуле с пометкой «боевое значение было столько-то», и перенесены
+  # именно боевые.
+
+  assassin_core_tick:
+    shadow_duration: 6000
+
+  assassin_combat_mark:
+    combat_duration: 60
+
+  assassin_shadow_grant:
+    shadow_duration: 6000
+    vuln_cooldown: 60
+
+  assassin_nowhere_blade:
+    stamina: 12
+    cooldown:
+      base: 6.0
+      per-level: -0.05
+      min: 3.0
+    range: 18
+    hit_range: 4
+    behind_distance: 1.2
+    cone_range: 5
+    damage:
+      base: 10
+      per-level: 1.4
+    damage_exposed:
+      base: 16
+      per-level: 2.2
+
+  assassin_dissolve:
+    stamina: 18
+    cooldown:
+      base: 18.0
+      per-level: -0.1
+      min: 12.0
+    threat_radius: 14
+    duration: 60
+    speed: 20
+
+  assassin_reaper_brand:
+    stamina: 16
+    cooldown:
+      base: 14.0
+      per-level: -0.1
+      min: 9.0
+    range: 15
+    brand_duration: 160
+
+  assassin_brand_detonate:
+    # Доля предела здоровья цели: клеймо тем больнее, чем крупнее жертва.
+    brand_percent: 0.12
+    brand_damage:
+      base: 15
+      per-level: 1.6
+
+  assassin_arterial_cut:
+    stamina: 14
+    cooldown:
+      base: 12.0
+      per-level: -0.1
+      min: 7.0
+    range: 4
+    damage:
+      base: 8
+      per-level: 1.0
+    bleed_duration: 100
+    bleed_duration_exposed: 200
+
+  assassin_bleed_tick:
+    radius: 30
+    damage: 0.025
+
+  assassin_garrote:
+    stamina: 18
+    cooldown:
+      base: 20.0
+      per-level: -0.1
+      min: 14.0
+    range: 3
+
+  assassin_garrote_apply:
+    apply_radius: 4
+    hold_duration: 40
+    heal_block: -100
+    damage:
+      base: 6
+      per-level: 0.6
+
+  assassin_garrote_lock:
+    lock_duration: 10
+
+  assassin_corpse_venom:
+    stamina: 20
+    cooldown:
+      base: 22.0
+      per-level: -0.1
+      min: 15.0
+    coat_duration: 200
+    charges: 4
+
+  assassin_venom_apply:
+    venom_duration: 120
+    heal_cut: -75
+
+  assassin_venom_tick:
+    radius: 30
+    damage:
+      base: 3
+      per-level: 0.2
+
+  assassin_shadowmeld:
+    stamina: 24
+    cooldown:
+      base: 45.0
+      per-level: -0.2
+      min: 30.0
+    radius: 15
+    duration: 40
+
+  assassin_shadow_cascade:
+    stamina: 22
+    cooldown:
+      base: 25.0
+      per-level: -0.15
+      min: 16.0
+    radius: 10
+
+  assassin_cascade_jump:
+    radius: 10
+    mark_duration: 60
+    behind_distance: 1.2
+    damage:
+      base: 9
+      per-level: 1.1
+
+  assassin_riposte:
+    stamina: 14
+    cooldown:
+      base: 16.0
+      per-level: -0.1
+      min: 10.0
+    window: 16
+
+  assassin_riposte_counter:
+    damage:
+      base: 12
+      per-level: 1.3
+
+  assassin_executioners_hour:
+    stamina: 40
+    cooldown:
+      base: 120.0
+      per-level: -0.5
+      min: 80.0
+    duration: 160
+    crit_power: 40
+
+  assassin_execute:
+    # Доля текущего здоровья: добивание, а не второй основной удар.
+    damage: 0.35
+
+  assassin_execute_reset:
+    lock_duration: 20

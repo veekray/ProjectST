@@ -20,6 +20,8 @@ public record DamageResult(double applied, double absorbed, boolean crit, Blocke
     public enum Blocker {
         /** Цель под статусом неуязвимости. */
         IMMUNITY,
+        /** Цель уклонилась: сработало уклонение. */
+        DODGE,
         /** Щиты поглотили всё без остатка. */
         SHIELD,
         /** Отменено сторонним плагином через событие: регион, пати, арена. */

@@ -1,0 +1,25 @@
+# Выдать Тень. Вызывается оттуда, где её заслужили.
+#
+# Отдельным навыком, а не повтором трёх строк в каждом месте: условие «Тень уже
+# есть» и внутренняя пауза объявлены здесь один раз.
+
+id: assassin_shadow_grant
+display: "Тень"
+class: assassin
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: vuln_cd, duration: $vuln_cooldown }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: shadow, not: true }
+    do:
+      - { action: status, id: shadow, duration: $shadow_duration }
+      - { action: message, text: "&8&oТень готова" }
+      - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.9 }
+      - { action: particles, particle: squid_ink, shape: point, count: 12, size: 0.3 }

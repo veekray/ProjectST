@@ -1,0 +1,14 @@
+# Замок удавки: десять тиков, чтобы несколько меток на одной цели не накинули
+# её трижды.
+
+id: assassin_garrote_lock
+display: "Удавка — замок"
+class: assassin
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: garrote_lock, duration: $lock_duration }

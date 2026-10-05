@@ -43,6 +43,22 @@ public final class StatIds {
     /** Процентное снижение любого урона. */
     public static final String DAMAGE_REDUCTION = "damage_reduction";
 
+    /**
+     * Шанс не получить удар вовсе, в процентах.
+     *
+     * <p>Отдельно от снижения урона намеренно: снижение режет каждый удар
+     * понемногу и предсказуемо, уклонение изредка убирает удар целиком. Одно
+     * число вместо двух стёрло бы разницу, на которой стоят плут и его
+     * подклассы.
+     */
+    public static final String DODGE_RATING = "dodge_rating";
+
+    /** Получаемое лечение в процентах; отрицательное — анти-хил. */
+    public static final String INCOMING_HEALING = "incoming_healing";
+
+    /** Скорость передвижения в процентах сверх обычной. */
+    public static final String MOVEMENT_SPEED = "movement_speed";
+
     private StatIds() {
     }
 }

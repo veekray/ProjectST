@@ -1,0 +1,27 @@
+# Ядро ассасина: Тень копится в тишине.
+#
+# В старом стеке это была самоподдерживающаяся аура, которую каждый навык
+# обязан был обновлять первой строкой — забудь строку, и ядро молча умирало.
+# Здесь это служебный навык класса: он работает с первого уровня и не зависит
+# от того, что игрок нажал.
+
+id: assassin_core_tick
+display: "Тень"
+class: assassin
+tier: 1
+internal: true
+
+on: interval
+every: 40
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: combat_mark, not: true }
+      - { caster: has-status, value: shadow, not: true }
+    do:
+      - { action: status, id: shadow, duration: $shadow_duration }
+      - { action: message, text: "&8&oТень готова" }
+      - { action: sound, sound: block_sculk_sensor_clicking, volume: 0.5, pitch: 1.6 }
+      - { action: particles, particle: squid_ink, shape: point, count: 10, size: 0.4 }

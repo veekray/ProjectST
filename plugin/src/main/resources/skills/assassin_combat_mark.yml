@@ -1,0 +1,19 @@
+# Получил урон — Тень сгорает и не копится, пока идёт бой.
+#
+# Таймер тишины — это длительность самой метки: отдельного счётчика нет
+# намеренно, иначе их стало бы два и однажды они разошлись бы.
+
+id: assassin_combat_mark
+display: "В бою"
+class: assassin
+tier: 1
+internal: true
+
+on: damaged
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: combat_mark, duration: $combat_duration }
+      - { action: remove-status, id: shadow }

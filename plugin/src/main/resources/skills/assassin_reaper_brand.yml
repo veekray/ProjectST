@@ -1,0 +1,34 @@
+# 3. Клеймо Жнеца — метка, которую взрывает Вскрытый удар.
+#
+# Накопленный урон не хранится числом. В старом стеке его собирали стаками ауры
+# на самой жертве, потому что переменные кастера не резолвились; здесь урон
+# детонации считается долей предела здоровья цели — чем крупнее жертва, тем
+# больнее клеймо, и хранить при этом нечего.
+#
+# Детонация живёт в assassin_brand_detonate: она срабатывает от удара, а не от
+# нажатия, и поэтому не может быть шагом этого навыка.
+
+id: assassin_reaper_brand
+display: "Клеймо Жнеца"
+class: assassin
+icon: NETHER_STAR
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Ставит клеймо на врага."
+  - "Удар со Тенью по заклеймённому"
+  - "срывает клеймо и бьёт тем сильнее,"
+  - "чем крупнее жертва."
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    if:
+      - { target: has-status, value: reaper_brand, not: true }
+    do:
+      - { action: status, id: reaper_brand, duration: $brand_duration }
+      - { action: sound, sound: block_respawn_anchor_charge, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 25, size: 0.5 }

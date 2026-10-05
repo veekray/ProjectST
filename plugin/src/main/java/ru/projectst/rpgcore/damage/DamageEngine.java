@@ -55,7 +55,22 @@ public final class DamageEngine {
         }
         double afterScaling = value;
 
-        // 3. крит
+        // 3. уклонение
+        //
+        // Бросок делается до крита и до снижения, но после усиления: так в
+        // результате остаются промежуточные значения, и в отладке видно, какой
+        // удар цель только что увела. Уклониться можно только от того, что
+        // вообще снижаемо: от урона по времени и от чистого урона — нет, иначе
+        // яд переставал бы тикать по удачливой цели.
+        if (defender != null && school.mitigable() && !request.hasTag("no_dodge")) {
+            double dodge = statOrZero(defender, StatIds.DODGE_RATING);
+            if (dodge > 0 && random.getAsDouble() * 100 < dodge) {
+                return new DamageResult(0, 0, false, DamageResult.Blocker.DODGE,
+                        afterScaling, afterScaling);
+            }
+        }
+
+        // 4. крит
         boolean crit = false;
         if (attacker != null && !request.hasTag("no_crit")) {
             double chance = statOrZero(attacker, StatIds.CRIT_CHANCE);
@@ -68,7 +83,7 @@ public final class DamageEngine {
             }
         }
 
-        // 4. снижение целью
+        // 5. снижение целью
         if (defender != null && school.mitigable()) {
             double reduction = statOrZero(defender, school.defenseStat())
                     + statOrZero(defender, StatIds.DAMAGE_REDUCTION);
@@ -76,7 +91,7 @@ public final class DamageEngine {
         }
         double afterMitigation = value;
 
-        // 5. неуязвимость — после подсчёта промежуточных значений, но ДО щитов.
+        // 6. неуязвимость — после подсчёта промежуточных значений, но ДО щитов.
         //
         // Порядок именно такой по двум причинам сразу. Если проверять раньше,
         // в результате остаётся голый ноль, и в отладке не видно, каким урон
@@ -87,7 +102,7 @@ public final class DamageEngine {
                     afterScaling, afterMitigation);
         }
 
-        // 6. щиты
+        // 7. щиты
         double absorbed = 0;
         if (state.shieldPool() > 0) {
             absorbed = Math.min(state.shieldPool(), value);

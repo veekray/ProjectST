@@ -41,6 +41,38 @@ class SkillRuntimeTest {
 
     /** Подставной мир: пишет, что от него просили. */
     private static final class FakeWorld implements SkillWorld {
+        // Новые примитивы: подкласс плута без них не выражается.
+        final java.util.List<String> swaps = new java.util.ArrayList<>();
+        final java.util.List<String> scattered = new java.util.ArrayList<>();
+        final java.util.List<String> threatCleared = new java.util.ArrayList<>();
+        double maxHealth = 40;
+        double health = 20;
+
+        @Override
+        public double maxHealthOf(UUID entity) {
+            return maxHealth;
+        }
+
+        @Override
+        public double healthOf(UUID entity) {
+            return health;
+        }
+
+        @Override
+        public void swap(UUID first, UUID second) {
+            swaps.add(first + "<->" + second);
+        }
+
+        @Override
+        public void scatter(UUID target, double radius) {
+            scattered.add(target + "@" + radius);
+        }
+
+        @Override
+        public void clearThreat(UUID caster, double radius) {
+            threatCleared.add(caster + "@" + radius);
+        }
+
         final List<String> calls = new ArrayList<>();
         final List<Runnable> delayed = new ArrayList<>();
         List<UUID> nextTargets = List.of(A, B);
@@ -224,6 +256,8 @@ class SkillRuntimeTest {
         defs.put("effect_power", new StatDef("effect_power", "ep", 0, -90, 500, Rounding.NONE));
         defs.put("effect_duration",
                 new StatDef("effect_duration", "ed", 0, -90, 500, Rounding.NONE));
+        defs.put("incoming_healing",
+                new StatDef("incoming_healing", "ih", 0, -100, 300, Rounding.NONE));
         return new StatService(new StatEngine(new StatRegistry(defs)));
     }
 
@@ -272,6 +306,135 @@ class SkillRuntimeTest {
     }
 
     // ------------------------------------------------------------------ шаг
+
+    @Test
+    @DisplayName("лечение режется получаемым лечением цели, а не кастера")
+    void antiHealCutsIncomingHealing() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: modify-stat, stat: incoming_healing, op: flat,
+                          value: -75, duration: 100 }
+                      - { action: heal, amount: 40 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("heal A 10.0", "heal B 10.0"),
+                f.world.calls.stream().filter(c -> c.startsWith("heal")).toList(),
+                "минус семьдесят пять процентов — это четверть, и считается она "
+                        + "у того, кого лечат");
+    }
+
+    @Test
+    @DisplayName("урон долей считается от здоровья цели, а не от написанного числа")
+    void damageFromMaxHealth() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 0.25, basis: target_max_health }
+                """);
+        Fixture f = fixture(skill);
+        f.world.maxHealth = 40;
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("resolve ENEMIES_IN_RADIUS r=6.0",
+                        "damage A 10.0 MAGIC", "damage B 10.0 MAGIC"), f.world.calls,
+                "четверть от сорока — десять: иначе клеймо било бы одинаково "
+                        + "по кролику и по дракону");
+    }
+
+    @Test
+    @DisplayName("обмен местами идёт одной операцией на кастера и цель")
+    void swapsPlaces() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: swap }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of(CASTER + "<->" + A, CASTER + "<->" + B),
+                f.world.swaps);
+    }
+
+    @Test
+    @DisplayName("раскидывание применяется к каждой цели отдельно")
+    void scattersEachTarget() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: scatter, radius: 8 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of(A + "@8.0", B + "@8.0"), f.world.scattered,
+                "строй рассыпается только если каждого двигают своей точкой");
+    }
+
+    @Test
+    @DisplayName("сброс агро просят у мира один раз, от кастера")
+    void clearsThreatOnce() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: clear-threat, radius: 15 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of(CASTER + "@15.0"), f.world.threatCleared);
+    }
+
+    @Test
+    @DisplayName("сброс перезарядки уходит в приёмник ворот каста")
+    void resetsCooldown() {
+        SkillDef other = parse("other_skill", """
+                id: other_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 1 }
+                """);
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: reset-cooldown, skill: other_skill }
+                """);
+        Fixture f = fixture(skill, other);
+        List<String> reset = new java.util.ArrayList<>();
+        f.runtime.useCooldowns((player, id) -> reset.add(player + ":" + id));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of(CASTER + ":other_skill"), reset);
+    }
 
     @Test
     @DisplayName("цели шага вычисляются ровно один раз на все его действия")

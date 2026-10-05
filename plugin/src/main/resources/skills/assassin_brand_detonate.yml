@@ -1,0 +1,33 @@
+# Срыв клейма: удар со Тенью по заклеймённой цели.
+#
+# Служебный навык от удара, а не шаг Клейма: детонация должна случаться в бою,
+# когда ассасин действительно попал, а не когда он нажал кнопку.
+
+id: assassin_brand_detonate
+display: "Срыв клейма"
+class: assassin
+tier: 2
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: shadow }
+      - { target: has-status, value: reaper_brand }
+    do:
+      - { action: damage, amount: $brand_percent, school: true, basis: target_max_health }
+      - { action: damage, amount: $brand_damage, school: true }
+      - { action: remove-status, id: reaper_brand }
+      - { action: sound, sound: entity_wither_break_block, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: explosion, shape: point, count: 6, size: 0.5 }
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: shadow }
+      - { caster: has-status, value: executioner, not: true }
+      - { target: has-status, value: reaper_brand }
+    do:
+      - { action: cast, skill: assassin_shadow_spend, at-targets: false }

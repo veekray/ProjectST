@@ -66,6 +66,40 @@ class DamageEngineTest {
     }
 
     @Test
+    @DisplayName("уклонение убирает удар целиком и называет причину")
+    void dodgeBlocksWholeHit() {
+        DamageResult r = ALWAYS_CRIT.compute(magic(100), stats(),
+                stats(StatIds.DODGE_RATING, 30), DefenderState.NONE);
+
+        assertEquals(0, r.applied(), 1e-9);
+        assertEquals(DamageResult.Blocker.DODGE, r.blockedBy(),
+                "молчаливый ноль здесь неотличим от поломки");
+        assertFalse(r.crit(), "уклонились — крита не было, а не был и погашен");
+        assertEquals(100, r.afterScaling(), 1e-9,
+                "в отладке должно быть видно, какой удар цель только что увела");
+    }
+
+    @Test
+    @DisplayName("уклонение не спасает от неснижаемого урона")
+    void dodgeDoesNotStopTrueDamage() {
+        DamageResult r = NO_CRIT.compute(
+                DamageRequest.of(100, DamageSchool.TRUE, "s"),
+                stats(), stats(StatIds.DODGE_RATING, 100), DefenderState.NONE);
+
+        assertEquals(100, r.applied(), 1e-9,
+                "иначе яд переставал бы тикать по удачливой цели");
+    }
+
+    @Test
+    @DisplayName("при нулевом уклонении бросок не делается вовсе")
+    void noDodgeRollWithoutRating() {
+        DamageResult r = ALWAYS_CRIT.compute(magic(100), stats(), stats(),
+                DefenderState.NONE);
+
+        assertFalse(r.blocked(), "ноль процентов не должен срабатывать на нулевом броске");
+    }
+
+    @Test
     @DisplayName("крит применяется до снижения целью")
     void critBeforeMitigation() {
         DamageResult r = ALWAYS_CRIT.compute(magic(100),

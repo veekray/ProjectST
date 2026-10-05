@@ -1,0 +1,26 @@
+# 9. Ответный Клинок — короткое окно, в котором удар по ассасину возвращается.
+#
+# Окно, а не постоянная пассивка: ответ должен стоить нажатия и попадания в
+# момент, иначе он превращается в фоновый урон, которого никто не замечает.
+
+id: assassin_riposte
+display: "Ответный Клинок"
+class: assassin
+icon: SHIELD
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Короткое окно: следующий удар по вам"
+  - "возвращается с процентами, даёт Тень"
+  - "и сбрасывает Клинок из Ниоткуда."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: riposte_window, duration: $window }
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: sweep_attack, shape: point, count: 3, size: 0.3 }

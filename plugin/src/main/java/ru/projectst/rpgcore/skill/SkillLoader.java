@@ -333,7 +333,8 @@ public final class SkillLoader {
         return switch (kind) {
             case "damage" -> require(b, path, errors, "amount", amount ->
                     new Action.Damage(amount,
-                            b.enumOf("school", DamageSchool.class, DamageSchool.MAGIC)));
+                            b.enumOf("school", DamageSchool.class, DamageSchool.MAGIC),
+                            b.enumOf("basis", Action.Basis.class, Action.Basis.FLAT)));
 
             case "heal" -> require(b, path, errors, "amount", Action.Heal::new);
 
@@ -568,6 +569,23 @@ public final class SkillLoader {
                 }
                 yield Optional.of(new Action.ConsumeZones(tag, radius, counter, ownOnly,
                         atOrigin));
+            }
+
+            case "swap" -> {
+                yield Optional.of(new Action.Swap());
+            }
+
+            case "scatter" -> require(b, path, errors, "radius", Action.Scatter::new);
+
+            case "clear-threat" -> require(b, path, errors, "radius", Action.ClearThreat::new);
+
+            case "reset-cooldown" -> {
+                String skillId = b.str("skill", "");
+                if (skillId.isBlank()) {
+                    errors.add(b.at(), path + ".skill", "обязательный ключ skill отсутствует");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.ResetCooldown(skillId));
             }
 
             case "message" -> {

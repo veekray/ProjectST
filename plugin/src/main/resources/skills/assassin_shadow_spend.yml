@@ -1,0 +1,15 @@
+# Потратить Тень. Час Палача расход блокирует — там Тень горит постоянно.
+
+id: assassin_shadow_spend
+display: "Тень потрачена"
+class: assassin
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: executioner, not: true }
+    do:
+      - { action: remove-status, id: shadow }

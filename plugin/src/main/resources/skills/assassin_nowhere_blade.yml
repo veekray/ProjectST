@@ -1,0 +1,54 @@
+# 1. Клинок из Ниоткуда — заход за спину и удар оттуда.
+#
+# Со Тенью удар уходит Вскрытым: конус на троих вместо одной цели и урон,
+# который не режется защитой. Тень при этом тратится — в этом вся ротация.
+#
+# Заход сделан сближением за спину, а не телепортом по тригонометрии: прошлая
+# версия считала точку через синус от поворота цели и при малейшей ошибке
+# выражения кидала игрока в район нулевых координат.
+
+id: assassin_nowhere_blade
+display: "Клинок из Ниоткуда"
+class: assassin
+icon: IRON_SWORD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Заход за спину цели и удар оттуда."
+  - "Со Тенью бьёт конусом по нескольким"
+  - "и не замечает брони."
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.6 }
+      - { action: approach, distance: $behind_distance, behind: true }
+      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 1.3 }
+
+  # Обычный удар — только без Тени, иначе он сложился бы со Вскрытым.
+  - target: { type: enemies_in_radius, radius: $hit_range, limit: 1 }
+    if:
+      - { caster: has-status, value: shadow, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3 }
+
+  # Вскрытие: конус, больший урон и чистый урон вместо физического.
+  - target: { type: enemies_in_cone, radius: $cone_range, angle: 90, limit: 3 }
+    if:
+      - { caster: has-status, value: shadow }
+    do:
+      - { action: damage, amount: $damage_exposed, school: true }
+      - { action: particles, particle: crit, shape: ring, count: 24, size: 3.0 }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.6 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: shadow }
+      - { caster: has-status, value: executioner, not: true }
+    do:
+      - { action: remove-status, id: shadow }

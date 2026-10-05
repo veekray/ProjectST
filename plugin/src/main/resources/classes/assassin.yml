@@ -1,0 +1,60 @@
+# Ассасин — подкласс плута, перенесённый отдельным классом.
+#
+# Почему классом, а не надстройкой над плутом: его навыки плутовские заменяют,
+# а не дополняют. Растворение — это тот же Шаг призрака, Клинок из Ниоткуда —
+# тот же Удар из тени. Игроку, у которого есть и то и другое, пришлось бы
+# держать на панели две кнопки невидимости, и разницу между ними не объяснил бы
+# никто. Так же в этом ядре уже устроены друид и колдун: на старом сервере они
+# были подклассами мага.
+#
+# Ступеней десять, а не пять: столько уровней открытия было у подкласса, и
+# сжимать их означало бы выдавать навыки не тогда, когда они выдавались.
+
+id: assassin
+display: "&8Ассасин"
+slots: 6
+icon: IRON_SWORD
+max-level: 60
+points-per-level: 1
+
+resource:
+  name: "Выносливость"
+  max: max_stamina
+  regen: stamina_regen
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 3
+  3: 5
+  4: 7
+  5: 10
+
+stats:
+  max_health:
+    base: 18
+    per-level: 2
+  max_stamina:
+    base: 100
+    per-level: 4
+  stamina_regen:
+    base: 4
+    per-level: 0.1
+  physical_damage:
+    base: 0
+    per-level: 0.8
+  critical_strike_chance:
+    base: 8
+    per-level: 0.25
+  critical_strike_power:
+    base: 0
+    per-level: 0.5
+  dodge_rating:
+    base: 3
+    per-level: 0.1
+  defense:
+    base: 1
+    per-level: 0.1
