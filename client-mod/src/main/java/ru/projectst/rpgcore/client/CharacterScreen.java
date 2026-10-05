@@ -9,22 +9,22 @@ import ru.projectst.rpgcore.net.MenuData;
 import ru.projectst.rpgcore.net.Protocol;
 
 /**
- * Окно персонажа: герой со статами и навыки со слотами.
+ * Книга героя: герой со статами и навыки со слотами.
  *
  * <p>Вкладок две, а не четыре. Статы — это и есть описание героя, а слот без
  * навыка не имеет смысла: раньше, чтобы повесить изученный навык на клавишу,
  * нужно было уйти на соседнюю вкладку и вспомнить там его название. Теперь обе
- * половины видны разом и разделены не пустотой, а чертой с заголовком и
- * утопленной плашкой: «дальше другое», а не «место кончилось».
+ * половины видны разом и разделены не пустотой, а чертой с заголовком.
+ *
+ * <p>Вид — раскрытая книга: деревянная рама, закладки на планке, бумажное поле.
+ * Тот же, что у окна инвентаря, из которого книга и открывается ({@link
+ * RpgUiBridge}). Разный вид у двух окон, стоящих рядом в одном меню, читается
+ * как «одно из них чужое», и выяснять, какое именно, приходится игроку.
  *
  * <p>Экран только показывает и просит. Ни одной проверки здесь нет: можно ли
  * изучить навык, хватает ли очков, открыт ли уровень — решает сервер, и он же
  * отвечает словами. Повторять эти правила на клиенте значило бы держать их в
  * двух местах, и однажды клиент начал бы разрешать то, что сервер запрещает.
- *
- * <p>Всё нарисовано своими руками, без ванильных виджетов: серые кнопки посреди
- * дубовой рамы выглядели как чужое окно, вставленное в наше, — потому что ими и
- * были.
  */
 public final class CharacterScreen extends Screen {
 
@@ -44,23 +44,28 @@ public final class CharacterScreen extends Screen {
         }
     }
 
-    private static final int PANEL_WIDTH = 380;
-    private static final int PANEL_HEIGHT = 244;
-    private static final int TAB_WIDTH = 96;
-    private static final int TAB_HEIGHT = 18;
+    private static final int PANEL_WIDTH = 416;
+    private static final int PANEL_HEIGHT = 240;
+    private static final int TAB_SIZE = 26;
+    private static final int TAB_STEP = 30;
     private static final int CLASS_ROW_HEIGHT = 26;
     private static final int STAT_ROW_HEIGHT = 12;
 
     /** Сторона ромба со значком навыка. */
-    private static final int ICON = 32;
+    private static final int ICON = 34;
     /** Шаг сетки значков: ромбы не должны соприкасаться углами. */
-    private static final int ICON_STEP = 46;
+    private static final int ICON_STEP = 52;
     private static final int ICON_COLUMNS = 6;
 
-    /** Плашка слота под сеткой навыков. */
-    private static final int SLOT_WIDTH = 44;
-    private static final int SLOT_HEIGHT = 42;
-    private static final int SLOT_STEP = 46;
+    /** Гнездо слота под сеткой навыков. */
+    private static final int SLOT_WIDTH = 48;
+    private static final int SLOT_HEIGHT = 44;
+
+    /** Ширина левой колонки вкладки героя. */
+    private static final int HERO_COLUMN = 168;
+
+    /** Куда вернуться по Esc; null — закрыть совсем. */
+    private final Screen parent;
 
     private Tab tab = Tab.HERO;
 
@@ -74,7 +79,18 @@ public final class CharacterScreen extends Screen {
     private String pendingSkill = "";
 
     public CharacterScreen() {
+        this(null);
+    }
+
+    /**
+     * Книга, открытая из чужого окна.
+     *
+     * @param parent куда вернуться по Esc: окно инвентаря, если книгу открыли
+     *               закладкой в нём
+     */
+    public CharacterScreen(Screen parent) {
         super(Component.literal("RpgCore"));
+        this.parent = parent;
     }
 
     private int left() {
@@ -90,11 +106,15 @@ public final class CharacterScreen extends Screen {
     }
 
     private int contentY() {
-        return RpgStyle.fieldY(top()) + 26;
+        return RpgStyle.fieldY(top());
     }
 
     private int contentWidth() {
         return RpgStyle.fieldWidth(PANEL_WIDTH);
+    }
+
+    private int contentBottom() {
+        return top() + PANEL_HEIGHT - RpgStyle.FRAME - 6;
     }
 
     @Override
@@ -102,12 +122,21 @@ public final class CharacterScreen extends Screen {
         return false;
     }
 
+    @Override
+    public void onClose() {
+        if (parent != null) {
+            minecraft.setScreen(parent);
+            return;
+        }
+        super.onClose();
+    }
+
     /**
      * Свой фон вместо ванильного.
      *
      * <p>Minecraft с 1.20.5 размывает мир под любым открытым экраном тем самым
      * шейдером, из-за которого окно выглядит мыльным. Нам размытие не нужно:
-     * панель непрозрачная, а мыло с фона переходит на восприятие текста поверх.
+     * книга непрозрачная, а мыло с фона переходит на восприятие текста поверх.
      */
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY,
@@ -125,27 +154,24 @@ public final class CharacterScreen extends Screen {
         int y = top();
         MenuData menu = ClientNetwork.menu().orElse(null);
 
-        RpgStyle.window(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, bannerTitle(menu));
+        RpgStyle.book(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, bannerTitle(menu));
 
         for (Tab value : Tab.values()) {
             int tabX = tabX(value);
-            RpgStyle.button(graphics, tabX, RpgStyle.fieldY(y), TAB_WIDTH - 4, TAB_HEIGHT,
-                    value.title(),
-                    RpgStyle.hit(mouseX, mouseY, tabX, RpgStyle.fieldY(y), TAB_WIDTH - 4,
-                            TAB_HEIGHT),
-                    value == tab);
+            int tabY = tabY();
+            boolean hovered = RpgStyle.hit(mouseX, mouseY, tabX, tabY, TAB_SIZE, TAB_SIZE);
+            RpgStyle.tabPlate(graphics, tabX, tabY, TAB_SIZE, value == tab, hovered);
+            tabGlyph(graphics, value, tabX + TAB_SIZE / 2,
+                    tabY + TAB_SIZE / 2 + (value == tab ? -1 : 0));
         }
 
-        int footerY = footerY();
-        RpgStyle.button(graphics, x + PANEL_WIDTH - RpgStyle.FRAME - 5 - 124, footerY, 124, 18,
-                "Расставить интерфейс",
-                RpgStyle.hit(mouseX, mouseY, x + PANEL_WIDTH - RpgStyle.FRAME - 5 - 124,
-                        footerY, 124, 18), false);
+        RpgStyle.inkButton(graphics, footerX(), footerY(), 128, 18, "Расставить интерфейс",
+                RpgStyle.hit(mouseX, mouseY, footerX(), footerY(), 128, 18));
 
         if (menu == null) {
             graphics.drawCenteredString(font, Component.literal(
                             "Сервер не прислал данные: закройте и откройте окно"),
-                    x + PANEL_WIDTH / 2, y + PANEL_HEIGHT / 2, RpgStyle.TEXT_DIM);
+                    x + PANEL_WIDTH / 2, y + PANEL_HEIGHT / 2, RpgStyle.INK_DIM);
             return;
         }
 
@@ -153,9 +179,16 @@ public final class CharacterScreen extends Screen {
             case HERO -> renderHero(graphics, menu, contentX(), contentY(), mouseX, mouseY);
             case SKILLS -> renderSkills(graphics, menu, contentX(), contentY(), mouseX, mouseY);
         }
+
+        // Подпись закладки под курсором рисуется последней: поверх страницы.
+        for (Tab value : Tab.values()) {
+            if (RpgStyle.hit(mouseX, mouseY, tabX(value), tabY(), TAB_SIZE, TAB_SIZE)) {
+                graphics.renderTooltip(font, Component.literal(value.title()), mouseX, mouseY);
+            }
+        }
     }
 
-    /** Что написать на полосе окна: кто ты и какого уровня. */
+    /** Что написать золотом на планке: кто ты и какого уровня. */
     private String bannerTitle(MenuData menu) {
         if (menu == null || menu.classId().isEmpty()) {
             return "Книга героя";
@@ -164,19 +197,40 @@ public final class CharacterScreen extends Screen {
     }
 
     private int tabX(Tab value) {
-        return contentX() + value.ordinal() * TAB_WIDTH;
+        return left() + RpgStyle.FRAME + 2 + value.ordinal() * TAB_STEP;
+    }
+
+    private int tabY() {
+        return top() + (RpgStyle.HEAD - TAB_SIZE) / 2 + 1;
+    }
+
+    private int footerX() {
+        return left() + PANEL_WIDTH - RpgStyle.FRAME - 6 - 128;
     }
 
     private int footerY() {
-        return top() + PANEL_HEIGHT - RpgStyle.FRAME - 5 - 18;
+        return contentBottom() - 18;
+    }
+
+    /** Значок закладки: рисуется, а не берётся предметом, — предмета для этого нет. */
+    private void tabGlyph(GuiGraphics graphics, Tab value, int centerX, int centerY) {
+        int ink = 0xFFF0E0C0;
+        if (value == Tab.HERO) {
+            // Голова и плечи: самая короткая запись слова «персонаж».
+            graphics.fill(centerX - 3, centerY - 7, centerX + 3, centerY - 1, ink);
+            graphics.fill(centerX - 6, centerY + 1, centerX + 6, centerY + 7, ink);
+            graphics.fill(centerX - 4, centerY + 1, centerX + 4, centerY + 3, 0xFF8A3028);
+        } else {
+            RpgStyle.pip(graphics, centerX - 7, centerY - 7, 14, true, ink);
+        }
     }
 
     // ------------------------------------------------------------------ герой
 
     /**
-     * Герой и статы на одной вкладке.
+     * Герой и статы на одной странице.
      *
-     * <p>Слева то, что растёт со временем: уровень, опыт, ресурс, ядро класса.
+     * <p>Слева то, что растёт со временем: опыт, очки, ресурс, ядро класса.
      * Справа то, что растёт от снаряжения: статы. Между ними черта — две
      * колонки без неё читаются как один сбившийся список.
      */
@@ -187,13 +241,11 @@ public final class CharacterScreen extends Screen {
             return;
         }
 
-        int leftWidth = 150;
-        RpgStyle.dividerVertical(graphics, x + leftWidth + 6, y - 4,
-                footerY() - y - 2);
+        RpgStyle.ruleVertical(graphics, x + HERO_COLUMN + 8, y, footerY() - y - 6);
 
-        renderProgress(graphics, menu, x, y, leftWidth);
-        renderStats(graphics, menu, x + leftWidth + 16, y,
-                contentWidth() - leftWidth - 16, mouseX, mouseY);
+        renderProgress(graphics, menu, x, y, HERO_COLUMN);
+        renderStats(graphics, menu, x + HERO_COLUMN + 18, y,
+                contentWidth() - HERO_COLUMN - 18, mouseX, mouseY);
     }
 
     /** Выбор класса: один раз и навсегда, поэтому крупно и с предупреждением. */
@@ -202,20 +254,22 @@ public final class CharacterScreen extends Screen {
         RpgStyle.caption(graphics, x, y, contentWidth(), "Выберите класс");
         graphics.drawString(font, Component.literal(
                         "Сменить его потом сможет только администратор"),
-                x, y + 14, RpgStyle.TEXT_DIM, true);
+                x, y + 18, RpgStyle.INK_DIM, false);
 
-        int line = y + 32;
+        int line = y + 36;
         int row = 0;
         for (MenuData.ClassLine klass : menu.classes()) {
-            boolean hovered = rowAt(mouseY, y, CLASS_ROW_HEIGHT, 32) == row;
-            RpgStyle.row(graphics, x - 4, line - 3, contentWidth(), CLASS_ROW_HEIGHT - 2,
-                    hovered);
+            boolean hovered = rowAt(mouseY, y, CLASS_ROW_HEIGHT, 36) == row;
+            if (hovered) {
+                RpgStyle.slot(graphics, x - 4, line - 3, contentWidth(),
+                        CLASS_ROW_HEIGHT - 2, true);
+            }
             graphics.drawString(font, Component.literal(strip(klass.display())),
-                    x, line, RpgStyle.TEXT_WARN, true);
+                    x, line, RpgStyle.INK_TITLE, false);
             graphics.drawString(font, Component.literal("платит: " + klass.resourceName()
                             + ",  слотов: " + klass.slots()
                             + ",  предел уровня: " + klass.maxLevel()),
-                    x, line + 11, RpgStyle.TEXT_DIM, true);
+                    x, line + 11, RpgStyle.INK_DIM, false);
             line += CLASS_ROW_HEIGHT;
             row++;
         }
@@ -226,9 +280,13 @@ public final class CharacterScreen extends Screen {
                                 int barWidth) {
         RpgStyle.caption(graphics, x, y, barWidth, "Герой");
 
-        int line = y + 16;
-        graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()),
-                x, line, menu.points() > 0 ? RpgStyle.READY : RpgStyle.TEXT_DIM, true);
+        int line = y + 20;
+        graphics.drawString(font, Component.literal("Свободных очков"), x, line,
+                RpgStyle.INK_DIM, false);
+        String points = String.valueOf(menu.points());
+        graphics.drawString(font, Component.literal(points),
+                x + barWidth - font.width(points), line,
+                menu.points() > 0 ? RpgStyle.INK_GOOD : RpgStyle.INK, false);
 
         line += 16;
         if (menu.xpToNext() > 0) {
@@ -237,11 +295,11 @@ public final class CharacterScreen extends Screen {
             RpgStyle.bar(graphics, x, line, barWidth, 6, share, RpgStyle.READY);
             graphics.drawString(font, Component.literal("Опыт: " + Math.round(menu.xp())
                             + " / " + Math.round(total)),
-                    x, line + 10, RpgStyle.TEXT_DIM, true);
+                    x, line + 10, RpgStyle.INK_DIM, false);
         } else {
             RpgStyle.bar(graphics, x, line, barWidth, 6, 1, RpgStyle.EDGE_BRIGHT);
             graphics.drawString(font, Component.literal("Предел уровня"), x, line + 10,
-                    RpgStyle.TEXT_WARN, true);
+                    RpgStyle.INK_BAD, false);
         }
 
         int resourceLine = line + 26;
@@ -252,32 +310,32 @@ public final class CharacterScreen extends Screen {
             graphics.drawString(font, Component.literal(state.resourceName() + ": "
                             + Math.round(Math.floor(state.resource())) + " / "
                             + Math.round(state.resourceMax())),
-                    x, resourceLine + 10, RpgStyle.RESOURCE, true);
+                    x, resourceLine + 10, RpgStyle.INK_MANA, false);
 
             if (state.counters().isEmpty()) {
                 return;
             }
-            RpgStyle.caption(graphics, x, resourceLine + 26, barWidth, "Ядро класса");
+            RpgStyle.caption(graphics, x, resourceLine + 28, barWidth, "Ядро класса");
 
-            int counterLine = resourceLine + 42;
+            int counterLine = resourceLine + 48;
             for (var counter : state.counters()) {
-                int colour = RpgHud.colourOf(counter.color(), "BUFF");
                 graphics.drawString(font, Component.literal(counter.display()), x,
-                        counterLine, colour, true);
+                        counterLine, RpgStyle.INK, false);
+                int colour = RpgHud.colourOf(counter.color(), "BUFF");
                 int pips = Math.max(1, counter.maxStacks());
-                int pipX = x + barWidth - Math.min(pips, 10) * 10;
                 if (pips <= 10) {
+                    int pipX = x + barWidth - pips * 10;
                     for (int i = 0; i < pips; i++) {
                         RpgStyle.pip(graphics, pipX, counterLine - 1, 8,
                                 i < counter.stacks(), colour);
                         pipX += 10;
                     }
                 } else {
-                    RpgStyle.bar(graphics, x + barWidth - 70, counterLine, 50, 5,
+                    RpgStyle.bar(graphics, x + barWidth - 74, counterLine, 50, 5,
                             (double) counter.stacks() / pips, colour);
                     graphics.drawString(font,
                             Component.literal(counter.stacks() + "/" + pips),
-                            x + barWidth - 16, counterLine, colour, true);
+                            x + barWidth - 20, counterLine, RpgStyle.INK, false);
                 }
                 counterLine += 14;
             }
@@ -293,7 +351,7 @@ public final class CharacterScreen extends Screen {
      */
     private void renderStats(GuiGraphics graphics, MenuData menu, int x, int y, int width,
                              int mouseX, int mouseY) {
-        RpgStyle.caption(graphics, x, y, width, "Статы");
+        RpgStyle.caption(graphics, x, y, width, "Свойства");
 
         List<MenuData.StatLine> stats = menu.stats();
         int columnWidth = width / 2;
@@ -303,13 +361,13 @@ public final class CharacterScreen extends Screen {
         for (int i = 0; i < stats.size(); i++) {
             MenuData.StatLine stat = stats.get(i);
             int columnX = x + (i / perColumn) * columnWidth;
-            int line = y + 16 + (i % perColumn) * STAT_ROW_HEIGHT;
+            int line = y + 20 + (i % perColumn) * STAT_ROW_HEIGHT;
 
             boolean under = RpgStyle.hit(mouseX, mouseY, columnX - 2, line - 2,
                     columnWidth - 4, STAT_ROW_HEIGHT);
-            RpgStyle.row(graphics, columnX - 2, line - 2, columnWidth - 4,
-                    STAT_ROW_HEIGHT, under);
             if (under) {
+                graphics.fill(columnX - 2, line - 2, columnX + columnWidth - 6,
+                        line + STAT_ROW_HEIGHT - 2, 0x22000000);
                 hovered = stat;
             }
 
@@ -318,21 +376,20 @@ public final class CharacterScreen extends Screen {
             String value = trim(stat.value());
             int valueX = columnX + columnWidth - 8 - font.width(value);
             graphics.drawString(font, Component.literal(value), valueX, line,
-                    stat.value() == 0 ? RpgStyle.TEXT_DIM : RpgStyle.TEXT, true);
+                    stat.value() == 0 ? RpgStyle.INK_DIM : RpgStyle.INK_TITLE, false);
 
             int nameX = columnX + StatIcons.SIZE + 3;
             String name = fit(StatIcons.shortName(stat.id(), stat.display()),
                     valueX - nameX - 3);
             graphics.drawString(font, Component.literal(name), nameX, line,
-                    RpgStyle.TEXT_DIM, true);
+                    RpgStyle.INK, false);
         }
 
         if (hovered != null) {
             graphics.renderComponentTooltip(font, List.of(
-                            Component.literal(hovered.display())
-                                    .withStyle(style -> style.withColor(RpgStyle.TEXT)),
+                            Component.literal(hovered.display()),
                             Component.literal(hovered.id())
-                                    .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM))),
+                                    .withStyle(style -> style.withColor(0xFFB9AC92))),
                     mouseX, mouseY);
         }
     }
@@ -350,23 +407,23 @@ public final class CharacterScreen extends Screen {
      * <p>Приглушённый значок значит «не изучен». Цвет появляется ровно тогда,
      * когда навык начинает работать.
      *
-     * <p>Слоты здесь же, но на отдельной утопленной плашке: это другое действие
-     * над теми же навыками, и видно должно быть и то и другое сразу.
+     * <p>Слоты здесь же, но под своим заголовком и в гнёздах: это другое
+     * действие над теми же навыками, и видно должно быть и то и другое сразу.
      */
     private void renderSkills(GuiGraphics graphics, MenuData menu, int x, int y,
                               int mouseX, int mouseY) {
         if (menu.classId().isEmpty()) {
             graphics.drawString(font, Component.literal(
-                            "Сначала выберите класс — вкладка «Герой»"),
-                    x, y, RpgStyle.HEALTH_LOW, true);
+                            "Сначала выберите класс — закладка «Герой»"),
+                    x, y, RpgStyle.INK_BAD, false);
             return;
         }
 
+        RpgStyle.caption(graphics, x, y, contentWidth(), "Навыки");
         String points = "очков: " + menu.points();
-        RpgStyle.caption(graphics, x, y, contentWidth() - font.width(points) - 6, "Навыки");
         graphics.drawString(font, Component.literal(points),
                 x + contentWidth() - font.width(points), y,
-                menu.points() > 0 ? RpgStyle.READY : RpgStyle.TEXT_DIM, true);
+                menu.points() > 0 ? RpgStyle.INK_GOOD : RpgStyle.INK_DIM, false);
 
         List<MenuData.SkillLine> skills = menu.skills();
         for (int i = 0; i < skills.size(); i++) {
@@ -385,8 +442,8 @@ public final class CharacterScreen extends Screen {
             // Уровень под значком: сколько очков вложено, видно без наведения.
             String level = learned ? skill.level() + "/" + skill.maxLevel() : "—";
             graphics.drawString(font, Component.literal(level),
-                    iconX + ICON / 2 - font.width(level) / 2, iconY + ICON + 2,
-                    learned ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
+                    iconX + ICON / 2 - font.width(level) / 2, iconY + ICON + 3,
+                    learned ? RpgStyle.INK_TITLE : RpgStyle.INK_DIM, false);
         }
 
         renderSlotBar(graphics, menu, x, slotCaptionY(menu), mouseX, mouseY);
@@ -398,30 +455,17 @@ public final class CharacterScreen extends Screen {
         }
     }
 
-    /** Слоты: плашки с ромбом и назначенной клавишей. */
+    /** Слоты: гнёзда с ромбом и назначенной клавишей. */
     private void renderSlotBar(GuiGraphics graphics, MenuData menu, int x, int y,
                                int mouseX, int mouseY) {
-        String hint = pendingSkill.isEmpty()
-                ? "правая кнопка по навыку — занять слот"
-                : "выберите слот,  правая кнопка — отмена";
-        RpgStyle.caption(graphics, x, y, contentWidth() - font.width(hint) - 6, "Слоты");
-        graphics.drawString(font, Component.literal(hint),
-                x + contentWidth() - font.width(hint), y,
-                pendingSkill.isEmpty() ? RpgStyle.TEXT_DIM : RpgStyle.TEXT_WARN, true);
+        RpgStyle.caption(graphics, x, y, contentWidth(), "Слоты");
 
-        int barY = y + 16;
-        int slots = Math.max(1, menu.slots());
-        RpgStyle.plate(graphics, slotBarX(menu) - 4, barY - 4,
-                slots * SLOT_STEP + 6, SLOT_HEIGHT + 8);
-
-        for (int slot = 1; slot <= slots; slot++) {
+        int barY = y + 20;
+        for (int slot = 1; slot <= Math.max(1, menu.slots()); slot++) {
             int slotX = slotX(menu, slot);
             boolean under = RpgStyle.hit(mouseX, mouseY, slotX, barY, SLOT_WIDTH, SLOT_HEIGHT);
-
-            graphics.fill(slotX, barY, slotX + SLOT_WIDTH, barY + SLOT_HEIGHT, 0x66000000);
-            RpgStyle.bevel(graphics, slotX, barY, SLOT_WIDTH, SLOT_HEIGHT, true);
-            graphics.renderOutline(slotX, barY, SLOT_WIDTH, SLOT_HEIGHT,
-                    !pendingSkill.isEmpty() || under ? RpgStyle.EDGE_BRIGHT : RpgStyle.EDGE);
+            RpgStyle.slot(graphics, slotX, barY, SLOT_WIDTH, SLOT_HEIGHT,
+                    under || !pendingSkill.isEmpty());
 
             String bound = "";
             for (MenuData.SkillLine skill : menu.skills()) {
@@ -429,7 +473,7 @@ public final class CharacterScreen extends Screen {
                     bound = skill.id();
                 }
             }
-            SkillIcons.draw(graphics, bound, slotX + (SLOT_WIDTH - 24) / 2, barY + 3, 24,
+            SkillIcons.draw(graphics, bound, slotX + (SLOT_WIDTH - 26) / 2, barY + 3, 26,
                     !bound.isEmpty());
 
             // Клавиша — та, что игрок назначил сам: подсказка, не совпадающая с
@@ -438,14 +482,24 @@ public final class CharacterScreen extends Screen {
             String label = key.equals("не назначено") ? "клавиша?" : key;
             graphics.drawString(font, Component.literal(label),
                     slotX + SLOT_WIDTH / 2 - font.width(label) / 2, barY + SLOT_HEIGHT - 11,
-                    key.equals("не назначено") ? RpgStyle.HEALTH_LOW : RpgStyle.RESOURCE,
-                    true);
+                    key.equals("не назначено") ? RpgStyle.INK_BAD : RpgStyle.INK_TITLE,
+                    false);
         }
 
+        // Подсказка под гнёздами, а не рядом с заголовком: там она наезжала бы
+        // на него, и длина строки зависела бы от выбранного навыка.
+        if (pendingSkill.isEmpty()) {
+            graphics.drawString(font, Component.literal(
+                            "Правая кнопка по навыку — занять слот, по гнезду — освободить"),
+                    x, barY + SLOT_HEIGHT + 8, RpgStyle.INK_DIM, false);
+        } else {
+            graphics.drawString(font, Component.literal(
+                            "Выберите гнездо для навыка,  правая кнопка — отмена"),
+                    x, barY + SLOT_HEIGHT + 8, RpgStyle.INK_BAD, false);
+        }
         graphics.drawString(font, Component.literal(
-                        "Клавиши меняются в настройках управления, раздел RpgCore."
-                                + "  Правая кнопка по слоту — освободить"),
-                x, barY + SLOT_HEIGHT + 10, RpgStyle.TEXT_DIM, true);
+                        "Клавиши меняются в настройках управления, раздел RpgCore"),
+                x, barY + SLOT_HEIGHT + 20, RpgStyle.INK_DIM, false);
     }
 
     /** Подсказка о навыке: всё, что сервер посчитал, одним столбиком. */
@@ -454,39 +508,39 @@ public final class CharacterScreen extends Screen {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(skill.display())
                 .withStyle(style -> style.withColor(skill.level() > 0
-                        ? RpgStyle.TEXT_WARN : RpgStyle.TEXT_DIM)));
+                        ? 0xFFC9A227 : 0xFFB9AC92)));
         lines.add(Component.literal("Ступень " + skill.tier())
-                .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+                .withStyle(style -> style.withColor(0xFFB9AC92)));
 
         for (String row : skill.description()) {
             lines.add(Component.literal(row)
-                    .withStyle(style -> style.withColor(RpgStyle.TEXT)));
+                    .withStyle(style -> style.withColor(0xFFF2E8CE)));
         }
 
         lines.add(Component.literal(" "));
         if (skill.damage() > 0) {
             lines.add(Component.literal("Урон за попадание: до " + trim(skill.damage()))
-                    .withStyle(style -> style.withColor(RpgStyle.HEALTH_LOW)));
+                    .withStyle(style -> style.withColor(0xFFD94A3D)));
         }
         if (skill.mana() > 0) {
             lines.add(Component.literal("Стоимость: " + trim(skill.mana()))
-                    .withStyle(style -> style.withColor(RpgStyle.RESOURCE)));
+                    .withStyle(style -> style.withColor(0xFF6FA8D9)));
         }
         if (skill.cooldown() > 0) {
             lines.add(Component.literal("Перезарядка: " + trim(skill.cooldown()) + " с")
-                    .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+                    .withStyle(style -> style.withColor(0xFFB9AC92)));
         }
 
         lines.add(Component.literal(" "));
-        lines.add(Component.literal(reason(menu, skill))
+        String reason = reason(menu, skill);
+        lines.add(Component.literal(reason)
                 .withStyle(style -> style.withColor(
-                        reason(menu, skill).startsWith("нажмите")
-                                ? RpgStyle.READY : RpgStyle.COOLDOWN)));
+                        reason.startsWith("нажмите") ? 0xFF7FC25A : 0xFFC98A3D)));
         if (skill.level() > 0) {
             lines.add(Component.literal(skill.boundSlot() > 0
                             ? "в слоте " + skill.boundSlot() + ", правая кнопка — сменить"
                             : "правая кнопка — поставить в слот")
-                    .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+                    .withStyle(style -> style.withColor(0xFFB9AC92)));
         }
         graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
@@ -499,10 +553,10 @@ public final class CharacterScreen extends Screen {
     }
 
     private int iconY(int y, int index) {
-        return y + 16 + (index / ICON_COLUMNS) * ICON_STEP;
+        return y + 20 + (index / ICON_COLUMNS) * ICON_STEP;
     }
 
-    /** Отступ, которым сетка ставится посередине поля. */
+    /** Отступ, которым сетка ставится посередине страницы. */
     private int gridOffset() {
         return Math.max(0, (contentWidth() - ICON_COLUMNS * ICON_STEP) / 2);
     }
@@ -517,15 +571,6 @@ public final class CharacterScreen extends Screen {
         return -1;
     }
 
-    private int slotBarX(MenuData menu) {
-        int slots = Math.max(1, menu.slots());
-        return contentX() + Math.max(0, (contentWidth() - slots * SLOT_STEP) / 2);
-    }
-
-    private int slotX(MenuData menu, int slot) {
-        return slotBarX(menu) + (slot - 1) * SLOT_STEP;
-    }
-
     /** Сколько рядов занимает сетка навыков. */
     private int skillRows(MenuData menu) {
         int count = Math.max(1, menu.skills().size());
@@ -533,17 +578,27 @@ public final class CharacterScreen extends Screen {
     }
 
     /**
-     * Где начинается нижняя половина вкладки.
+     * Где начинается нижняя половина страницы.
      *
      * <p>Считается от сетки, а не задано числом: класс с другим числом навыков
      * иначе получил бы слоты поверх значков.
      */
     private int slotCaptionY(MenuData menu) {
-        return contentY() + 16 + skillRows(menu) * ICON_STEP + 10;
+        return contentY() + 20 + skillRows(menu) * ICON_STEP - 4;
+    }
+
+    private int slotBarX(MenuData menu) {
+        int slots = Math.max(1, menu.slots());
+        return contentX() + Math.max(0, (contentWidth() - slots * ICON_STEP) / 2)
+                + (ICON_STEP - SLOT_WIDTH) / 2;
+    }
+
+    private int slotX(MenuData menu, int slot) {
+        return slotBarX(menu) + (slot - 1) * ICON_STEP;
     }
 
     private int slotBarY(MenuData menu) {
-        return slotCaptionY(menu) + 16;
+        return slotCaptionY(menu) + 20;
     }
 
     // ------------------------------------------------------------------ щелчки
@@ -551,15 +606,13 @@ public final class CharacterScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (Tab value : Tab.values()) {
-            if (RpgStyle.hit(mouseX, mouseY, tabX(value), RpgStyle.fieldY(top()),
-                    TAB_WIDTH - 4, TAB_HEIGHT)) {
+            if (RpgStyle.hit(mouseX, mouseY, tabX(value), tabY(), TAB_SIZE, TAB_SIZE)) {
                 tab = value;
                 pendingSkill = "";
                 return true;
             }
         }
-        int footerX = left() + PANEL_WIDTH - RpgStyle.FRAME - 5 - 124;
-        if (RpgStyle.hit(mouseX, mouseY, footerX, footerY(), 124, 18)) {
+        if (RpgStyle.hit(mouseX, mouseY, footerX(), footerY(), 128, 18)) {
             minecraft.setScreen(new HudEditScreen(this));
             return true;
         }
@@ -570,7 +623,7 @@ public final class CharacterScreen extends Screen {
         }
 
         if (tab == Tab.HERO && menu.classId().isEmpty()) {
-            int row = rowAt(mouseY, contentY(), CLASS_ROW_HEIGHT, 32);
+            int row = rowAt(mouseY, contentY(), CLASS_ROW_HEIGHT, 36);
             if (row >= 0 && row < menu.classes().size()) {
                 ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0,
                         menu.classes().get(row).id());
@@ -585,8 +638,8 @@ public final class CharacterScreen extends Screen {
     }
 
     private boolean clickedSkills(MenuData menu, double mouseX, double mouseY, int button) {
-        // Слоты проверяются первыми: они нарисованы поверх плашки, и щелчок по
-        // ним не должен уходить в сетку выше.
+        // Слоты проверяются первыми: они нарисованы ниже сетки, и щелчок по ним
+        // не должен уходить в значок.
         for (int slot = 1; slot <= Math.max(1, menu.slots()); slot++) {
             if (!RpgStyle.hit(mouseX, mouseY, slotX(menu, slot), slotBarY(menu),
                     SLOT_WIDTH, SLOT_HEIGHT)) {
