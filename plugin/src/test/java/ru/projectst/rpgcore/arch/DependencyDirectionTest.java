@@ -43,8 +43,10 @@ class DependencyDirectionTest {
                     "classes")),
             Map.entry("item", Set.of("loader", "stat", "skill")),
             Map.entry("craft", Set.of("loader", "item")),
+            Map.entry("mob", Set.of("loader", "stat", "skill", "item")),
+            Map.entry("convert", Set.<String>of()),
             Map.entry("platform", Set.of("loader", "stat", "damage", "status", "data", "balance",
-                    "skill", "classes", "cast", "item", "craft")));
+                    "skill", "classes", "cast", "item", "craft", "mob", "convert")));
 
     @Test
     @DisplayName("Bukkit не протекает за пределы platform/")

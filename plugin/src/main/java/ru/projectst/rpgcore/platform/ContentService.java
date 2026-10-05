@@ -50,6 +50,8 @@ public final class ContentService {
             ru.projectst.rpgcore.item.ItemRegistry.EMPTY;
     private ru.projectst.rpgcore.craft.RecipeRegistry recipes =
             ru.projectst.rpgcore.craft.RecipeRegistry.EMPTY;
+    private ru.projectst.rpgcore.mob.MobRegistry mobs =
+            ru.projectst.rpgcore.mob.MobRegistry.EMPTY;
 
     public ContentService(Path folder) {
         this.folder = folder;
@@ -83,6 +85,10 @@ public final class ContentService {
         return recipes;
     }
 
+    public ru.projectst.rpgcore.mob.MobRegistry mobs() {
+        return mobs;
+    }
+
     /** Перечитывает контент и применяет его. */
     public ContentErrors reload() {
         ContentErrors errors = new ContentErrors();
@@ -94,6 +100,7 @@ public final class ContentService {
         playerClasses = loaded.playerClasses();
         items = loaded.items();
         recipes = loaded.recipes();
+        mobs = loaded.mobs();
         return errors;
     }
 
@@ -113,7 +120,8 @@ public final class ContentService {
                           BalanceBook balance, SkillRegistry skills,
                           ClassRegistry playerClasses,
                           ru.projectst.rpgcore.item.ItemRegistry items,
-                          ru.projectst.rpgcore.craft.RecipeRegistry recipes) {
+                          ru.projectst.rpgcore.craft.RecipeRegistry recipes,
+                          ru.projectst.rpgcore.mob.MobRegistry mobs) {
     }
 
     private Loaded loadAll(ContentErrors errors) {
@@ -203,6 +211,34 @@ public final class ContentService {
             }
         }
 
+        Map<String, ru.projectst.rpgcore.mob.MobDef> mobMap = new LinkedHashMap<>();
+        for (Path file : filesIn("mobs", errors)) {
+            String name = file.getFileName().toString();
+            try {
+                String text = Files.readString(file, StandardCharsets.UTF_8);
+                ru.projectst.rpgcore.mob.MobDefLoader.load(name, text, errors)
+                        .ifPresent(mob -> {
+                            if (mobMap.putIfAbsent(mob.id(), mob) != null) {
+                                errors.add(SourceRef.ofFile(name), "id",
+                                        "моб с таким id уже загружен: " + mob.id());
+                            }
+                        });
+            } catch (IOException e) {
+                errors.add(SourceRef.ofFile(name), "", "не читается: " + e.getMessage());
+            }
+        }
+
+        // Правила спавна лежат отдельным файлом: они не про одного моба, а про
+        // мир, и держать их внутри моба значило бы искать по всем файлам, кто
+        // где появляется.
+        List<ru.projectst.rpgcore.mob.SpawnRule> spawnRules =
+                Files.isRegularFile(folder.resolve("spawn.yml"))
+                        ? read("spawn.yml", errors)
+                                .flatMap(text -> ru.projectst.rpgcore.mob.MobDefLoader
+                                        .loadRules("spawn.yml", text, errors))
+                                .orElseGet(List::of)
+                        : List.of();
+
         // Связывание последним: до него нет ни баланса, ни статусов, ни
         // классов, ни предметов для сверки.
         SkillRegistry skillRegistry = new SkillRegistry(skillMap);
@@ -215,9 +251,14 @@ public final class ContentService {
                 loadedStats, skillRegistry, classMap.keySet(), errors);
         ru.projectst.rpgcore.craft.RecipeLinker.link(recipeMap.values(), itemRegistry, errors);
 
+        ru.projectst.rpgcore.mob.MobRegistry mobRegistry =
+                new ru.projectst.rpgcore.mob.MobRegistry(mobMap, spawnRules);
+        ru.projectst.rpgcore.mob.MobLinker.link(mobMap.values(), mobRegistry, loadedStats,
+                skillRegistry, itemRegistry, errors);
+
         return new Loaded(loadedStats, loadedStatuses, loadedBalance,
                 skillRegistry, new ClassRegistry(classMap), itemRegistry,
-                new ru.projectst.rpgcore.craft.RecipeRegistry(recipeMap));
+                new ru.projectst.rpgcore.craft.RecipeRegistry(recipeMap), mobRegistry);
     }
 
     private List<Path> filesIn(String subfolder, ContentErrors errors) {

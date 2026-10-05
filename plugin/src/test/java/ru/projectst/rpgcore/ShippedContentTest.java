@@ -69,7 +69,8 @@ class ShippedContentTest {
     private record Content(List<SkillDef> skills, List<ClassDef> classes,
                            BalanceBook balance, StatusRegistry statuses, StatRegistry stats,
                            ru.projectst.rpgcore.item.ItemRegistry items,
-                           List<ru.projectst.rpgcore.craft.RecipeDef> recipes) {
+                           List<ru.projectst.rpgcore.craft.RecipeDef> recipes,
+                           ru.projectst.rpgcore.mob.MobRegistry mobs) {
     }
 
     private static List<Path> filesIn(String subfolder) throws IOException {
@@ -122,8 +123,19 @@ class ShippedContentTest {
         }
 
         assertTrue(errors.isEmpty(), () -> "контент не читается:\n" + join(errors));
+        Map<String, ru.projectst.rpgcore.mob.MobDef> mobMap = new LinkedHashMap<>();
+        for (Path file : filesIn("mobs")) {
+            String name = file.getFileName().toString();
+            ru.projectst.rpgcore.mob.MobDefLoader
+                    .load(name, Files.readString(file, StandardCharsets.UTF_8), errors)
+                    .ifPresent(mob -> mobMap.put(mob.id(), mob));
+        }
+        var spawnRules = ru.projectst.rpgcore.mob.MobDefLoader
+                .loadRules("spawn.yml", read("spawn.yml"), errors).orElseThrow();
+
         return new Content(skills, classes, balance, statuses, stats,
-                new ru.projectst.rpgcore.item.ItemRegistry(itemMap, rarities), recipes);
+                new ru.projectst.rpgcore.item.ItemRegistry(itemMap, rarities), recipes,
+                new ru.projectst.rpgcore.mob.MobRegistry(mobMap, spawnRules));
     }
 
     private static String join(ContentErrors errors) {
@@ -324,5 +336,53 @@ class ShippedContentTest {
         List<T> out = new ArrayList<>();
         source.forEach(out::add);
         return out;
+    }
+
+    // ------------------------------------------------------------------ мобы
+
+    @Test
+    @DisplayName("мобы и правила спавна связываются: ни одной ссылки в пустоту")
+    void mobsLink() throws IOException {
+        Content content = load();
+        Map<String, SkillDef> skillMap = new LinkedHashMap<>();
+        content.skills().forEach(skill -> skillMap.put(skill.id(), skill));
+
+        ContentErrors link = new ContentErrors();
+        ru.projectst.rpgcore.mob.MobLinker.link(toList(content.mobs().all()), content.mobs(),
+                content.stats(), new ru.projectst.rpgcore.skill.SkillRegistry(skillMap),
+                content.items(), link);
+
+        assertTrue(link.isEmpty(), () -> "ссылки мобов не разрешились:" + System.lineSeparator() + join(link));
+    }
+
+    @Test
+    @DisplayName("навык моба — всегда служебный навык без класса")
+    void mobSkillsAreInternal() throws IOException {
+        Content content = load();
+        Map<String, SkillDef> skillMap = new LinkedHashMap<>();
+        content.skills().forEach(skill -> skillMap.put(skill.id(), skill));
+
+        assertFalse(toList(content.mobs().all()).isEmpty(), "мобы должны быть поставлены");
+        for (var mob : content.mobs().all()) {
+            for (var skill : mob.skills()) {
+                SkillDef def = skillMap.get(skill.skillId());
+                assertTrue(def != null, mob.id() + " ссылается на " + skill.skillId());
+                assertTrue(def.internal(), skill.skillId() + " должен быть служебным");
+                assertTrue(def.classId().isBlank(),
+                        skill.skillId() + " не должен принадлежать классу");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("каждое правило спавна ссылается на объявленного моба")
+    void spawnRulesPointAtMobs() throws IOException {
+        Content content = load();
+
+        assertFalse(content.mobs().rules().isEmpty(), "правила спавна должны быть поставлены");
+        for (var rule : content.mobs().rules()) {
+            assertTrue(content.mobs().has(rule.mobId()),
+                    "правило ссылается на " + rule.mobId());
+        }
     }
 }

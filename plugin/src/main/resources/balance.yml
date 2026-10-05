@@ -452,3 +452,14 @@ balance:
     cooldown: 1.5
     radius: 4
     damage: 3
+  # ================================================================ МОБЫ
+  # Навыки мобов живут в том же балансе: числа сравнимы с игровыми, и это главное.
+
+  mob_venom_sting:
+    poison_duration: 60
+
+  mob_sand_burst:
+    radius: 5
+    damage: 8
+    push: 0.8
+    blind_duration: 40

@@ -30,11 +30,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
-            "progress", "xp", "give", "items");
+            "progress", "xp", "give", "items", "mobs", "spawn", "convert");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
-            Set.of("validate", "reload", "debug", "why", "xp", "give");
+            Set.of("validate", "reload", "debug", "why", "xp", "give", "spawn", "convert");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
 
@@ -48,6 +48,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final RpgItems rpgItems;
     private final EquipmentWatcher equipment;
     private final RecipeRegistrar recipes;
+    private final MobService mobs;
+    private final java.nio.file.Path dataFolder;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
@@ -55,7 +57,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                       ru.projectst.rpgcore.cast.CastService casts,
                       ru.projectst.rpgcore.platform.gui.MenuContext menus,
                       RpgItems rpgItems, EquipmentWatcher equipment,
-                      RecipeRegistrar recipes) {
+                      RecipeRegistrar recipes, MobService mobs,
+                      java.nio.file.Path dataFolder) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
@@ -66,6 +69,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         this.rpgItems = rpgItems;
         this.equipment = equipment;
         this.recipes = recipes;
+        this.mobs = mobs;
+        this.dataFolder = dataFolder;
     }
 
     @Override
@@ -96,6 +101,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
             sender.sendMessage("§e/rpg items §7— список предметов");
             sender.sendMessage("§e/rpg give <предмет> [сколько] §7— выдать себе предмет");
+            sender.sendMessage("§e/rpg mobs §7— список мобов и правил спавна");
+            sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
+            sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
             sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
@@ -117,6 +125,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "xp" -> giveXp(sender, args);
             case "give" -> give(sender, args);
             case "items" -> listItems(sender);
+            case "mobs" -> listMobs(sender);
+            case "spawn" -> spawnMob(sender, args);
+            case "convert" -> convert(sender);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
             case "upgrade" -> upgrade(sender, args);
@@ -145,7 +156,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                 + "§7, навыков: §f" + content.skills().size()
                 + "§7, классов: §f" + content.playerClasses().size()
                 + "§7, предметов: §f" + content.items().size()
-                + "§7, рецептов: §f" + added);
+                + "§7, рецептов: §f" + added
+                + "§7, мобов: §f" + content.mobs().size());
         return true;
     }
 
@@ -182,6 +194,121 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         // секунды до пересчёта статов незачем.
         equipment.apply(player);
         sender.sendMessage("§aВыдано: §f" + def.get().display() + " §7x" + amount);
+        return true;
+    }
+
+    /** Мобы и правила подмены спавна: всё, что влияет на заселение мира. */
+    private boolean listMobs(CommandSender sender) {
+        if (content.mobs().size() == 0) {
+            sender.sendMessage("§7Мобов не объявлено");
+            return true;
+        }
+        sender.sendMessage("§6Мобов: §f" + content.mobs().size()
+                + "§7, живых сейчас: §f" + mobs.living().size());
+        for (var mob : content.mobs().all()) {
+            sender.sendMessage("§8- §f" + mob.display() + " §8(" + mob.id() + ") §7"
+                    + mob.entityType() + "§8, здоровье " + trim(mob.health())
+                    + (mob.skills().isEmpty() ? "" : "§8, навыков " + mob.skills().size())
+                    + (mob.drops().isEmpty() ? "" : "§8, дропа " + mob.drops().size()));
+        }
+        for (var rule : content.mobs().rules()) {
+            sender.sendMessage("§8  правило: §7вместо §f" + rule.replaces()
+                    + " §7появляется §f" + rule.mobId() + " §7с шансом §f"
+                    + trim(rule.chance()) + "%");
+        }
+        return true;
+    }
+
+    /** Поставить моба перед собой: иначе проверить его можно только дождавшись спавна. */
+    private boolean spawnMob(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен моб: /rpg spawn <моб>");
+            return true;
+        }
+        String id = args[1].toLowerCase(Locale.ROOT);
+        if (content.mobs().find(id).isEmpty()) {
+            sender.sendMessage("§cМоб не загружен: " + id);
+            return true;
+        }
+        var where = player.getLocation().add(player.getLocation().getDirection().setY(0)
+                .normalize().multiply(3));
+        var spawned = mobs.spawn(id, where);
+        sender.sendMessage(spawned.isPresent()
+                ? "§aПоставлен: §f" + id
+                : "§cНе удалось поставить: проверьте тип существа");
+        return true;
+    }
+
+    /**
+     * Перенос мобов MythicMobs.
+     *
+     * <p>Через каталоги, а не через чужую папку плагина: зависеть от расположения
+     * MythicMobs значит сломаться от его обновления. Администратор кладёт файлы в
+     * convert-in, забирает из convert-out вместе с отчётом.
+     */
+    private boolean convert(CommandSender sender) {
+        java.nio.file.Path in = dataFolder.resolve("convert-in");
+        java.nio.file.Path out = dataFolder.resolve("convert-out");
+        if (!java.nio.file.Files.isDirectory(in)) {
+            try {
+                java.nio.file.Files.createDirectories(in);
+            } catch (java.io.IOException e) {
+                sender.sendMessage("§cНе создаётся каталог convert-in: " + e.getMessage());
+                return true;
+            }
+            sender.sendMessage("§7Создан каталог §fconvert-in§7. Положите туда файлы"
+                    + " мобов MythicMobs и повторите команду.");
+            return true;
+        }
+
+        List<java.nio.file.Path> sources = new ArrayList<>();
+        try (var files = java.nio.file.Files.list(in)) {
+            files.filter(f -> f.toString().endsWith(".yml")).sorted().forEach(sources::add);
+        } catch (java.io.IOException e) {
+            sender.sendMessage("§cconvert-in не читается: " + e.getMessage());
+            return true;
+        }
+        if (sources.isEmpty()) {
+            sender.sendMessage("§7В convert-in нет файлов .yml");
+            return true;
+        }
+
+        List<String> report = new ArrayList<>();
+        int converted = 0;
+        int skipped = 0;
+        try {
+            java.nio.file.Files.createDirectories(out);
+            for (java.nio.file.Path source : sources) {
+                String name = source.getFileName().toString();
+                String text = java.nio.file.Files.readString(source,
+                        java.nio.charset.StandardCharsets.UTF_8);
+                var result = ru.projectst.rpgcore.convert.MobConverter.convert(name, text);
+                converted += result.converted();
+                skipped += result.skipped();
+                report.addAll(result.report());
+                for (var entry : result.files().entrySet()) {
+                    java.nio.file.Files.writeString(out.resolve(entry.getKey()),
+                            entry.getValue(), java.nio.charset.StandardCharsets.UTF_8);
+                }
+            }
+            java.nio.file.Files.writeString(out.resolve("REPORT.txt"),
+                    String.join(System.lineSeparator(), report) + System.lineSeparator(),
+                    java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            sender.sendMessage("§cОшибка записи: " + e.getMessage());
+            return true;
+        }
+
+        sender.sendMessage("§aПеренесено мобов: §f" + converted
+                + "§7, пропущено: §f" + skipped);
+        sender.sendMessage("§7Непереносимых мест в отчёте: §f" + report.size()
+                + " §8(convert-out/REPORT.txt)");
+        sender.sendMessage("§7Файлы в §fconvert-out§7: проверьте и перенесите в §fmobs/§7,"
+                + " затем §f/rpg reload");
         return true;
     }
 
@@ -590,6 +717,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("spawn")) {
+            List<String> ids = new ArrayList<>();
+            content.mobs().ids().forEach(ids::add);
+            return ids;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
             List<String> ids = new ArrayList<>();

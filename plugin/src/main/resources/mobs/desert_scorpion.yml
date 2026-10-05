@@ -1,0 +1,23 @@
+# Пустынный скорпион — рядовой моб пустыни.
+#
+# Статы моба идут через тот же движок, что статы игрока: защита здесь значит ровно
+# то же, что защита в классе, и конвейер урона считает её теми же правилами. В
+# прежнем стеке у мобов была своя арифметика, и сравнить два числа было нельзя.
+
+id: desert_scorpion
+display: "Пустынный скорпион"
+type: SILVERFISH
+health: 60
+damage: 7
+experience: 12
+
+stats:
+  defense: 4
+  magic_resistance: 10
+
+skills:
+  - { skill: mob_venom_sting, trigger: attack, chance: 40 }
+
+drops:
+  - { material: STRING, min: 1, max: 3, chance: 60 }
+  - { item: arcane_focus, chance: 4 }

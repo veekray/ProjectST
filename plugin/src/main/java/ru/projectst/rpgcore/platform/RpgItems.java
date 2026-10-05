@@ -39,6 +39,11 @@ public final class RpgItems {
         this.registry = registry;
     }
 
+    /** Реестр предметов: нужен тем, кто выдаёт предмет по идентификатору. */
+    public ItemRegistry registry() {
+        return registry;
+    }
+
     /** Идентификатор нашего предмета, если это он. */
     public Optional<String> idOf(ItemStack stack) {
         if (stack == null || stack.getType().isAir()) {

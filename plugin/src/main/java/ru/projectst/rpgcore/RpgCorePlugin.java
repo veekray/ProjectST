@@ -26,6 +26,8 @@ import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.platform.EquipmentWatcher;
 import ru.projectst.rpgcore.platform.ItemAbilityListener;
+import ru.projectst.rpgcore.platform.MobListener;
+import ru.projectst.rpgcore.platform.MobService;
 import ru.projectst.rpgcore.platform.RecipeRegistrar;
 import ru.projectst.rpgcore.platform.RpgItems;
 import ru.projectst.rpgcore.platform.VitalsSync;
@@ -59,6 +61,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private RpgItems rpgItems;
     private EquipmentWatcher equipment;
     private RecipeRegistrar recipes;
+    private MobService mobService;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -103,6 +106,10 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // выносливость, и знать ему незачем.
         runtime.useResources(resources::restore);
 
+        // Мобы: те же статы, те же навыки, своя метка.
+        mobService = new MobService(this, content.mobs(), stats, content.skills(), runtime,
+                random);
+
         // Предметы: сборка по метке, статы от снаряжения, умения по щелчку.
         rpgItems = new RpgItems(this, content.items());
         equipment = new EquipmentWatcher(rpgItems, stats, classService);
@@ -115,7 +122,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         var command = getCommand("rpg");
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
-                    classService, casts, menus, rpgItems, equipment, recipes);
+                    classService, casts, menus, rpgItems, equipment, recipes,
+                    mobService, getDataFolder().toPath());
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -130,6 +138,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
         Bukkit.getPluginManager().registerEvents(
                 new ItemAbilityListener(rpgItems, casts), this);
+        Bukkit.getPluginManager().registerEvents(
+                new MobListener(mobService, rpgItems, random), this);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память
@@ -163,6 +173,12 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             }
         }, 20L, 20L);
 
+        // Периодические навыки мобов. Промежуток считается от тика сервера, а
+        // не от собственного счётчика: так два моба с одинаковым навыком не
+        // расходятся во времени из-за того, что появились в разные тики.
+        Bukkit.getScheduler().runTaskTimer(this,
+                () -> mobService.tick(Bukkit.getCurrentTick()), 20L, 1L);
+
         // Периодические навыки. Шаг задачи — секунда, а частоту каждого навыка
         // держит его собственный промежуток через перезарядку: иначе «каждые
         // две секунды» означало бы «как часто успевает задача».
@@ -184,7 +200,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 + ", навыков " + content.skills().size()
                 + ", классов " + content.playerClasses().size()
                 + ", предметов " + content.items().size()
-                + ", рецептов " + added);
+                + ", рецептов " + added
+                + ", мобов " + content.mobs().size());
     }
 
     @Override
@@ -232,7 +249,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
     private void saveDefaultContent() {
         for (String name : new String[] {
-                "stats.yml", "statuses.yml", "balance.yml", "rarities.yml",
+                "stats.yml", "statuses.yml", "balance.yml", "rarities.yml", "spawn.yml",
                 "skills/druid_abyss_bloom.yml", "skills/druid_bark_guard.yml",
                 "skills/druid_bark_react.yml", "skills/druid_beast_call.yml",
                 "skills/druid_beast_ward_tick.yml", "skills/druid_bloom_tick.yml",
@@ -244,7 +261,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 "skills/mage_collapse_do.yml", "skills/mage_flow_loop.yml",
                 "skills/mage_herd.yml", "skills/mage_mana_bolt.yml", "skills/mage_scatter.yml",
                 "skills/mage_seal_core.yml", "skills/mage_seal_drop.yml",
-                "skills/mage_void_step.yml", "skills/rogue_dash.yml",
+                "skills/mage_void_step.yml", "skills/mob_sand_burst.yml",
+                "skills/mob_venom_sting.yml", "skills/rogue_dash.yml",
                 "skills/rogue_fan_of_knives.yml", "skills/rogue_ghost_step.yml",
                 "skills/rogue_ghost_strike.yml", "skills/rogue_mark_of_death.yml",
                 "skills/rogue_mark_stack.yml", "skills/rogue_mark_tally.yml",
@@ -259,7 +277,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 "classes/warlock.yml", "items/arcane_focus.yml", "items/druid_oaken_charm.yml",
                 "items/mage_apprentice_staff.yml", "items/rogue_shadow_dagger.yml",
                 "items/warlock_soul_lantern.yml", "recipes/arcane_focus.yml",
-                "recipes/druid_oaken_charm.yml", "recipes/mage_apprentice_staff.yml"}) {
+                "recipes/druid_oaken_charm.yml", "recipes/mage_apprentice_staff.yml",
+                "mobs/desert_scorpion.yml", "mobs/sand_revenant.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }

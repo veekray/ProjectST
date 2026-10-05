@@ -1,0 +1,19 @@
+# Жало скорпиона: яд на того, кого ударили.
+#
+# Служебный навык без класса — то же правило, что у умений предметов: иначе моб
+# запускал бы классовый навык игрока вместе с его балансом и стоимостью маны,
+# которой у моба нет.
+
+id: mob_venom_sting
+display: "Жало"
+icon: SPIDER_EYE
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    do:
+      - { action: potion, effect: poison, duration: $poison_duration, amplifier: 0 }
+      - { action: particles, particle: composter, shape: point, count: 8 }
+      - { action: sound, sound: entity_spider_hurt, volume: 0.6, pitch: 1.4 }
