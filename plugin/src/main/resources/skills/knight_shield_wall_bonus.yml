@@ -1,0 +1,26 @@
+# Прибавка Глухой Обороны за каждый держимый вызов.
+#
+# Отдельным навыком по той же причине, что и у ядра: две правки одного стата из
+# одного навыка затирают друг друга, потому что источник у них общий.
+
+id: knight_shield_wall_bonus
+display: "Глухая Оборона — прибавка"
+class: knight
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: count, counter: oaths }
+
+  - target: { type: self }
+    do:
+      - action: modify-stat
+        stat: defense
+        op: flat
+        value: "$each * @oaths"
+        duration: $duration

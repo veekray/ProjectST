@@ -523,3 +523,43 @@ statuses:
     category: buff
     duration: 200
     tags: [soft, buff]
+
+  # ---------------------------------------------------------------- рыцарь
+  # Вызов — ядро класса. Метка challenge в тегах не декоративна: по ней
+  # конвейер урона находит статус и ослабляет удар вызванного по всем, кроме
+  # вызвавшего. Насколько именно — лежит в самом наложении (amount), поэтому
+  # ульта доводит его до сотни, ничего не переписывая в коде.
+  challenge:
+    display: "Вызван"
+    color: RED
+    category: debuff
+    duration: 240
+    tags: [soft, challenge]
+
+  guarded:
+    display: "Под защитой"
+    color: AQUA
+    category: buff
+    duration: 100
+    tags: [soft, buff]
+
+  shield_wall:
+    display: "Глухая Оборона"
+    color: GRAY
+    category: buff
+    duration: 80
+    tags: [soft, buff]
+
+  retribution:
+    display: "Возмездие"
+    color: GOLD
+    category: buff
+    duration: 30
+    tags: [soft, buff]
+
+  fortress:
+    display: "Абсолютная Фортеция"
+    color: GOLD
+    category: buff
+    duration: 160
+    tags: [soft, buff]

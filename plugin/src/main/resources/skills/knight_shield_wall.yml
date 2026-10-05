@@ -1,0 +1,32 @@
+# 5. Глухая Оборона — тем крепче, чем больше вызовов держишь.
+#
+# Награда за ядро, а не отдельная кнопка «не умирать»: рыцарь, который никого
+# не вызвал, получит от неё вдвое меньше.
+
+id: knight_shield_wall
+display: "Глухая Оборона"
+class: knight
+icon: SHIELD
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рыцарь закрывается наглухо."
+  - "Чем больше вызванных вокруг,"
+  - "тем прочнее стена."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: shield_wall, duration: $duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $base
+        duration: $duration
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: end_rod, shape: ring, count: 24, size: 1.5 }
+      - { action: cast, skill: knight_shield_wall_bonus, at-targets: true }

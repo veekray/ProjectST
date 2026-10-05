@@ -1,0 +1,27 @@
+# 7. Возмездие — получить удар и обратить его в вызов.
+#
+# Короткое окно: следующий удар по рыцарю возвращается с процентами, а тот, кто
+# его нанёс, получает вызов. Единственный способ набрать ядро, не нападая, —
+# и он же награда за то, что рыцарь стоит под ударом.
+
+id: knight_retribution
+display: "Возмездие"
+class: knight
+icon: NETHERITE_SCRAP
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Короткое окно: следующий удар по вам"
+  - "возвращается втрое, а ударивший"
+  - "получает вызов."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: retribution, duration: $window }
+      - { action: sound, sound: block_metal_hit, volume: 1.0, pitch: 2.0 }
+      - { action: particles, particle: crit, shape: ring, count: 16, size: 1.0 }

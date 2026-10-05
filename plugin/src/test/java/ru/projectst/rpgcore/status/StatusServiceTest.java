@@ -49,6 +49,55 @@ class StatusServiceTest {
         return StatusApplication.of(id, "test");
     }
 
+    // ------------------------------------------------------------------ присяга
+
+    private static StatusDef challenge() {
+        return new StatusDef("challenge", StatusCategory.DEBUFF, 200, 1, Stacking.REFRESH,
+                0, null, Set.of(), Set.of(), Set.of(), Set.of("challenge"));
+    }
+
+    @Test
+    @DisplayName("вызванный бьёт вызвавшего в полную силу")
+    void challengerTakesFullHit() {
+        StatusService s = service(challenge());
+        UUID knight = UUID.randomUUID();
+        s.apply(TARGET, new StatusApplication("challenge", 200, 50,
+                "skill:knight_challenge:" + knight));
+
+        assertEquals(1.0, s.challengeScale(TARGET, knight), 1e-9,
+                "иначе рыцарь наказывал бы врага за то, что тот принял вызов");
+    }
+
+    @Test
+    @DisplayName("вызванный бьёт всех прочих вполсилы")
+    void othersTakeHalf() {
+        StatusService s = service(challenge());
+        UUID knight = UUID.randomUUID();
+        UUID mage = UUID.randomUUID();
+        s.apply(TARGET, new StatusApplication("challenge", 200, 50,
+                "skill:knight_challenge:" + knight));
+
+        assertEquals(0.5, s.challengeScale(TARGET, mage), 1e-9);
+    }
+
+    @Test
+    @DisplayName("без вызова ничего не ослабляется")
+    void noChallengeNoScale() {
+        StatusService s = service(challenge());
+        assertEquals(1.0, s.challengeScale(TARGET, UUID.randomUUID()), 1e-9);
+    }
+
+    @Test
+    @DisplayName("величина берётся из статуса, а не из кода")
+    void amountComesFromContent() {
+        StatusService s = service(challenge());
+        s.apply(TARGET, new StatusApplication("challenge", 200, 100,
+                "skill:knight_fortress:" + UUID.randomUUID()));
+
+        assertEquals(0.0, s.challengeScale(TARGET, UUID.randomUUID()), 1e-9,
+                "сто процентов — это ульта рыцаря, и она тоже живёт в содержимом");
+    }
+
     // ------------------------------------------------------------------ базовое
 
     @Test

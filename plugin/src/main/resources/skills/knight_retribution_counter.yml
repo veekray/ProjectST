@@ -1,0 +1,27 @@
+# Ответ Возмездия: срабатывает от попадания по рыцарю, пока открыто окно.
+
+id: knight_retribution_counter
+display: "Возмездие"
+class: knight
+tier: 4
+internal: true
+
+on: damaged
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: retribution }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: status, id: challenge, duration: $duration, amount: $weaken }
+      - { action: glow, duration: $duration }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: crit, shape: point, count: 25, size: 0.4 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: retribution }
+    do:
+      - { action: remove-status, id: retribution }

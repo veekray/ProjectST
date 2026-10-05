@@ -306,9 +306,13 @@ public final class SkillRuntime {
                         * durationScale(context.caster()));
                 double amount = resolve(a.amount(), table, context, 0)
                         * effectScale(context.caster());
+                // В источнике записан и навык, и тот, кто его применил. Второе
+                // нужно там, где важно не «чем наложено», а «кем»: Присяга
+                // рыцаря считает вызванным того, кто вызван именно им, и без
+                // имени вызвавшего два рыцаря в одном бою делили бы один вызов.
+                String source = "skill:" + skill.id() + ":" + context.caster();
                 forEach(targets, t -> statuses.apply(t,
-                        new StatusApplication(a.statusId(), duration, amount,
-                                "skill:" + skill.id())));
+                        new StatusApplication(a.statusId(), duration, amount, source)));
             }
 
             case Action.RemoveStatus a -> forEach(targets, t -> {

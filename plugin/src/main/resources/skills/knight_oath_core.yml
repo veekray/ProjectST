@@ -1,0 +1,43 @@
+# Ядро рыцаря: Присяга.
+#
+# Вызванный враг бьёт вызвавшего в полную силу, а всех остальных — вполсилы.
+# Обойти это нельзя: можно только снять вызов, убив рыцаря или разорвав
+# дистанцию. Выбор переходит к противнику, и оба варианта чего-то стоят — в
+# этом вся идея. Защитный класс интересен ровно настолько, насколько дорого
+# его игнорировать.
+#
+# Сам множитель считает конвейер урона в одном месте, по метке challenge на
+# вызванном; величина лежит в статусе, а не в коде, поэтому ульта может
+# довести её до сотни, ничего не переписывая.
+#
+# Этот навык — вторая половина ядра: чем больше вызовов рыцарь держит, тем он
+# крепче и тяжелее бьёт. Считается тик за тиком, по числу вызванных рядом.
+
+id: knight_oath_core
+display: "Присяга"
+class: knight
+tier: 1
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: count, counter: oaths }
+
+  - target: { type: self }
+    do:
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: "$defense_each * @oaths"
+        duration: 40
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: knight_oath_power, at-targets: true }

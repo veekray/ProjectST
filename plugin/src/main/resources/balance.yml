@@ -1306,3 +1306,149 @@ balance:
     damage:
       base: 4
       per-level: 0.6
+
+  # ================================================================ рыцарь
+  # weaken — сколько процентов урона теряет вызванный, когда бьёт мимо рыцаря.
+  # Число живёт здесь, а не в коде: ульта перевешивает вызов с сотней и больше
+  # ничего не меняет.
+
+  knight_oath_core:
+    radius: 20
+    defense_each: 4
+
+  knight_oath_power:
+    radius: 20
+    damage_each: 5
+
+  knight_challenge:
+    stamina: 8
+    cooldown:
+      base: 8.0
+      per-level: -0.05
+      min: 5.0
+    range: 20
+    duration: 240
+    weaken: 50
+
+  knight_war_cry:
+    stamina: 16
+    cooldown:
+      base: 18.0
+      per-level: -0.1
+      min: 12.0
+    radius: 10
+    duration: 100
+    weaken: 50
+
+  knight_shockwave:
+    stamina: 12
+    cooldown:
+      base: 7.0
+      per-level: -0.05
+      min: 4.0
+    range: 6
+    damage:
+      base: 8
+      per-level: 1.1
+    damage_challenged:
+      base: 16
+      per-level: 2.2
+    renew: 240
+    weaken: 50
+
+  knight_protector:
+    stamina: 14
+    cooldown:
+      base: 16.0
+      per-level: -0.1
+      min: 10.0
+    range: 12
+    stand: 1.2
+    sweep: 6
+    guard: 30
+    guard_duration: 100
+    duration: 200
+    weaken: 50
+
+  knight_shield_wall:
+    stamina: 16
+    cooldown:
+      base: 20.0
+      per-level: -0.12
+      min: 13.0
+    duration: 80
+    base: 30
+
+  knight_shield_wall_bonus:
+    radius: 20
+    duration: 80
+    each: 8
+
+  knight_shield_bash:
+    stamina: 14
+    cooldown:
+      base: 12.0
+      per-level: -0.08
+      min: 7.0
+    range: 4
+    damage:
+      base: 12
+      per-level: 1.6
+    stun: 40
+    renew: 240
+    weaken: 50
+
+  knight_retribution:
+    stamina: 12
+    cooldown:
+      base: 15.0
+      per-level: -0.1
+      min: 9.0
+    window: 30
+
+  knight_retribution_counter:
+    damage:
+      base: 14
+      per-level: 1.8
+    duration: 240
+    weaken: 50
+
+  knight_banner:
+    stamina: 20
+    cooldown:
+      base: 35.0
+      per-level: -0.2
+      min: 22.0
+    radius: 8
+    duration: 300
+
+  knight_banner_tick:
+    radius: 8
+    duration: 60
+    weaken: 50
+    guard: 15
+
+  knight_judgment:
+    stamina: 26
+    cooldown:
+      base: 30.0
+      per-level: -0.15
+      min: 20.0
+    radius: 12
+    damage:
+      base: 14
+      per-level: 2.0
+
+  knight_absolute_fortress:
+    stamina: 40
+    cooldown:
+      base: 140.0
+      per-level: -0.5
+      min: 95.0
+    duration: 160
+    radius: 12
+    reduction: 40
+
+  knight_fortress_tick:
+    radius: 12
+    duration: 60

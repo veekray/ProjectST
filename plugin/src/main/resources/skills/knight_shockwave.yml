@@ -1,0 +1,42 @@
+# 3. Ударная Волна — урон, который держит ядро.
+#
+# По вызванным бьёт вдвое и продлевает им вызов. Это и есть работа рыцаря в
+# бою: вызов спадает сам, и его надо подтверждать ударом, а не нажимать Вызов
+# по кругу.
+
+id: knight_shockwave
+display: "Ударная Волна"
+class: knight
+icon: IRON_SHOVEL
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Волна по земле перед собой."
+  - "Вызванных бьёт вдвое"
+  - "и продлевает им вызов."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_warden_sonic_boom, volume: 0.8, pitch: 1.2 }
+      - { action: particles, particle: sonic_boom, shape: point, count: 3, size: 0.5 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 90 }
+    if:
+      - { target: has-status, value: challenge, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: 0.6, lift: 0.1 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 90 }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: damage, amount: $damage_challenged, school: physical }
+      - { action: status, id: challenge, duration: $renew, amount: $weaken }
+      - { action: push, strength: 0.6, lift: 0.1 }
+      - { action: particles, particle: crit, shape: point, count: 12, size: 0.3 }

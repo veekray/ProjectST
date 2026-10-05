@@ -24,18 +24,23 @@ public final class SkillIcons {
 
     private static final Map<String, Icon> ICONS = new LinkedHashMap<>();
 
-    /** Запасной цвет по началу идентификатора: маг синий, друид зелёный и так далее. */
-    private static final Map<String, Integer> CLASS_COLOURS = Map.of(
-            "mage", 0xFF5B8AD6,
-            "druid", 0xFF4F8A3A,
-            "warlock", 0xFF7F3A6B,
-            "rogue", 0xFF5B5B6B,
-            "assassin", 0xFF4A3A5B,
-            "trickster", 0xFF7A4FD1,
-            "hunter", 0xFF8A6A2E,
-            "berserker", 0xFF8A2A1E,
-            "striker", 0xFFC9A227,
-            "item", 0xFFC9A227);
+    /**
+     * Запасной цвет по началу идентификатора: маг синий, друид зелёный и так
+     * далее. Через ofEntries, а не of: у короткой формы потолок в десять пар, и
+     * одиннадцатый класс её молча не переполняет — он её не компилирует.
+     */
+    private static final Map<String, Integer> CLASS_COLOURS = Map.ofEntries(
+            Map.entry("mage", 0xFF5B8AD6),
+            Map.entry("druid", 0xFF4F8A3A),
+            Map.entry("warlock", 0xFF7F3A6B),
+            Map.entry("rogue", 0xFF5B5B6B),
+            Map.entry("assassin", 0xFF4A3A5B),
+            Map.entry("trickster", 0xFF7A4FD1),
+            Map.entry("hunter", 0xFF8A6A2E),
+            Map.entry("berserker", 0xFF8A2A1E),
+            Map.entry("striker", 0xFFC9A227),
+            Map.entry("knight", 0xFFB0B0C0),
+            Map.entry("item", 0xFFC9A227));
 
     private SkillIcons() {
     }
@@ -933,6 +938,118 @@ public final class SkillIcons {
                         "..bb.bb..",
                         ".ccc.ccc.",
                         "c.c...c.c"}));
+
+        // ------------------------------------------------------------ рыцарь
+        ICONS.put("knight_challenge", new Icon(0xFF3A1A1A, 0xFFB03A32, 0xFFF0E0C0,
+                new String[] {
+                        "....c....",
+                        "...ccc...",
+                        "..cc.cc..",
+                        ".cc...cc.",
+                        "cc.....cc",
+                        ".bb...bb.",
+                        "..bb.bb..",
+                        "...bbb...",
+                        "....b...."}));
+        ICONS.put("knight_war_cry", new Icon(0xFF3A2A1A, 0xFF8A6A3A, 0xFFF0D898,
+                new String[] {
+                        "c.......c",
+                        ".c.bbb.c.",
+                        "..bbbbb..",
+                        "c.bb.bb.c",
+                        ".bbbbbbb.",
+                        "c.bb.bb.c",
+                        "..bbbbb..",
+                        ".c.bbb.c.",
+                        "c.......c"}));
+        ICONS.put("knight_shockwave", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFF0F0F8,
+                new String[] {
+                        "c........",
+                        ".c.......",
+                        "..cc.....",
+                        "...ccc...",
+                        "bbbbccccc",
+                        "...ccc...",
+                        "..cc.....",
+                        ".c.......",
+                        "c........"}));
+        ICONS.put("knight_protector", new Icon(0xFF1A2A3A, 0xFF4A7AB0, 0xFFD0E8F8,
+                new String[] {
+                        "ccccccccc",
+                        "cbbbbbbbc",
+                        "cb.bbb.bc",
+                        "cbbbbbbbc",
+                        ".cbbbbbc.",
+                        ".cbbbbbc.",
+                        "..cbbbc..",
+                        "...ccc...",
+                        "....c...."}));
+        ICONS.put("knight_shield_wall", new Icon(0xFF2A2A2A, 0xFF7A7A8A, 0xFFE0E0E8,
+                new String[] {
+                        "bbb.bbb.b",
+                        "bbb.bbb.b",
+                        ".bbb.bbb.",
+                        ".bbb.bbb.",
+                        "bbb.bbb.b",
+                        "bbb.bbb.b",
+                        ".bbb.bbb.",
+                        ".bbb.bbb.",
+                        "ccccccccc"}));
+        ICONS.put("knight_shield_bash", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFF0D070,
+                new String[] {
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        "bbbbbbbbb",
+                        "bbb...bbb",
+                        "bb.ccc.bb",
+                        "bbb...bbb",
+                        ".bbbbbbb.",
+                        "..bbbbb..",
+                        "...ccc..."}));
+        ICONS.put("knight_retribution", new Icon(0xFF3A2A0A, 0xFFC9A227, 0xFFF0E8B0,
+                new String[] {
+                        "c.......c",
+                        ".c.....c.",
+                        "..cbbbc..",
+                        ".cbbbbbc.",
+                        "cbbbcbbbc",
+                        ".cbbbbbc.",
+                        "..cbbbc..",
+                        ".c.....c.",
+                        "c.......c"}));
+        ICONS.put("knight_banner", new Icon(0xFF2A1A0A, 0xFF8A3A32, 0xFFF0E0C0,
+                new String[] {
+                        ".ccccccc.",
+                        ".cbbbbbc.",
+                        ".cb.b.bc.",
+                        ".cbbbbbc.",
+                        ".cbbbbbc.",
+                        ".c.ccc.c.",
+                        "...ccc...",
+                        "...ccc...",
+                        "...ccc..."}));
+        ICONS.put("knight_judgment", new Icon(0xFF3A3A0A, 0xFFC9C92A, 0xFFF8F8D0,
+                new String[] {
+                        "....c....",
+                        "ccccccccc",
+                        "c...c...c",
+                        "ccc.c.ccc",
+                        ".c..c..c.",
+                        "....c....",
+                        "...bbb...",
+                        "..bbbbb..",
+                        ".bbbbbbb."}));
+        ICONS.put("knight_absolute_fortress", new Icon(0xFF2A2A3A, 0xFF8A8AA0, 0xFFF0E0A0,
+                new String[] {
+                        "c.c.c.c.c",
+                        "ccccccccc",
+                        "cbbbbbbbc",
+                        "cb.bbb.bc",
+                        "cbbbbbbbc",
+                        "cb.bbb.bc",
+                        "cbbbbbbbc",
+                        "ccccccccc",
+                        "c.c.c.c.c"}));
     }
 
     /**

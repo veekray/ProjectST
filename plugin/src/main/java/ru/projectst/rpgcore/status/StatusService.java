@@ -223,6 +223,39 @@ public final class StatusService {
     }
 
     /** Только действующие: подавленные исключены. */
+    /**
+     * Во сколько раз ослаблен удар вызванного по тому, кто его не вызывал.
+     *
+     * <p>Ядро рыцаря. Вызванный бьёт вызвавшего в полную силу, а всех
+     * остальных — вполсилы: выбор переходит к противнику, и оба варианта
+     * чего-то стоят. Обойти нельзя, можно только снять вызов.
+     *
+     * <p>Величина берётся из самого статуса, а не из кода: сколько именно
+     * отнимает вызов, решает содержимое навыка, как и всё прочее в этом ядре.
+     * Берётся сильнейший из действующих вызовов — иначе второй, более слабый,
+     * ослаблял бы первый.
+     *
+     * @return множитель от нуля до единицы; единица — ослаблять нечем
+     */
+    public double challengeScale(UUID attacker, UUID victim) {
+        if (attacker == null || victim == null) {
+            return 1;
+        }
+        double worst = 1;
+        for (ActiveStatus status : acting(attacker)) {
+            if (!status.def().tags().contains("challenge")) {
+                continue;
+            }
+            // Источник хранит имя вызвавшего: удар по нему самому не ослабляется.
+            String source = status.source();
+            if (source != null && source.endsWith(":" + victim)) {
+                continue;
+            }
+            worst = Math.min(worst, Math.max(0, 1 - status.amount() / 100.0));
+        }
+        return worst;
+    }
+
     public List<ActiveStatus> acting(UUID target) {
         Map<String, ActiveStatus> active = byTarget.get(target);
         if (active == null) {

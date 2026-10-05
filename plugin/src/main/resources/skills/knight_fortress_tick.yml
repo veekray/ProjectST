@@ -1,0 +1,20 @@
+# Фортеция держит вызов полным, пока стоит: вошедший в круг тоже попадает под
+# неё, а вышедший перестаёт быть вызванным, когда вызов спадёт сам.
+
+id: knight_fortress_tick
+display: "Абсолютная Фортеция"
+class: knight
+tier: 5
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: fortress }
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: 100 }
+      - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3 }

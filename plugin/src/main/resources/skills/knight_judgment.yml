@@ -1,0 +1,41 @@
+# 9. Правосудие — то единственное, что тратит ядро.
+#
+# Бьёт каждого вызванного разом, и тем сильнее, чем больше их набралось. Вызовы
+# после этого спадают: рыцарь разменял удержание на удар и начинает собирать
+# заново. Без такой траты ядро было бы только накоплением, а накопление без
+# расхода — это шкала, от которой мы и уходили.
+
+id: knight_judgment
+display: "Правосудие"
+class: knight
+icon: GOLDEN_SWORD
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Суд над всеми вызванными разом."
+  - "Чем больше их держишь, тем тяжелее"
+  - "удар — и тем дольше собирать заново."
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: count, counter: oaths }
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: end_rod, shape: ring, count: 40, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: damage, amount: "$damage * @oaths", school: magic }
+      - { action: remove-status, id: challenge }
+      - { action: particles, particle: end_rod, shape: point, count: 20, size: 0.5 }

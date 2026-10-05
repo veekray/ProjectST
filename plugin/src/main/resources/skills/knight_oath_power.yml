@@ -1,0 +1,25 @@
+# Вторая надбавка ядра. Отдельным навыком, потому что надбавка ставится по
+# источнику «навык и стат»: две правки одного стата из одного навыка затёрли бы
+# друг друга, и вторая просто не считалась бы.
+
+id: knight_oath_power
+display: "Присяга — сила"
+class: knight
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: challenge }
+    do:
+      - { action: count, counter: oaths }
+
+  - target: { type: self }
+    do:
+      - action: modify-stat
+        stat: physical_damage
+        op: flat
+        value: "$damage_each * @oaths"
+        duration: 40

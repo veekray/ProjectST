@@ -1,0 +1,37 @@
+# 4. Заступник — встать между.
+#
+# Рыцарь переносится к союзнику, прикрывает его и вызывает всех, кто на него
+# насел. Один навык закрывает обе половины роли: пришёл и забрал внимание.
+
+id: knight_protector
+display: "Заступник"
+class: knight
+icon: SHIELD
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рывок к союзнику: он получает защиту,"
+  - "а все, кто его бил, получают вызов."
+
+steps:
+
+  - target: { type: allies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: approach, distance: $stand, behind: false }
+      - { action: status, id: guarded, duration: $guard_duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $guard
+        duration: $guard_duration
+      - { action: sound, sound: block_anvil_hit, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5 }
+
+  - target: { type: enemies_in_radius, radius: $sweep }
+    delay: 2
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: $weaken }
+      - { action: glow, duration: $duration }

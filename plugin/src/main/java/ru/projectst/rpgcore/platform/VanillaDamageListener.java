@@ -103,8 +103,12 @@ public final class VanillaDamageListener implements Listener {
 
         StatSnapshot attackerStats = attackerId == null
                 ? StatSnapshot.EMPTY : stats.snapshot(attackerId);
+        // Тот же множитель Присяги, что и у навыков: два места, считающие одно
+        // и то же по-разному, однажды разошлись бы.
         DamageResult result = engine.compute(
-                new DamageRequest(event.getDamage(), schoolOf(event), "vanilla", Set.of()),
+                new DamageRequest(
+                        event.getDamage() * statuses.challengeScale(attackerId, victimId),
+                        schoolOf(event), "vanilla", Set.of()),
                 attackerStats, stats.snapshot(victimId), state);
 
         if (result.blocked()) {

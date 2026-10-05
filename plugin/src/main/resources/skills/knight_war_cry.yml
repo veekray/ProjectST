@@ -1,0 +1,32 @@
+# 2. Клич — вызов всем сразу, но ненадолго.
+#
+# Прежняя Провокация тянула мобов через таблицу угрозы, которой у половины
+# мобов нет, а игроков просто замедляла. Теперь она делает то же самое для всех
+# одинаково: и моб, и игрок под вызовом бьют мимо рыцаря вполсилы.
+
+id: knight_war_cry
+display: "Клич"
+class: knight
+icon: GOAT_HORN
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рыцарь вызывает всех вокруг разом."
+  - "Вызов короткий, но достаётся каждому,"
+  - "кто его услышал."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 0.9 }
+      - { action: particles, particle: angry_villager, shape: ring, count: 30, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: $weaken }
+      - { action: glow, duration: $duration }
+      - { action: particles, particle: angry_villager, shape: point, count: 8, size: 0.3 }

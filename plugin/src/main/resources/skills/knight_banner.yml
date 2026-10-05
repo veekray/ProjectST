@@ -1,0 +1,31 @@
+# 8. Знамя — место, где вызов берут сами.
+#
+# Было: тотем, раздающий регенерацию и защиту. Стало: знамя, вокруг которого
+# действует ядро. Враг, вошедший в круг, получает вызов без всякого нажатия,
+# союзник внутри — защиту. Рыцарь выбирает, где будет драка.
+
+id: knight_banner
+display: "Знамя"
+class: knight
+icon: WHITE_BANNER
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Знамя в землю: враги, вошедшие в круг,"
+  - "вызваны сами собой,"
+  - "а союзники внутри прикрыты."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: block_wood_place, volume: 1.0, pitch: 0.5 }
+      - action: zone
+        tag: banner
+        radius: $radius
+        duration: $duration
+        tick-interval: 20
+        on-tick: knight_banner_tick

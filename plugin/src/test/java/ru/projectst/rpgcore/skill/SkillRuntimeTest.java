@@ -1497,7 +1497,11 @@ class SkillRuntimeTest {
         f.runtime.cast(CASTER, skill, 1);
 
         assertTrue(f.statuses.isActing(A, "mark"));
-        assertEquals(List.of("skill:test_skill"), List.copyOf(f.statuses.sources(A)));
+        // В источнике и навык, и тот, кто его применил. Второе нужно там, где
+        // важно не «чем наложено», а «кем»: Присяга рыцаря считает вызванным
+        // того, кто вызван именно им.
+        assertEquals(List.of("skill:test_skill:" + CASTER),
+                List.copyOf(f.statuses.sources(A)));
     }
 
     @Test

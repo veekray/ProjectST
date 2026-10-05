@@ -1,0 +1,55 @@
+# Рыцарь — подкласс воина, перенесённый отдельным классом.
+#
+# Ядро — Присяга: вызванный враг бьёт вызвавшего в полную силу, а всех
+# остальных вполсилы. Подробнее в skills/knight_oath_core.yml.
+#
+# Прежняя Честь — шкала от нуля до пяти, которую финишеры сбрасывали целиком, —
+# выброшена. Она была копией Ци страйкера вплоть до имени ауры, и, главное,
+# ничего не меняла для противника: защитный класс интересен ровно настолько,
+# насколько дорого его игнорировать, а игнорировать ту Честь можно было даром.
+
+id: knight
+display: "&fРыцарь"
+slots: 6
+icon: SHIELD
+max-level: 60
+points-per-level: 1
+
+resource:
+  name: "Выносливость"
+  max: max_stamina
+  regen: stamina_regen
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 3
+  3: 5
+  4: 7
+  5: 10
+
+stats:
+  max_health:
+    base: 28
+    per-level: 3
+  max_stamina:
+    base: 100
+    per-level: 4
+  stamina_regen:
+    base: 4
+    per-level: 0.1
+  physical_damage:
+    base: 0
+    per-level: 0.5
+  defense:
+    base: 6
+    per-level: 0.4
+  damage_reduction:
+    base: 4
+    per-level: 0.2
+  magic_resistance:
+    base: 4
+    per-level: 0.2

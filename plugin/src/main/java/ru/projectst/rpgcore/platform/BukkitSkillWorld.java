@@ -190,8 +190,11 @@ public final class BukkitSkillWorld implements SkillWorld {
         StatSnapshot defenderStats = stats.snapshot(targetId);
         DefenderState state = statuses.defenderState(targetId);
 
+        // Присяга ослабляет удар до конвейера: она меняет не защиту цели, а
+        // силу самого удара, и потому считается один раз, здесь.
         DamageResult result = engine.compute(
-                new DamageRequest(amount, school, skillId, Set.of()),
+                new DamageRequest(amount * statuses.challengeScale(casterId, targetId),
+                        school, skillId, Set.of()),
                 attackerStats, defenderStats, state);
 
         if (result.blocked()) {

@@ -1,0 +1,40 @@
+# 10. Абсолютная Фортеция — ульта, которая доводит ядро до предела.
+#
+# Вызов обычно отнимает половину урона мимо рыцаря. На время Фортеции — весь:
+# вызванный физически не может навредить никому, кроме того, кто его вызвал.
+#
+# Величина берётся из статуса, поэтому ульта ничего не переписывает в коде —
+# она просто перевешивает вызовы с другим числом.
+
+id: knight_absolute_fortress
+display: "Абсолютная Фортеция"
+class: knight
+icon: BEACON
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Пока она держится, вызванные"
+  - "не могут ударить никого, кроме рыцаря."
+  - "Совсем."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: fortress, duration: $duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $reduction
+        duration: $duration
+      - { action: sound, sound: block_beacon_activate, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: end_rod, shape: ring, count: 48, size: 6.0 }
+      - { action: message, text: "&6Абсолютная Фортеция" }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: 100 }
+      - { action: glow, duration: $duration }

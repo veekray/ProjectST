@@ -1,0 +1,28 @@
+# 1. Вызов — основной способ набрать ядро.
+#
+# Один враг, надолго. Клич берёт числом и коротко, этот — качеством: вызванного
+# сюда хватит до конца размена.
+
+id: knight_challenge
+display: "Вызов"
+class: knight
+icon: IRON_SWORD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рыцарь вызывает врага на бой."
+  - "Вызванный бьёт всех, кроме рыцаря,"
+  - "вполсилы. Обойти это нельзя."
+
+steps:
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 60, limit: 1 }
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: $weaken }
+      - { action: glow, duration: $duration }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4 }
+      - { action: message, text: "&cВызван" }
