@@ -30,6 +30,10 @@ balance:
   mage_mana_bolt_impact:
     radius: 3.5
     mark_duration: 160
+    # Печать живёт десять секунд: достаточно, чтобы успеть встать в неё, и
+    # мало, чтобы заранее застелить ими площадку.
+    seal_radius: 2.5
+    seal_duration: 200
     damage:
       base: 6
       per-level: 0.8
@@ -40,6 +44,11 @@ balance:
     radius: 5
     push: 1.1
     lift: 0.35
+    empowered_push: 0.8
+    empowered_damage:
+      base: 6
+      per-level: 0.5
+      max: 24
     cooldown:
       base: 9.0
       per-level: -0.2
@@ -54,6 +63,7 @@ balance:
     radius: 8
     angle: 60
     slow_duration: 60
+    gather_radius: 12
     cooldown:
       base: 14.0
       per-level: -0.3
@@ -62,9 +72,9 @@ balance:
       base: 10
       per-level: 0.9
       max: 50
-    # Надбавка за метку, а не полный урон: сработавший коллапс наносит
-    # damage + marked_damage, потому что помеченные попадают в оба шага.
-    marked_damage:
-      base: 9
-      per-level: 1.1
-      max: 60
+    # Надбавка за каждую снятую печать, а не полный урон: коллапс наносит
+    # damage плюс damage_per_seal за печать.
+    damage_per_seal:
+      base: 7
+      per-level: 0.8
+      max: 40

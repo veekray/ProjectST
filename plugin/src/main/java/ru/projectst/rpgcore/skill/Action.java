@@ -174,6 +174,55 @@ public sealed interface Action {
         }
     }
 
+    // ------------------------------------------------------------------ зоны
+
+    /**
+     * Оставить зону: печать, круг, ловушку.
+     *
+     * @param tag      тип зоны, по которому её потом ищут
+     * @param atOrigin ставить в точке действия, а не на целях шага
+     * @param particle чем рисуется; пусто — невидимая
+     */
+    record PlaceZone(String tag, NumberRef radius, NumberRef duration, boolean atOrigin,
+                     String particle) implements Action {
+        public PlaceZone {
+            if (tag == null || tag.isBlank()) {
+                throw new IllegalArgumentException("у зоны обязателен тег");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "zone";
+        }
+    }
+
+    /**
+     * Снять зоны рядом и записать их число в счётчик каста.
+     *
+     * <p>Снятие и подсчёт — одно действие, потому что раздельно они разошлись бы:
+     * посчитать печати, а снять другие.
+     *
+     * @param counter куда записать число снятых
+     * @param ownOnly снимать только свои зоны
+     */
+    record ConsumeZones(String tag, NumberRef radius, String counter, boolean ownOnly,
+                        boolean atOrigin) implements Action {
+        public ConsumeZones {
+            if (tag == null || tag.isBlank()) {
+                throw new IllegalArgumentException("у зоны обязателен тег");
+            }
+            if (counter == null || counter.isBlank()) {
+                throw new IllegalArgumentException("нужно имя счётчика");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "consume-zones";
+        }
+    }
+
     /** Сообщение целям шага. */
     record Message(String text) implements Action {
         @Override

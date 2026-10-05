@@ -23,6 +23,7 @@ import ru.projectst.rpgcore.platform.ExperienceListener;
 import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.skill.SkillRuntime;
+import ru.projectst.rpgcore.skill.ZoneService;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatService;
 import ru.projectst.rpgcore.status.StatusService;
@@ -44,6 +45,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private ClassService classService;
     private ManaPool mana;
     private CooldownTracker cooldowns;
+    private ZoneService zones;
 
     @Override
     public void onEnable() {
@@ -65,8 +67,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         DamageEngine damage = new DamageEngine(random);
 
         BukkitSkillWorld world = new BukkitSkillWorld(this, damage, stats, statuses);
+        zones = new ZoneService(clock);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats,
-                content.balance(), content.skills(), random);
+                content.balance(), content.skills(), zones, random);
 
         data = new PlayerDataStore(getDataFolder().toPath().resolve("players"),
                 message -> getLogger().warning(message));
@@ -106,6 +109,15 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 mana.regenerate(online.getUniqueId(), 1.0);
             }
         }, 20L, 20L);
+
+        // Отрисовка зон. Зона, которую игрок не видит, — ловушка, поэтому
+        // рисовать её обязанность плагина, а не автора навыка.
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            zones.expireAll();
+            for (var zone : zones.all()) {
+                world.drawZone(zone);
+            }
+        }, 10L, 10L);
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
                 + ", статусов " + content.statuses().size()
@@ -147,6 +159,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         statuses.forget(uuid);
         mana.forget(uuid);
         cooldowns.forget(uuid);
+        // Чужие печати после выхода их владельца не должны никого усиливать.
+        zones.forgetOwner(uuid);
     }
 
     private void saveDefaultContent() {

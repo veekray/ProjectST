@@ -1,6 +1,7 @@
 package ru.projectst.rpgcore.skill;
 
 import java.util.Collection;
+import java.util.List;
 import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.balance.BalanceTable;
 import ru.projectst.rpgcore.loader.ContentErrors;
@@ -44,6 +45,20 @@ public final class SkillLinker {
                             StatRegistry stats, ContentErrors errors) {
         java.util.Set<String> skillIds = new java.util.LinkedHashSet<>();
         skills.forEach(s -> skillIds.add(s.id()));
+
+        // Счётчики, которые вообще кто-нибудь заполняет. Ссылка на незаполняемый
+        // счётчик даёт нулевой урон — это ровно тот сорт тихого отказа, из-за
+        // которого проект затевался, поэтому ловим его здесь.
+        java.util.Set<String> writtenCounters = new java.util.LinkedHashSet<>();
+        for (SkillDef skill : skills) {
+            for (Step step : skill.steps()) {
+                for (Action action : step.actions()) {
+                    if (action instanceof Action.ConsumeZones c) {
+                        writtenCounters.add(c.counter());
+                    }
+                }
+            }
+        }
         for (SkillDef skill : skills) {
             SourceRef where = SourceRef.ofFile(skill.id() + ".yml");
             BalanceTable table = balance.table(skill.id());
@@ -79,6 +94,7 @@ public final class SkillLinker {
                     Action action = step.actions().get(a);
                     String path = stepPath + ".do[" + a + "]";
                     checkAction(skill, where, table, statuses, stats, skillIds, action, path, errors);
+                    checkCounters(where, action, path, writtenCounters, errors);
                 }
             }
         }
@@ -103,6 +119,52 @@ public final class SkillLinker {
             }
         }
         return false;
+    }
+
+    /** Ссылки на счётчики: заполняет ли их хоть кто-нибудь. */
+    private static void checkCounters(SourceRef where, Action action, String path,
+                                      java.util.Set<String> written, ContentErrors errors) {
+        for (NumberRef ref : numbersOf(action)) {
+            if (ref == null) {
+                continue;
+            }
+            String counter = ref.counterName();
+            if (counter != null && !written.contains(counter)) {
+                errors.add(where, path, "число умножается на счётчик \"" + counter
+                        + "\", который ничем не заполняется");
+            }
+        }
+    }
+
+    private static List<NumberRef> numbersOf(Action action) {
+        return switch (action) {
+            case Action.Damage a -> List.of(a.amount());
+            case Action.Heal a -> List.of(a.amount());
+            case Action.ApplyStatus a -> refs(a.duration(), a.amount());
+            case Action.ModifyStat a -> refs(a.value(), a.duration());
+            case Action.Potion a -> refs(a.duration());
+            case Action.Push a -> refs(a.strength(), a.lift());
+            case Action.Pull a -> refs(a.strength());
+            case Action.Teleport a -> refs(a.forward());
+            case Action.Particles a -> refs(a.count(), a.size());
+            case Action.Ray a -> refs(a.range());
+            case Action.PlaceZone a -> refs(a.radius(), a.duration());
+            case Action.ConsumeZones a -> refs(a.radius());
+            case Action.RemoveStatus ignored -> List.of();
+            case Action.Sound ignored -> List.of();
+            case Action.Message ignored -> List.of();
+            case Action.Cast ignored -> List.of();
+        };
+    }
+
+    private static List<NumberRef> refs(NumberRef... values) {
+        List<NumberRef> out = new java.util.ArrayList<>();
+        for (NumberRef value : values) {
+            if (value != null) {
+                out.add(value);
+            }
+        }
+        return out;
     }
 
     private static void checkAction(SkillDef skill, SourceRef where, BalanceTable table,
@@ -159,6 +221,12 @@ public final class SkillLinker {
                             "ссылка на несуществующий навык \"" + r.onHit() + "\"");
                 }
             }
+            case Action.PlaceZone z -> {
+                checkBalance(skill, where, table, path + ".radius", z.radius(), errors);
+                checkBalance(skill, where, table, path + ".duration", z.duration(), errors);
+            }
+            case Action.ConsumeZones z ->
+                    checkBalance(skill, where, table, path + ".radius", z.radius(), errors);
             case Action.Sound ignored -> {
                 // ссылок не содержит
             }

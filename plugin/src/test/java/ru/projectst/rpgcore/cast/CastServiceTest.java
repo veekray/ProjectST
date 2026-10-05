@@ -34,6 +34,7 @@ import ru.projectst.rpgcore.skill.SkillRegistry;
 import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.skill.SkillWorld;
 import ru.projectst.rpgcore.skill.TargetSpec;
+import ru.projectst.rpgcore.skill.ZoneService;
 import ru.projectst.rpgcore.stat.StatEngine;
 import ru.projectst.rpgcore.stat.StatModifier;
 import ru.projectst.rpgcore.stat.StatOp;
@@ -163,6 +164,7 @@ class CastServiceTest {
     private CooldownTracker cooldowns;
     private FakeWorld world;
     private SkillDef skill;
+    private ZoneService zones;
     private long tick;
 
     @BeforeEach
@@ -221,8 +223,9 @@ class CastServiceTest {
         assertTrue(classes.unlock(PLAYER, "bolt").succeeded());
 
         world = new FakeWorld();
+        zones = new ZoneService(() -> tick);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats, balance, skills,
-                () -> 0.0);
+                zones, () -> 0.0);
         mana = new ManaPool(stats);
         cooldowns = new CooldownTracker(() -> tick);
         casts = new CastService(classes, skills, balance, statuses, statusDefs, stats,

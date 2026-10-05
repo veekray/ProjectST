@@ -376,4 +376,68 @@ class SkillLoaderTest {
         assertEquals(1, link.count(), () -> link.all().toString());
         assertTrue(link.all().get(0).what().contains("необъявленный стат"));
     }
+
+    @Test
+    @DisplayName("число со счётчиком разбирается, а решётка вместо собаки — ошибка")
+    void counterSyntax() {
+        SkillDef ok = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, radius: 8, counter: seals }
+                      - { action: damage, amount: 4 * @seals }
+                """).orElseThrow();
+        Action damage = ok.steps().get(0).actions().get(1);
+        assertEquals("seals", ((Action.Damage) damage).amount().counterName());
+
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: damage, amount: "4 * seals" }
+                """, errors);
+        assertTrue(errors.all().get(0).what().contains("@имя"), errors.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("счётчик, который никто не заполняет, ловится связыванием")
+    void linkingCatchesOrphanCounter() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 5 }
+                    do:
+                      - { action: damage, amount: 4 * @seals }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("не заполняется"),
+                link.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("зона требует тег, радиус и длительность")
+    void zoneNeedsItsKeys() {
+        ContentErrors errors = new ContentErrors();
+        SkillLoader.load("s.yml", """
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: zone, tag: seal, radius: 4 }
+                """, errors);
+
+        assertTrue(errors.all().get(0).what().contains("duration"),
+                errors.all().get(0).what());
+    }
 }

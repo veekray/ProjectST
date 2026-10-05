@@ -1,8 +1,9 @@
-# Коллапс: добивает помеченных сильнее, чем остальных.
+# Коллапс: собирает печати и бьёт за каждую.
 #
-# Два шага с одинаковыми целями, но разными условиями — и видно, что чем они
-# отличаются. В старом стеке это было одно условие внутри механики, которое
-# проверяло кастера, хотя выглядело как проверка цели.
+# Урон записан как «за печать, умноженное на число снятых». Снятие и подсчёт —
+# одно действие, поэтому посчитать одни печати и снять другие невозможно. В
+# старом стеке этот навык всегда наносил одинаковый урон, потому что число
+# печатей считалось отдельно от их траты.
 
 id: mage_collapse
 display: "Коллапс"
@@ -14,20 +15,20 @@ cooldown: $cooldown
 
 steps:
 
-  # Усиленная часть: только по тем, на кого легла метка, и метка тратится.
-  - target: { type: enemies_in_cone, radius: $radius, angle: $angle }
-    if:
-      - { target: has-status, value: mark }
+  # Сначала собираем печати — счётчик нужен следующему шагу.
+  - target: { type: self }
     do:
-      - { action: damage, amount: $marked_damage, school: magic }
-      - { action: remove-status, id: mark }
-      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 20, size: 0.8 }
+      - { action: consume-zones, tag: seal, radius: $gather_radius, counter: seals }
+      - { action: particles, particle: reverse_portal, shape: sphere, count: 40, size: 2, at-origin: true }
 
-  # Базовая часть: по всем в конусе, включая уже задетых выше.
+  # Базовый урон плюс надбавка за каждую снятую печать. Без печатей надбавка
+  # равна нулю, и это видно по числу, а не по отсутствию эффекта.
   - target: { type: enemies_in_cone, radius: $radius, angle: $angle }
     do:
       - { action: damage, amount: $damage, school: magic }
+      - { action: damage, amount: $damage_per_seal * @seals, school: magic }
       - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 1 }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 20, size: 0.8 }
 
   - target: { type: self }
     do:

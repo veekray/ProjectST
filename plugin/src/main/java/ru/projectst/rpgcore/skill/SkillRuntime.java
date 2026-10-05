@@ -32,15 +32,18 @@ public final class SkillRuntime {
     private final StatService stats;
     private final BalanceBook balance;
     private final SkillRegistry skills;
+    private final ZoneService zones;
     private final DoubleSupplier random;
 
     public SkillRuntime(SkillWorld world, StatusService statuses, StatService stats,
-                        BalanceBook balance, SkillRegistry skills, DoubleSupplier random) {
+                        BalanceBook balance, SkillRegistry skills, ZoneService zones,
+                        DoubleSupplier random) {
         this.world = world;
         this.statuses = statuses;
         this.stats = stats;
         this.balance = balance;
         this.skills = skills;
+        this.zones = zones;
         this.random = random;
     }
 
@@ -75,8 +78,8 @@ public final class SkillRuntime {
             }
         }
 
-        double radius = resolve(step.target().radius(), table, context.level(), 0);
-        double angle = resolve(step.target().angle(), table, context.level(), 0);
+        double radius = resolve(step.target().radius(), table, context, 0);
+        double angle = resolve(step.target().angle(), table, context, 0);
 
         // Единственное место, где определяются цели шага.
         List<UUID> targets =
@@ -119,6 +122,21 @@ public final class SkillRuntime {
             }
             case IS_PLAYER -> world.isPlayer(subject);
             case CHANCE -> random.getAsDouble() * 100 < Double.parseDouble(condition.value());
+            case IN_ZONE -> {
+                String[] parts = condition.value().split(":", 2);
+                boolean ownOnly = parts.length > 1 && parts[1].equals("own");
+                yield world.positionOf(subject)
+                        .map(p -> zones.at(p, parts[0]).stream()
+                                .anyMatch(z -> !ownOnly || z.ownedBy(context.caster())))
+                        .orElse(false);
+            }
+            case ZONE_COUNT -> {
+                String[] parts = condition.value().split(":", 2);
+                int needed = parts.length > 1 ? Integer.parseInt(parts[1]) : 1;
+                yield world.positionOf(subject)
+                        .map(p -> zones.at(p, parts[0]).size() >= needed)
+                        .orElse(false);
+            }
         };
         return condition.negated() != result;
     }
@@ -131,22 +149,22 @@ public final class SkillRuntime {
         switch (action) {
 
             case Action.Damage a -> forEach(targets, t -> world.dealDamage(context.caster(), t,
-                    a.amount().resolve(table, level), a.school(), skill.id()));
+                    a.amount().resolve(table, level, context.counters()), a.school(), skill.id()));
 
             case Action.Heal a -> forEach(targets,
-                    t -> world.heal(t, a.amount().resolve(table, level)));
+                    t -> world.heal(t, a.amount().resolve(table, level, context.counters())));
 
             case Action.ApplyStatus a -> forEach(targets, t -> statuses.apply(t,
                     new StatusApplication(a.statusId(),
-                            (int) resolve(a.duration(), table, level, 0),
-                            resolve(a.amount(), table, level, 0),
+                            (int) resolve(a.duration(), table, context, 0),
+                            resolve(a.amount(), table, context, 0),
                             "skill:" + skill.id())));
 
             case Action.RemoveStatus a -> forEach(targets, t -> statuses.remove(t, a.statusId()));
 
             case Action.ModifyStat a -> {
-                double value = a.value().resolve(table, level);
-                int ticks = (int) resolve(a.duration(), table, level, 0);
+                double value = a.value().resolve(table, level, context.counters());
+                int ticks = (int) resolve(a.duration(), table, context, 0);
                 String source = "skill:" + skill.id() + ":" + a.statId();
                 forEach(targets, t -> {
                     stats.setSource(t, source,
@@ -161,14 +179,14 @@ public final class SkillRuntime {
             }
 
             case Action.Potion a -> forEach(targets, t -> world.potion(t, a.effect(),
-                    (int) resolve(a.duration(), table, level, 0), a.amplifier()));
+                    (int) resolve(a.duration(), table, context, 0), a.amplifier()));
 
             case Action.Push a -> {
                 Position from = context.origin() != null ? context.origin()
                         : world.positionOf(context.caster()).orElse(null);
                 if (from != null) {
-                    double strength = a.strength().resolve(table, level);
-                    double lift = resolve(a.lift(), table, level, 0.3);
+                    double strength = a.strength().resolve(table, level, context.counters());
+                    double lift = resolve(a.lift(), table, context, 0.3);
                     forEach(targets, t -> world.push(t, from, strength, lift));
                 }
             }
@@ -177,7 +195,7 @@ public final class SkillRuntime {
                 Position to = context.origin() != null ? context.origin()
                         : world.positionOf(context.caster()).orElse(null);
                 if (to != null) {
-                    double strength = a.strength().resolve(table, level);
+                    double strength = a.strength().resolve(table, level, context.counters());
                     // Несколько слабых импульсов вместо одного сильного: каждый
                     // пересчитывает направление, поэтому перелёт исправляется сам.
                     int ticks = Math.max(1, a.ticks());
@@ -196,13 +214,13 @@ public final class SkillRuntime {
             case Action.Teleport a -> forEach(targets, t -> {
                 Optional<Position> to = context.origin() != null
                         ? Optional.of(context.origin())
-                        : world.forwardOf(t, a.forward().resolve(table, level));
+                        : world.forwardOf(t, a.forward().resolve(table, level, context.counters()));
                 to.ifPresent(position -> world.teleport(t, position));
             });
 
             case Action.Particles a -> {
-                int count = (int) a.count().resolve(table, level);
-                double size = resolve(a.size(), table, level, 1);
+                int count = (int) a.count().resolve(table, level, context.counters());
+                double size = resolve(a.size(), table, context, 1);
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(
                             p -> world.particles(p, a.particle(), a.shape(), count, size));
@@ -224,6 +242,41 @@ public final class SkillRuntime {
 
             case Action.Message a -> forEach(targets, t -> world.message(t, a.text()));
 
+            case Action.PlaceZone a -> {
+                double radius = resolve(a.radius(), table, context, 1);
+                int ticks = (int) resolve(a.duration(), table, context, 20);
+                if (a.atOrigin()) {
+                    positionFor(context).ifPresent(p -> zones.place(a.tag(), context.caster(),
+                            p, radius, ticks, a.particle()));
+                } else {
+                    forEach(targets, t -> world.positionOf(t).ifPresent(
+                            p -> zones.place(a.tag(), context.caster(), p, radius, ticks,
+                                    a.particle())));
+                }
+            }
+
+            case Action.ConsumeZones a -> {
+                double radius = resolve(a.radius(), table, context, 1);
+                UUID owner = a.ownOnly() ? context.caster() : null;
+                int count = 0;
+                if (a.atOrigin()) {
+                    Optional<Position> at = positionFor(context);
+                    if (at.isPresent()) {
+                        count = zones.consume(at.get(), radius, a.tag(), owner);
+                    }
+                } else {
+                    for (UUID target : targets) {
+                        Optional<Position> at = world.positionOf(target);
+                        if (at.isPresent()) {
+                            count += zones.consume(at.get(), radius, a.tag(), owner);
+                        }
+                    }
+                }
+                // Счётчик пишется всегда, в том числе нулём: иначе прошлое
+                // значение осталось бы видимым следующему шагу.
+                context.count(a.counter(), count);
+            }
+
             case Action.Cast a -> {
                 Optional<SkillDef> sub = skills.find(a.skillId());
                 if (sub.isEmpty()) {
@@ -231,7 +284,7 @@ public final class SkillRuntime {
                 }
                 if (a.atTargets()) {
                     forEach(targets, t -> cast(
-                            new CastContext(t, level, context.origin(), context.caster()),
+                            context.withCaster(t).withTrigger(context.caster()),
                             sub.get(), depth + 1));
                 } else {
                     // Цели шага становятся точкой действия подчинённого навыка.
@@ -244,12 +297,12 @@ public final class SkillRuntime {
 
             case Action.Ray a -> {
                 SkillWorld.RayHit hit = world.castRay(context.caster(),
-                        a.range().resolve(table, level), a.stopAtEntity());
+                        a.range().resolve(table, level, context.counters()), a.stopAtEntity());
                 if (hit == null) {
                     return;
                 }
                 skills.find(a.onHit()).ifPresent(sub -> cast(
-                        new CastContext(context.caster(), level, hit.point(), hit.entity()),
+                        context.withOrigin(hit.point()).withTrigger(hit.entity()),
                         sub, depth + 1));
             }
         }
@@ -267,7 +320,8 @@ public final class SkillRuntime {
         }
     }
 
-    private static double resolve(NumberRef ref, BalanceTable table, int level, double fallback) {
-        return ref == null ? fallback : ref.resolve(table, level);
+    private static double resolve(NumberRef ref, BalanceTable table, CastContext context,
+                                 double fallback) {
+        return ref == null ? fallback : ref.resolve(table, context.level(), context.counters());
     }
 }

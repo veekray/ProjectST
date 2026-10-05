@@ -1,5 +1,7 @@
 package ru.projectst.rpgcore.skill;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,11 +21,30 @@ import java.util.UUID;
  * @param level   уровень навыка: по нему разворачиваются кривые баланса
  * @param origin  точка действия, если она задана
  * @param trigger кто спровоцировал: ударивший, вошедший в зону
+ * @param counters числа, посчитанные по ходу каста: сколько печатей снято,
+ *                 сколько целей задето. Карта общая на весь каст, включая
+ *                 подчинённые навыки: счётчик, посчитанный первым шагом, обязан
+ *                 быть виден второму, иначе «урон за каждую печать» выразить
+ *                 нечем
  */
-public record CastContext(UUID caster, int level, Position origin, UUID trigger) {
+public record CastContext(UUID caster, int level, Position origin, UUID trigger,
+                          Map<String, Double> counters) {
+
+    public CastContext(UUID caster, int level, Position origin, UUID trigger) {
+        this(caster, level, origin, trigger, new HashMap<>());
+    }
 
     public static CastContext of(UUID caster, int level) {
-        return new CastContext(caster, level, null, null);
+        return new CastContext(caster, level, null, null, new HashMap<>());
+    }
+
+    /** Записывает счётчик. Перезапись намеренна: счёт идёт за текущий каст. */
+    public void count(String name, double value) {
+        counters.put(name, value);
+    }
+
+    public double counter(String name) {
+        return counters.getOrDefault(name, 0.0);
     }
 
     public Optional<Position> originOpt() {
@@ -35,10 +56,15 @@ public record CastContext(UUID caster, int level, Position origin, UUID trigger)
     }
 
     public CastContext withOrigin(Position position) {
-        return new CastContext(caster, level, position, trigger);
+        return new CastContext(caster, level, position, trigger, counters);
     }
 
     public CastContext withTrigger(UUID entity) {
-        return new CastContext(caster, level, origin, entity);
+        return new CastContext(caster, level, origin, entity, counters);
+    }
+
+    /** Тот же каст от лица другого исполнителя: счётчики общие. */
+    public CastContext withCaster(UUID other) {
+        return new CastContext(other, level, origin, trigger, counters);
     }
 }

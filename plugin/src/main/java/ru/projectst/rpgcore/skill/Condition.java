@@ -36,7 +36,11 @@ public record Condition(Scope scope, Check check, String value, boolean negated)
         /** Проверяемый — игрок. */
         IS_PLAYER,
         /** Срабатывает с заданной вероятностью в процентах. */
-        CHANCE
+        CHANCE,
+        /** Проверяемый стоит в зоне с этим тегом; {@code тег:own} — только в своей. */
+        IN_ZONE,
+        /** Проверяемый стоит минимум в N зонах с этим тегом: {@code тег:N}. */
+        ZONE_COUNT
     }
 
     public Condition {

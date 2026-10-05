@@ -18,10 +18,12 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: mark, duration: $mark_duration }
 
-  # Визуал в точке попадания. Он в отдельном шаге с целью «сам маг», и это
-  # важно: at-origin рисует в точке действия независимо от того, нашлись цели
-  # или нет, поэтому промах видно так же хорошо, как попадание.
+  # Печать в точке попадания и визуал. Шаг от лица мага, потому что печать
+  # ставится в точку действия, а не на кого-то: at-origin срабатывает и при
+  # промахе, поэтому печать останется там, куда прилетело, даже если никого не
+  # задело. Ровно это и нужно от ядра на печатях.
   - target: { type: self }
     do:
+      - { action: zone, tag: seal, radius: $seal_radius, duration: $seal_duration, at-origin: true, particle: witch }
       - { action: particles, particle: electric_spark, shape: sphere, count: 30, size: 1.2, at-origin: true }
       - { action: sound, sound: entity_wither_shoot, volume: 0.6, pitch: 1.8, at-origin: true }

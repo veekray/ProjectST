@@ -36,7 +36,7 @@ public final class SkillLoader {
 
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
-                    + "teleport, particles, sound, message, cast, ray";
+                    + "teleport, particles, sound, message, cast, ray, zone, consume-zones";
 
     private SkillLoader() {
     }
@@ -186,11 +186,14 @@ public final class SkillLoader {
             case "status-stacks" -> Condition.Check.STATUS_STACKS;
             case "is-player" -> Condition.Check.IS_PLAYER;
             case "chance" -> Condition.Check.CHANCE;
+            case "in-zone" -> Condition.Check.IN_ZONE;
+            case "zone-count" -> Condition.Check.ZONE_COUNT;
             default -> null;
         };
         if (check == null) {
             errors.add(body.at(), path, "неизвестная проверка \"" + raw
-                    + "\", допустимы: has-status, status-stacks, is-player, chance");
+                    + "\", допустимы: has-status, status-stacks, is-player, chance, "
+                    + "in-zone, zone-count");
             return Optional.empty();
         }
         if (check != Condition.Check.IS_PLAYER && value.isBlank()) {
@@ -319,6 +322,34 @@ public final class SkillLoader {
                 yield Optional.of(new Action.Sound(sound, volume, pitch, atOrigin));
             }
 
+            case "zone" -> {
+                String tag = b.str("tag", "");
+                NumberRef radius = number(b, "radius", errors, path, null);
+                NumberRef duration = number(b, "duration", errors, path, null);
+                boolean atOrigin = b.bool("at-origin", false);
+                String particle = b.str("particle", "");
+                if (tag.isBlank() || radius == null || duration == null) {
+                    errors.add(b.at(), path, "нужны ключи tag, radius и duration");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.PlaceZone(tag, radius, duration, atOrigin,
+                        particle.isBlank() ? null : particle));
+            }
+
+            case "consume-zones" -> {
+                String tag = b.str("tag", "");
+                NumberRef radius = number(b, "radius", errors, path, null);
+                String counter = b.str("counter", "");
+                boolean ownOnly = b.bool("own-only", true);
+                boolean atOrigin = b.bool("at-origin", false);
+                if (tag.isBlank() || radius == null || counter.isBlank()) {
+                    errors.add(b.at(), path, "нужны ключи tag, radius и counter");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.ConsumeZones(tag, radius, counter, ownOnly,
+                        atOrigin));
+            }
+
             case "message" -> {
                 String text = b.str("text", "");
                 if (text.isBlank()) {
@@ -387,7 +418,8 @@ public final class SkillLoader {
             return NumberRef.parse(raw);
         } catch (NumberFormatException e) {
             errors.add(body.at(), path + "." + key,
-                    "ожидалось число или ссылка вида $ключ, получено \"" + raw + "\"");
+                    "ожидалось число, ссылка вида $ключ или число со счётчиком вида "
+                            + "N * @имя, получено \"" + raw + "\"");
             return fallback;
         }
     }

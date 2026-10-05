@@ -190,7 +190,7 @@ class SkillRuntimeTest {
     }
 
     private record Fixture(FakeWorld world, SkillRuntime runtime,
-                           StatusService statuses, StatService stats) {
+                           StatusService statuses, StatService stats, ZoneService zones) {
     }
 
     private static Fixture fixture(DoubleSupplier random, SkillDef... defs) {
@@ -201,9 +201,10 @@ class SkillRuntimeTest {
         for (SkillDef def : defs) {
             map.put(def.id(), def);
         }
+        ZoneService zoneService = new ZoneService(() -> 0L);
         SkillRuntime runtime = new SkillRuntime(world, statusService, statService,
-                balance(), new SkillRegistry(map), random);
-        return new Fixture(world, runtime, statusService, statService);
+                balance(), new SkillRegistry(map), zoneService, random);
+        return new Fixture(world, runtime, statusService, statService, zoneService);
     }
 
     private static Fixture fixture(SkillDef... defs) {
@@ -555,6 +556,169 @@ class SkillRuntimeTest {
         assertTrue(f.world.calls.contains("particles flame SPHERE x8 @1.0"),
                 "промах обязан быть видно: " + f.world.calls);
         assertTrue(f.world.calls.contains("sound boom @1.0"), f.world.calls.toString());
+    }
+
+    // ------------------------------------------------------------------ зоны
+
+    @Test
+    @DisplayName("печать ставится в точке действия и сразу видна условию")
+    void zoneIsPlacedAndSeen() {
+        SkillDef place = parse("place", """
+                id: place
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: zone, tag: seal, radius: 4, duration: 200, at-origin: true }
+                """);
+        SkillDef check = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    if:
+                      - { caster: in-zone, value: "seal:own" }
+                    do:
+                      - { action: message, text: "усилен" }
+                """);
+        Fixture f = fixture(place, check);
+
+        f.runtime.cast(CASTER, check, 1);
+        assertFalse(f.world.calls.contains("message caster усилен"), "печати ещё нет");
+
+        f.runtime.cast(CASTER, place, 1);
+        f.runtime.cast(CASTER, check, 1);
+
+        assertTrue(f.world.calls.contains("message caster усилен"),
+                "печать обязана быть видна сразу: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("чужая печать своего каста не усиливает")
+    void foreignZoneDoesNotEmpower() {
+        SkillDef check = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    if:
+                      - { caster: in-zone, value: "seal:own" }
+                    do:
+                      - { action: message, text: "усилен" }
+                """);
+        Fixture f = fixture(check);
+        f.zones.place("seal", A, new Position(WORLD, 1, 2, 3), 6, 200);
+
+        f.runtime.cast(CASTER, check, 1);
+
+        assertFalse(f.world.calls.contains("message caster усилен"));
+    }
+
+    @Test
+    @DisplayName("снятые печати попадают в счётчик, и урон считается за каждую")
+    void consumedZonesScaleDamage() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, radius: 8, counter: seals }
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 4 * @seals }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+        Position here = new Position(WORLD, 1, 2, 3);
+        f.zones.place("seal", CASTER, here, 3, 200);
+        f.zones.place("seal", CASTER, here, 3, 200);
+        f.zones.place("seal", CASTER, here, 3, 200);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("damage A 12.0 MAGIC"),
+                "три печати по четыре: " + f.world.calls);
+        assertEquals(0, f.zones.size(), "печати потрачены");
+    }
+
+    @Test
+    @DisplayName("без печатей счётчик равен нулю, а не единице")
+    void missingZonesMeanZero() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, radius: 8, counter: seals }
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 4 * @seals }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("damage A 0.0 MAGIC"),
+                "ноль виден сразу, а «как будто одна печать» пришлось бы искать по логам: "
+                        + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("счётчик виден подчинённому навыку, а не теряется на границе")
+    void counterSurvivesSubSkill() {
+        SkillDef hit = parse("boom", """
+                id: boom
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 5 }
+                    do:
+                      - { action: damage, amount: 2 * @seals }
+                """);
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, radius: 8, counter: seals }
+                      - { action: cast, skill: boom, at-targets: true }
+                """);
+        Fixture f = fixture(skill, hit);
+        f.world.nextTargets = List.of(A);
+        f.zones.place("seal", CASTER, new Position(WORLD, 1, 2, 3), 3, 200);
+        f.zones.place("seal", CASTER, new Position(WORLD, 1, 2, 3), 3, 200);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("damage A 4.0 MAGIC"), f.world.calls.toString());
+    }
+
+    @Test
+    @DisplayName("условие на число печатей требует именно столько")
+    void zoneCountCondition() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    if:
+                      - { caster: zone-count, value: "seal:2" }
+                    do:
+                      - { action: message, text: "две" }
+                """);
+        Fixture f = fixture(skill);
+        Position here = new Position(WORLD, 1, 2, 3);
+        f.zones.place("seal", CASTER, here, 3, 200);
+
+        f.runtime.cast(CASTER, skill, 1);
+        assertFalse(f.world.calls.contains("message caster две"));
+
+        f.zones.place("seal", CASTER, here, 3, 200);
+        f.runtime.cast(CASTER, skill, 1);
+        assertTrue(f.world.calls.contains("message caster две"));
     }
 
     // ------------------------------------------------------------------ прочее

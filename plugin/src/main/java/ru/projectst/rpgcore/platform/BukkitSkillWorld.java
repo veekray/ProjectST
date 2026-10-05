@@ -318,6 +318,22 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
+    /**
+     * Рисует зону кольцом по её границе.
+     *
+     * <p>Не входит в порт {@link SkillWorld}: это обязанность плагина, а не
+     * навыка. Автор навыка задаёт тег, радиус и частицу, а то, что зону видно,
+     * обеспечивается здесь — забыть нарисовать печать невозможно.
+     */
+    public void drawZone(ru.projectst.rpgcore.skill.Zone zone) {
+        if (zone.particle() == null) {
+            return;
+        }
+        int points = Math.max(8, (int) Math.round(zone.radius() * 8));
+        particles(zone.center(), zone.particle(), Action.Particles.Shape.RING,
+                points, zone.radius());
+    }
+
     @Override
     public void sound(Position at, String sound, double volume, double pitch) {
         Optional<Location> location = toLocation(at);
