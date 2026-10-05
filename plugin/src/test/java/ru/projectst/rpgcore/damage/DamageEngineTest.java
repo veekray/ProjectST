@@ -104,9 +104,9 @@ class DamageEngineTest {
     void critBeforeMitigation() {
         DamageResult r = ALWAYS_CRIT.compute(magic(100),
                 stats(StatIds.CRIT_CHANCE, 100, StatIds.CRIT_POWER, 100),
-                stats(StatIds.MAGIC_RESISTANCE, 50), DefenderState.NONE);
+                stats(StatIds.MAGIC_DEFENSE, 100), DefenderState.NONE);
 
-        // 100 * 2 (крит) * 0.5 (сопротивление) = 100
+        // 100 * 2 (крит) * 0.5 (сто рейтинга — ровно половина) = 100
         assertTrue(r.crit());
         assertEquals(100, r.applied(), 1e-9);
         assertEquals(200, r.afterScaling() * 2, 1e-9, "до снижения урон был удвоен");
@@ -133,23 +133,73 @@ class DamageEngineTest {
     }
 
     @Test
-    @DisplayName("школьное сопротивление и damage_reduction суммируются")
-    void reductionsAdd() {
+    @DisplayName("школьная и общая защита перемножаются, а не складываются")
+    void defencesMultiply() {
         DamageResult r = NO_CRIT.compute(magic(100), stats(),
-                stats(StatIds.MAGIC_RESISTANCE, 30, StatIds.DAMAGE_REDUCTION, 20),
+                stats(StatIds.MAGIC_DEFENSE, 100, StatIds.GENERAL_DEFENSE, 100),
                 DefenderState.NONE);
 
-        // 100 * (1 - 0.5) = 50. При перемножении было бы 56.
-        assertEquals(50, r.applied(), 1e-9);
+        // По половине от каждой: 100 * 0.5 * 0.5 = 25.
+        // При сложении вышло бы ноль, и дальше понадобился бы потолок сверху.
+        assertEquals(25, r.applied(), 1e-9);
     }
 
     @Test
-    @DisplayName("снижение урона ограничено сверху: цель не становится бессмертной")
-    void reductionIsCapped() {
-        DamageResult r = NO_CRIT.compute(magic(100), stats(),
-                stats(StatIds.DAMAGE_REDUCTION, 500), DefenderState.NONE);
+    @DisplayName("каждый следующий пункт защиты даёт меньше предыдущего")
+    void defenceHasDiminishingReturns() {
+        double atHundred = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.MAGIC_DEFENSE, 100), DefenderState.NONE).applied();
+        double atTwoHundred = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.MAGIC_DEFENSE, 200), DefenderState.NONE).applied();
+        double atThreeHundred = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.MAGIC_DEFENSE, 300), DefenderState.NONE).applied();
 
-        assertEquals(20, r.applied(), 1e-9);
+        assertEquals(50, atHundred, 1e-9);
+        assertEquals(100.0 / 3, atTwoHundred, 1e-9);
+        assertEquals(25, atThreeHundred, 1e-9);
+
+        // Первая сотня сняла пятьдесят урона, вторая — шестнадцать с третью,
+        // третья — восемь с третью. Ровно это и значит убывающая отдача.
+        assertTrue(atHundred - atTwoHundred > atTwoHundred - atThreeHundred,
+                "иначе вторая сотня защиты стоила бы столько же, сколько первая");
+    }
+
+    @Test
+    @DisplayName("ста процентов защиты не бывает ни при каком рейтинге")
+    void defenceNeverReachesWhole() {
+        DamageResult r = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.GENERAL_DEFENSE, 1_000_000), DefenderState.NONE);
+
+        // Кривая сама не доходит до нуля, а нижний порог обещает десятую часть:
+        // удар, не наносящий ничего, неотличим от поломки.
+        assertEquals(10, r.applied(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("отрицательная защита — это уязвимость, и она линейна")
+    void negativeDefenceIsVulnerability() {
+        DamageResult r = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.MAGIC_DEFENSE, -25), DefenderState.NONE);
+
+        assertEquals(125, r.applied(), 1e-9, "минус двадцать пять — это плюс четверть урона");
+    }
+
+    @Test
+    @DisplayName("хуже, чем вдвое, уязвимость не делает")
+    void vulnerabilityIsBounded() {
+        DamageResult r = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.MAGIC_DEFENSE, -500), DefenderState.NONE);
+
+        assertEquals(200, r.applied(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("защита одной школы не трогает другую")
+    void defencesDoNotLeak() {
+        DamageResult r = NO_CRIT.compute(magic(100), stats(),
+                stats(StatIds.PHYSICAL_DEFENSE, 300), DefenderState.NONE);
+
+        assertEquals(100, r.applied(), 1e-9);
     }
 
     @Test
@@ -157,7 +207,8 @@ class DamageEngineTest {
     void trueDamageIgnoresMitigation() {
         DamageResult r = NO_CRIT.compute(
                 DamageRequest.of(100, DamageSchool.TRUE, "s"), stats(),
-                stats(StatIds.DAMAGE_REDUCTION, 80, StatIds.DEFENSE, 80), DefenderState.NONE);
+                stats(StatIds.GENERAL_DEFENSE, 400, StatIds.PHYSICAL_DEFENSE, 400),
+                DefenderState.NONE);
 
         assertEquals(100, r.applied(), 1e-9);
     }
@@ -166,9 +217,9 @@ class DamageEngineTest {
     @DisplayName("щит поглощает после снижения, а не до")
     void shieldAbsorbsAfterMitigation() {
         DamageResult r = NO_CRIT.compute(magic(100), stats(),
-                stats(StatIds.MAGIC_RESISTANCE, 50), DefenderState.shielded(30));
+                stats(StatIds.MAGIC_DEFENSE, 100), DefenderState.shielded(30));
 
-        // 100 -> 50 после сопротивления, щит съел 30, в здоровье ушло 20.
+        // 100 -> 50 после защиты, щит съел 30, в здоровье ушло 20.
         // Если бы щит стоял до снижения, в здоровье ушло бы 35.
         assertEquals(30, r.absorbed(), 1e-9);
         assertEquals(20, r.applied(), 1e-9);

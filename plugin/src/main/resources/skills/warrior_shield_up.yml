@@ -23,7 +23,7 @@ steps:
     do:
       - { action: status, id: shield_up, duration: $duration }
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $reduction
         duration: $duration

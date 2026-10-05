@@ -23,7 +23,7 @@ steps:
       - { action: approach, distance: $stand, behind: false }
       - { action: status, id: guarded, duration: $guard_duration }
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $guard
         duration: $guard_duration

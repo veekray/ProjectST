@@ -57,7 +57,7 @@ class DefaultContentTest {
         for (String id : new String[] {
                 StatIds.SKILL_DAMAGE, StatIds.PHYSICAL_DAMAGE, StatIds.MAGIC_DAMAGE,
                 StatIds.CRIT_CHANCE, StatIds.CRIT_POWER,
-                StatIds.DEFENSE, StatIds.MAGIC_RESISTANCE, StatIds.DAMAGE_REDUCTION}) {
+                StatIds.PHYSICAL_DEFENSE, StatIds.MAGIC_DEFENSE, StatIds.GENERAL_DEFENSE}) {
             assertTrue(registry.has(id), "в stats.yml нет стата " + id
                     + ", который читает конвейер урона");
         }

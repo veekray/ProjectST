@@ -19,4 +19,4 @@ requires:
 
 stats:
   effect_duration: 12
-  defense: 3
+  physical_defense: 3

@@ -16,7 +16,7 @@ steps:
   - target: { type: allies_near_origin, radius: $radius }
     do:
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $guard
         duration: 40

@@ -12,8 +12,8 @@ experience: 30
 glowing: true
 
 stats:
-  defense: 8
-  magic_resistance: 15
+  physical_defense: 8
+  magic_defense: 15
 
 skills:
   - { skill: mob_sand_burst, trigger: interval, every: 120, chance: 70 }

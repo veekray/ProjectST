@@ -39,7 +39,7 @@ steps:
         value: $stolen_damage
         duration: $duration
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $stolen_defense
         duration: $duration

@@ -34,6 +34,6 @@ stats:
   magic_damage:
     base: 0
     per-level: 0.5
-  defense:
+  physical_defense:
     base: 3
     per-level: 0.2

@@ -697,7 +697,7 @@ balance:
     duration: 160
     stolen_damage: 15
     stolen_damage_loss: -15
-    stolen_defense: 10
+    stolen_defense: 11
 
   trickster_unstable_doubles:
     stamina: 22
@@ -1083,7 +1083,7 @@ balance:
       per-level: -0.1
       min: 13.0
     duration: 100
-    reduction: 60
+    reduction: 150
     # Плата за каждый пропущенный удар, долей предела здоровья.
     debt_cost: 0.02
 
@@ -1285,7 +1285,7 @@ balance:
       per-level: 1.2
     duration: 40
     root: -70
-    reduction: 50
+    reduction: 100
 
   striker_asura_mode:
     stamina: 35
@@ -1314,7 +1314,7 @@ balance:
 
   knight_oath_core:
     radius: 20
-    defense_each: 4
+    defense_each: 15
 
   knight_oath_power:
     radius: 20
@@ -1365,7 +1365,7 @@ balance:
     range: 12
     stand: 1.2
     sweep: 6
-    guard: 30
+    guard: 43
     guard_duration: 100
     duration: 200
     weaken: 50
@@ -1377,12 +1377,12 @@ balance:
       per-level: -0.12
       min: 13.0
     duration: 80
-    base: 30
+    base: 43
 
   knight_shield_wall_bonus:
     radius: 20
     duration: 80
-    each: 8
+    each: 20
 
   knight_shield_bash:
     stamina: 14
@@ -1426,7 +1426,7 @@ balance:
     radius: 8
     duration: 60
     weaken: 50
-    guard: 15
+    guard: 18
 
   knight_judgment:
     stamina: 26
@@ -1447,7 +1447,7 @@ balance:
       min: 95.0
     duration: 160
     radius: 12
-    reduction: 40
+    reduction: 67
 
   knight_fortress_tick:
     radius: 12
@@ -1490,7 +1490,7 @@ balance:
       per-level: -0.08
       min: 9.0
     duration: 40
-    reduction: 55
+    reduction: 122
     root: -60
 
   warrior_shield_charge:
@@ -1566,7 +1566,7 @@ balance:
       per-level: -0.12
       min: 15.0
     duration: 40
-    reduction: 50
+    reduction: 100
     radius: 5
     damage_each:
       base: 4

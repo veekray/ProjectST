@@ -41,10 +41,10 @@ stats:
   physical_damage:
     base: 0
     per-level: 0.7
-  defense:
+  physical_defense:
     base: 4
     per-level: 0.25
-  damage_reduction:
+  general_defense:
     base: 2
     per-level: 0.12
   critical_strike_chance:

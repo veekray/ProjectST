@@ -90,8 +90,8 @@ public final class StatIcons {
                         "b..b..b"}));
 
         // ------------------------------------------------------------ защита
-        SHORT.put("defense", "Защита");
-        ICONS.put("defense", new Icon(0xFF2A3A5A, 0xFF4A6B9E, 0xFFBFD0E8, new String[] {
+        SHORT.put("physical_defense", "Физ. защита");
+        ICONS.put("physical_defense", new Icon(0xFF2A3A5A, 0xFF4A6B9E, 0xFFBFD0E8, new String[] {
                 "ccccccc",
                 "bbbbbbb",
                 ".bbbbb.",
@@ -100,8 +100,8 @@ public final class StatIcons {
                 "..bbb..",
                 "...b..."}));
 
-        SHORT.put("magic_resistance", "Маг. защита");
-        ICONS.put("magic_resistance", new Icon(0xFF2A2A5A, 0xFF6B5BD6, 0xFFD0C8FF, new String[] {
+        SHORT.put("magic_defense", "Маг. защита");
+        ICONS.put("magic_defense", new Icon(0xFF2A2A5A, 0xFF6B5BD6, 0xFFD0C8FF, new String[] {
                 "ccccccc",
                 "bb.c.bb",
                 ".bcccb.",
@@ -110,8 +110,8 @@ public final class StatIcons {
                 "..bbb..",
                 "...b..."}));
 
-        SHORT.put("damage_reduction", "Сниж. урона");
-        ICONS.put("damage_reduction", new Icon(0xFF3A3A3A, 0xFF8A8A7A, 0xFFD8D8C8, new String[] {
+        SHORT.put("general_defense", "Общая защита");
+        ICONS.put("general_defense", new Icon(0xFF3A3A3A, 0xFF8A8A7A, 0xFFD8D8C8, new String[] {
                 "cc...cc",
                 "ccbbbcc",
                 ".bbbbb.",

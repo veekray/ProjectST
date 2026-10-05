@@ -12,8 +12,8 @@ damage: 7
 experience: 12
 
 stats:
-  defense: 4
-  magic_resistance: 10
+  physical_defense: 4
+  magic_defense: 10
 
 skills:
   - { skill: mob_venom_sting, trigger: attack, chance: 40 }

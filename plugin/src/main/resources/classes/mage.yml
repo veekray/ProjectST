@@ -49,4 +49,4 @@ stats:
   skill_damage:
     base: 0
     per-level: 0.3
-  defense: 2
+  physical_defense: 2

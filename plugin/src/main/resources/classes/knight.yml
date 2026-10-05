@@ -44,12 +44,12 @@ stats:
   physical_damage:
     base: 0
     per-level: 0.5
-  defense:
+  physical_defense:
     base: 6
     per-level: 0.4
-  damage_reduction:
+  general_defense:
     base: 4
     per-level: 0.2
-  magic_resistance:
+  magic_defense:
     base: 4
     per-level: 0.2

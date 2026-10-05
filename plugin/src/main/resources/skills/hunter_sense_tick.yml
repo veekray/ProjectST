@@ -23,7 +23,7 @@ steps:
       - { target: has-status, value: quarry }
     do:
       - action: modify-stat
-        stat: defense
+        stat: physical_defense
         op: flat
         value: $defense_down
         duration: $glow

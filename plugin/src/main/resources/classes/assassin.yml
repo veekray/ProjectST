@@ -55,6 +55,6 @@ stats:
   dodge_rating:
     base: 3
     per-level: 0.1
-  defense:
+  physical_defense:
     base: 1
     per-level: 0.1

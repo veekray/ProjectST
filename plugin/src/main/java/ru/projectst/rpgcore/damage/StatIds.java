@@ -37,11 +37,29 @@ public final class StatIds {
     public static final String CRIT_CHANCE = "critical_strike_chance";
     public static final String CRIT_POWER = "critical_strike_power";
 
-    public static final String DEFENSE = "defense";
-    public static final String MAGIC_RESISTANCE = "magic_resistance";
+    /**
+     * Защита от физического урона.
+     *
+     * <p>Все три защиты — <b>рейтинг</b>, а не проценты. Сколько процентов он
+     * снимает, считает {@code DamageEngine} по кривой насыщения: сто рейтинга
+     * режут половину, двести — две трети, четыреста — четыре пятых. Каждый
+     * следующий пункт стоит столько же, а даёт меньше, и полной неуязвимости
+     * не бывает ни при каком значении.
+     */
+    public static final String PHYSICAL_DEFENSE = "physical_defense";
 
-    /** Процентное снижение любого урона. */
-    public static final String DAMAGE_REDUCTION = "damage_reduction";
+    /** Защита от магического урона. Тот же рейтинг, та же кривая. */
+    public static final String MAGIC_DEFENSE = "magic_defense";
+
+    /**
+     * Общая защита: действует поверх школьной.
+     *
+     * <p>Два слоя не складываются, а перемножаются: по половине от каждого
+     * дают три четверти вместе, а не всё. Сложение привело бы к тому, что
+     * сумма двух защит обнуляет удар, и дальше пришлось бы ставить потолок —
+     * ровно тот костыль, от которого уходит кривая.
+     */
+    public static final String GENERAL_DEFENSE = "general_defense";
 
     /**
      * Шанс не получить удар вовсе, в процентах.

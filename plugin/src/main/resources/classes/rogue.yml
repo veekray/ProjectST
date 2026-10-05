@@ -44,6 +44,6 @@ stats:
   critical_strike_chance:
     base: 5
     per-level: 0.2
-  defense:
+  physical_defense:
     base: 2
     per-level: 0.15

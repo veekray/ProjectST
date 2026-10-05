@@ -29,7 +29,24 @@ import ru.projectst.rpgcore.stat.StatSnapshot;
 public final class DamageEngine {
 
     /** Снижение урона не может превысить этот предел, иначе цель станет бессмертной. */
-    private static final double MAX_REDUCTION_PERCENT = 80;
+    /**
+     * Рейтинг, при котором защита режет ровно половину урона.
+     *
+     * <p>Он же задаёт всю кривую: доля равна {@code рейтинг / (рейтинг + это
+     * число)}. Сто — половина, двести — две трети, четыреста — четыре пятых.
+     * Каждый следующий пункт стоит столько же, а даёт меньше.
+     */
+    private static final double DEFENSE_SOFT_CAP = 100;
+
+    /**
+     * Сколько урона проходит всегда.
+     *
+     * <p>Не балансная ручка, а обещание: защита не обнуляет удар ни при каком
+     * снаряжении. Кривая и сама не доходит до нуля, но два слоя, перемножаясь,
+     * могут подойти к нему вплотную, а «удар, который не наносит ничего»
+     * невозможно отличить от поломки.
+     */
+    private static final double MIN_TAKEN = 0.10;
 
     private final DoubleSupplier random;
 
@@ -84,10 +101,16 @@ public final class DamageEngine {
         }
 
         // 5. снижение целью
+        //
+        // Два слоя: своя защита школы и общая. Они перемножаются, а не
+        // складываются. Сложение означало бы, что пятьдесят и пятьдесят гасят
+        // удар насухо, и пришлось бы ставить потолок сверху — тот самый
+        // костыль, из-за которого в старом стеке было непонятно, работает
+        // следующий пункт защиты или уже нет.
         if (defender != null && school.mitigable()) {
-            double reduction = statOrZero(defender, school.defenseStat())
-                    + statOrZero(defender, StatIds.DAMAGE_REDUCTION);
-            value *= 1 - Math.min(reduction, MAX_REDUCTION_PERCENT) / 100.0;
+            double taken = (1 - defenceShare(statOrZero(defender, school.defenseStat())))
+                    * (1 - defenceShare(statOrZero(defender, StatIds.GENERAL_DEFENSE)));
+            value *= Math.max(MIN_TAKEN, taken);
         }
         double afterMitigation = value;
 
@@ -113,6 +136,24 @@ public final class DamageEngine {
                     afterScaling, afterMitigation);
         }
         return new DamageResult(value, absorbed, crit, null, afterScaling, afterMitigation);
+    }
+
+    /**
+     * Какую долю урона снимает слой защиты.
+     *
+     * <p>Кривая насыщения: чем больше рейтинга уже есть, тем меньше даёт
+     * следующий пункт. Ста процентов не бывает ни при каком значении, поэтому
+     * потолок сверху не нужен.
+     *
+     * <p>Отрицательная защита — это уязвимость, и считается она линейно: ниже
+     * нуля кривая обращается в деление на ноль, а ещё ниже меняет знак и
+     * начинает лечить. Предел — удвоенный урон: хуже, чем вдвое, не бывает.
+     */
+    private static double defenceShare(double rating) {
+        if (rating >= 0) {
+            return rating / (rating + DEFENSE_SOFT_CAP);
+        }
+        return Math.max(-1, rating / DEFENSE_SOFT_CAP);
     }
 
     /** Значение стата как доля: 25 процентных пунктов превращаются в 0.25. */

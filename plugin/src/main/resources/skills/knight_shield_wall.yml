@@ -23,7 +23,7 @@ steps:
     do:
       - { action: status, id: shield_wall, duration: $duration }
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $base
         duration: $duration

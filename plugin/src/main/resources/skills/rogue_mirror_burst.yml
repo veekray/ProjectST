@@ -15,7 +15,7 @@ steps:
     do:
       - { action: potion, effect: blindness, duration: $duration, amplifier: 1 }
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $vulnerability
         duration: $duration

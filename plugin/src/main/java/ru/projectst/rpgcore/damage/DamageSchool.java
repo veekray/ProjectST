@@ -10,11 +10,11 @@ package ru.projectst.rpgcore.damage;
  */
 public enum DamageSchool {
 
-    /** Физический: усиливается physical_damage, снижается defense. */
-    PHYSICAL("physical_damage", "defense"),
+    /** Физический: усиливается physical_damage, снижается physical_defense. */
+    PHYSICAL("physical_damage", "physical_defense"),
 
-    /** Магический: усиливается magic_damage, снижается magic_resistance. */
-    MAGIC("magic_damage", "magic_resistance"),
+    /** Магический: усиливается magic_damage, снижается magic_defense. */
+    MAGIC("magic_damage", "magic_defense"),
 
     /** Чистый: не усиливается и не снижается ничем. Для добивающих эффектов. */
     TRUE(null, null);

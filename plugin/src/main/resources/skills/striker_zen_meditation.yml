@@ -30,7 +30,7 @@ steps:
         value: $root
         duration: $duration
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $reduction
         duration: $duration

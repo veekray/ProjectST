@@ -28,7 +28,7 @@ steps:
       - { action: remove-status, id: pain_debt }
       - { action: status, id: ignore_pain, duration: $duration }
       - action: modify-stat
-        stat: damage_reduction
+        stat: general_defense
         op: flat
         value: $reduction
         duration: $duration

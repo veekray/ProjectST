@@ -20,7 +20,7 @@ steps:
   - target: { type: self }
     do:
       - action: modify-stat
-        stat: defense
+        stat: physical_defense
         op: flat
         value: "$each * @oaths"
         duration: $duration
