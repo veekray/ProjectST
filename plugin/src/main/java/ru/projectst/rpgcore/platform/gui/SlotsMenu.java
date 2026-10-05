@@ -14,10 +14,13 @@ import ru.projectst.rpgcore.skill.SkillDef;
  * Слоты: что на какой клавише.
  *
  * <p>Экран двухступенчатый. Сначала виден ряд слотов — ровно столько, сколько
- * даёт класс, и под каждым написано, какое нажатие его применяет. Щелчок по
- * слоту открывает выбор из изученных навыков; щелчок по занятому слоту с
- * клавишей Shift его освобождает, и об этом сказано в подсказке, а не осталось
- * догадкой.
+ * даёт класс. Щелчок по слоту открывает выбор из изученных навыков, и там же
+ * стоит кнопка «освободить»: отдельного нажатия с Shift нет намеренно, потому
+ * что окно сундука про Shift ничего не знает и подсказка о нём была бы
+ * обещанием, которого никто не выполняет.
+ *
+ * <p>Клавиша слота здесь не называется: её назначает игрок в настройках мода, и
+ * любое число, написанное тут, рано или поздно разошлось бы с настройкой.
  */
 public final class SlotsMenu extends Menu {
 
@@ -75,7 +78,7 @@ public final class SlotsMenu extends Menu {
         for (int slot = 1; slot <= own.slots() && slot <= 7; slot++) {
             String bound = data.slotBindings().get(slot);
             List<Component> lore = new ArrayList<>();
-            lore.add(grey("Нажатие: ").append(white("Shift + " + slot)));
+            lore.add(grey("Клавиша — та, что назначена в моде"));
             lore.add(Component.empty());
 
             Material material;
@@ -90,8 +93,7 @@ public final class SlotsMenu extends Menu {
                 name = aqua(skill.map(SkillDef::display).orElse(bound));
                 lore.add(grey("Уровень навыка: ").append(white(String.valueOf(
                         context.playerClasses().skillLevel(player.getUniqueId(), bound)))));
-                lore.add(yellow("Нажмите, чтобы заменить"));
-                lore.add(red("Shift — освободить слот"));
+                lore.add(yellow("Нажмите, чтобы заменить или освободить"));
             }
 
             final int number = slot;

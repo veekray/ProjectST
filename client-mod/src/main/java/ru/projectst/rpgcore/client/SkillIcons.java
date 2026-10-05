@@ -348,6 +348,39 @@ public final class SkillIcons {
         }
     }
 
+    /**
+     * Кольцо перезарядки вокруг ромба.
+     *
+     * <p>Кольцо, а не полоска сбоку: в бою взгляд уже на значке, и возвращать
+     * его к отдельной шкале — лишнее движение. Готовый навык горит зелёным
+     * целиком, и это видно боковым зрением, не читая ни чисел, ни краёв.
+     *
+     * <p>Заполняется снизу вверх: так же, как наливается всё остальное на
+     * экране. Пойди оно по кругу, пришлось бы помнить, откуда круг начинается.
+     *
+     * @param share сколько перезарядки уже прошло, от нуля до единицы
+     */
+    public static void ring(GuiGraphics graphics, int x, int y, int size, double share,
+                            boolean ready) {
+        int outer = size + 4;
+        int originX = x - 2;
+        int originY = y - 2;
+        int half = outer / 2;
+        int lit = (int) Math.round(outer * Math.clamp(share, 0, 1));
+        int from = outer - lit;
+
+        int on = ready ? 0xFF5FAE3F : 0xFFC9A227;
+        int off = 0xFF2A2018;
+        for (int row = 0; row < outer; row++) {
+            int spread = half - Math.abs(row - half);
+            int leftEdge = originX + half - spread;
+            int rightEdge = originX + half + spread + 1;
+            int colour = row >= from ? on : off;
+            graphics.fill(leftEdge - 1, originY + row, leftEdge + 2, originY + row + 1, colour);
+            graphics.fill(rightEdge - 2, originY + row, rightEdge + 1, originY + row + 1, colour);
+        }
+    }
+
     /** Ромбовидная рамка с заливкой. */
     private static void drawFrame(GuiGraphics graphics, int x, int y, int size,
                                   boolean bright, int accent) {

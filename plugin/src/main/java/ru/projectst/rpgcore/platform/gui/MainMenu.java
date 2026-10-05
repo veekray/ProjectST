@@ -81,7 +81,7 @@ public final class MainMenu extends Menu {
 
         put(29, item(Material.HOPPER, yellow("Слоты"),
                 List.of(grey("Что на какой клавише."),
-                        grey("Применяются Shift и цифрой."))),
+                        grey("Клавиши назначаются в моде."))),
                 () -> new SlotsMenu(context, player).open(player));
 
         put(33, item(Material.IRON_SWORD, yellow("Статы"),

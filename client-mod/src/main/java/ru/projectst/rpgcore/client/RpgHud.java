@@ -31,6 +31,8 @@ public final class RpgHud {
     private static final int BAR_WIDTH = 110;
     /** Сторона ромба со значком навыка на экране. */
     private static final int ICON = 22;
+    /** Шаг ряда слотов: ромб плюс кольцо вокруг него. */
+    private static final int STEP = ICON + 7;
     private static final int BAR_HEIGHT = 7;
 
     private RpgHud() {
@@ -166,7 +168,7 @@ public final class RpgHud {
         int y = HudLayout.screenY(HudLayout.Element.SLOTS, height);
         // Ряд слотов стал выше: считаем от его низа, чтобы он не уезжал под
         // хотбар при шести слотах.
-        y -= Math.max(0, state.slots().size() - 4) * (ICON + 2);
+        y -= Math.max(0, state.slots().size() - 4) * STEP;
 
         if (!RpgKeys.anySlotBound()) {
             graphics.drawString(client.font, Component.literal(
@@ -179,30 +181,31 @@ public final class RpgHud {
             if (slot.skillId().isEmpty()) {
                 // Пустой слот — пустой ромб: ряд не рвётся, и видно, сколько
                 // слотов вообще есть.
-                SkillIcons.draw(graphics, "", x, y, ICON, false);
+                SkillIcons.draw(graphics, "", x + 2, y + 2, ICON, false);
                 graphics.drawString(client.font, Component.literal(key),
-                        x + ICON + 4, y + ICON / 2 - 4, RpgStyle.TEXT_DIM, true);
-                y += ICON + 2;
+                        x + ICON + 10, y + ICON / 2 - 2, RpgStyle.TEXT_DIM, true);
+                y += STEP;
                 continue;
             }
             int remaining = remainingOf(state, slot.skillId());
             int total = totalOf(state, slot.skillId());
             boolean ready = remaining <= 0;
 
-            // Значок вместо названия: в бою навык вспоминают по нему, а не по
-            // слову, и место под хотбаром дорогое.
-            SkillIcons.draw(graphics, slot.skillId(), x, y, ICON, ready);
+            // Кольцо вокруг ромба вместо полоски сбоку: взгляд в бою уже на
+            // значке, и возвращать его к отдельной шкале — лишнее движение.
+            // Готовый навык горит зелёным целиком, и это видно боковым зрением.
+            SkillIcons.ring(graphics, x + 2, y + 2, ICON,
+                    ready ? 1 : 1.0 - (double) remaining / Math.max(1, total), ready);
+            SkillIcons.draw(graphics, slot.skillId(), x + 2, y + 2, ICON, ready);
 
             graphics.drawString(client.font, Component.literal(key),
-                    x + ICON + 4, y + 2, ready ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
-            RpgStyle.bar(graphics, x + ICON + 4, y + ICON - 10, 48, 3,
-                    ready ? 1 : 1.0 - (double) remaining / Math.max(1, total),
-                    ready ? RpgStyle.READY : RpgStyle.COOLDOWN);
+                    x + ICON + 10, y + ICON / 2 - 2,
+                    ready ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
             if (!ready) {
                 graphics.drawString(client.font, Component.literal(seconds(remaining)),
-                        x + ICON + 56, y + ICON - 13, RpgStyle.COOLDOWN, true);
+                        x + ICON + 10, y + ICON / 2 + 8, RpgStyle.TEXT_WARN, true);
             }
-            y += ICON + 2;
+            y += STEP;
         }
     }
 
