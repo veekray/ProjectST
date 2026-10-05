@@ -29,7 +29,8 @@ import ru.projectst.rpgcore.status.StatusService;
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
-            "cast", "slot", "class", "unlock", "upgrade", "bind", "mana", "progress", "xp");
+            "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
+            "progress", "xp");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
@@ -72,6 +73,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg cast <навык> raw [ур] §7— в обход маны и перезарядки");
             sender.sendMessage("§e/rpg slot <номер> §7— применить навык из слота");
             sender.sendMessage("§e/rpg mana §7— запас маны и перезарядки");
+            sender.sendMessage("§e/rpg skills §7— навыки своего класса");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
@@ -89,6 +91,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "cast" -> cast(sender, args);
             case "slot" -> castSlot(sender, args);
             case "mana" -> mana(sender);
+            case "skills" -> listSkills(sender);
             case "progress" -> progress(sender);
             case "xp" -> giveXp(sender, args);
             case "class" -> chooseClass(sender, args);
@@ -286,6 +289,59 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Навыки своего класса: что есть, что изучено и чего не хватает.
+     *
+     * <p>Служебные и пассивные навыки сюда не попадают: изучить или
+     * повесить их нельзя, а список, где половина строк ни на что не годится,
+     * хуже пустого.
+     */
+    private boolean listSkills(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        UUID id = player.getUniqueId();
+        var def = playerClasses.classOf(id);
+        if (def.isEmpty()) {
+            sender.sendMessage("§cКласс не выбран: /rpg class <класс>");
+            return true;
+        }
+        var data = playerClasses.snapshot(id);
+        sender.sendMessage("§6" + def.get().display() + "§7, свободных очков: §f"
+                + data.unspentPoints());
+
+        List<ru.projectst.rpgcore.skill.SkillDef> own = new ArrayList<>();
+        for (var skill : content.skills().all()) {
+            if (skill.selectable() && skill.classId().equals(def.get().id())) {
+                own.add(skill);
+            }
+        }
+        own.sort(java.util.Comparator.comparingInt(ru.projectst.rpgcore.skill.SkillDef::tier));
+
+        for (var skill : own) {
+            int level = data.skillLevel(skill.id());
+            int required = def.get().levelForTier(skill.tier());
+            String state;
+            if (level > 0) {
+                state = "§aур. " + level;
+            } else if (data.level() < required) {
+                state = "§cс уровня " + required;
+            } else {
+                state = "§eможно изучить";
+            }
+            String slot = "";
+            for (var bound : data.slotBindings().entrySet()) {
+                if (bound.getValue().equals(skill.id())) {
+                    slot = " §8[слот " + bound.getKey() + "]";
+                }
+            }
+            sender.sendMessage("§8" + skill.tier() + ". §f" + skill.display()
+                    + " §8(" + skill.id() + ") " + state + slot);
+        }
+        return true;
+    }
+
     /** Уровень, опыт и очки: то, по чему игрок решает, куда вкладываться. */
     private boolean progress(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -445,9 +501,22 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("cast")
-                || args[0].equalsIgnoreCase("unlock") || args[0].equalsIgnoreCase("upgrade"))) {
+                || args[0].equalsIgnoreCase("unlock") || args[0].equalsIgnoreCase("upgrade")
+                || args[0].equalsIgnoreCase("bind"))) {
+            // Служебные и чужие навыки в подсказку не идут: предложить то,
+            // что всё равно откажет, — это то же самое неправильное
+            // использование, неотличимое от правильного, только в подсказке.
+            String ownClass = sender instanceof Player player
+                    ? playerClasses.classOf(player.getUniqueId())
+                            .map(ru.projectst.rpgcore.classes.ClassDef::id).orElse(null)
+                    : null;
             List<String> ids = new ArrayList<>();
-            content.skills().ids().forEach(ids::add);
+            for (var skill : content.skills().all()) {
+                boolean mine = ownClass == null || skill.classId().equals(ownClass);
+                if (skill.selectable() && mine) {
+                    ids.add(skill.id());
+                }
+            }
             return ids;
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("why")) {
