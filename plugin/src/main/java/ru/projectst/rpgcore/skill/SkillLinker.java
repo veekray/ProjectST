@@ -69,7 +69,9 @@ public final class SkillLinker {
             checkBalance(skill, where, table, "mana", skill.manaCost(), errors);
             checkBalance(skill, where, table, "cooldown", skill.cooldown(), errors);
 
-            if (!classIds.isEmpty() && !classIds.contains(skill.classId())) {
+            // Навык без класса — умение предмета; его класс проверять нечем.
+            if (!classIds.isEmpty() && !skill.classId().isBlank()
+                    && !classIds.contains(skill.classId())) {
                 errors.add(where, "class",
                         "навык ссылается на несуществующий класс \"" + skill.classId() + "\"");
             }

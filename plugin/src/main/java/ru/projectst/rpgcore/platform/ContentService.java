@@ -46,6 +46,10 @@ public final class ContentService {
     private BalanceBook balance = BalanceBook.EMPTY;
     private SkillRegistry skills = SkillRegistry.EMPTY;
     private ClassRegistry playerClasses = ClassRegistry.EMPTY;
+    private ru.projectst.rpgcore.item.ItemRegistry items =
+            ru.projectst.rpgcore.item.ItemRegistry.EMPTY;
+    private ru.projectst.rpgcore.craft.RecipeRegistry recipes =
+            ru.projectst.rpgcore.craft.RecipeRegistry.EMPTY;
 
     public ContentService(Path folder) {
         this.folder = folder;
@@ -71,6 +75,14 @@ public final class ContentService {
         return playerClasses;
     }
 
+    public ru.projectst.rpgcore.item.ItemRegistry items() {
+        return items;
+    }
+
+    public ru.projectst.rpgcore.craft.RecipeRegistry recipes() {
+        return recipes;
+    }
+
     /** Перечитывает контент и применяет его. */
     public ContentErrors reload() {
         ContentErrors errors = new ContentErrors();
@@ -80,6 +92,8 @@ public final class ContentService {
         balance = loaded.balance();
         skills = loaded.skills();
         playerClasses = loaded.playerClasses();
+        items = loaded.items();
+        recipes = loaded.recipes();
         return errors;
     }
 
@@ -97,7 +111,9 @@ public final class ContentService {
 
     private record Loaded(StatRegistry stats, StatusRegistry statuses,
                           BalanceBook balance, SkillRegistry skills,
-                          ClassRegistry playerClasses) {
+                          ClassRegistry playerClasses,
+                          ru.projectst.rpgcore.item.ItemRegistry items,
+                          ru.projectst.rpgcore.craft.RecipeRegistry recipes) {
     }
 
     private Loaded loadAll(ContentErrors errors) {
@@ -145,13 +161,63 @@ public final class ContentService {
             }
         }
 
+        // Редкости до предметов: предмет ссылается на редкость, а не наоборот.
+        Map<String, ru.projectst.rpgcore.item.Rarity> rarities = read("rarities.yml", errors)
+                .flatMap(text -> ru.projectst.rpgcore.item.ItemDefLoader
+                        .loadRarities("rarities.yml", text, errors))
+                .orElseGet(() -> new LinkedHashMap<>(Map.of(
+                        ru.projectst.rpgcore.item.Rarity.COMMON.id(),
+                        ru.projectst.rpgcore.item.Rarity.COMMON)));
+
+        Map<String, ru.projectst.rpgcore.item.ItemDef> itemMap = new LinkedHashMap<>();
+        for (Path file : filesIn("items", errors)) {
+            String name = file.getFileName().toString();
+            try {
+                String text = Files.readString(file, StandardCharsets.UTF_8);
+                ru.projectst.rpgcore.item.ItemDefLoader.load(name, text, errors)
+                        .ifPresent(item -> {
+                            if (itemMap.putIfAbsent(item.id(), item) != null) {
+                                errors.add(SourceRef.ofFile(name), "id",
+                                        "предмет с таким id уже загружен: " + item.id());
+                            }
+                        });
+            } catch (IOException e) {
+                errors.add(SourceRef.ofFile(name), "", "не читается: " + e.getMessage());
+            }
+        }
+
+        Map<String, ru.projectst.rpgcore.craft.RecipeDef> recipeMap = new LinkedHashMap<>();
+        for (Path file : filesIn("recipes", errors)) {
+            String name = file.getFileName().toString();
+            try {
+                String text = Files.readString(file, StandardCharsets.UTF_8);
+                ru.projectst.rpgcore.craft.RecipeLoader.load(name, text, errors)
+                        .ifPresent(recipe -> {
+                            if (recipeMap.putIfAbsent(recipe.id(), recipe) != null) {
+                                errors.add(SourceRef.ofFile(name), "id",
+                                        "рецепт с таким id уже загружен: " + recipe.id());
+                            }
+                        });
+            } catch (IOException e) {
+                errors.add(SourceRef.ofFile(name), "", "не читается: " + e.getMessage());
+            }
+        }
+
         // Связывание последним: до него нет ни баланса, ни статусов, ни
-        // классов для сверки.
+        // классов, ни предметов для сверки.
+        SkillRegistry skillRegistry = new SkillRegistry(skillMap);
+        ru.projectst.rpgcore.item.ItemRegistry itemRegistry =
+                new ru.projectst.rpgcore.item.ItemRegistry(itemMap, rarities);
+
         SkillLinker.link(skillMap.values(), loadedBalance, loadedStatuses,
-                classMap.keySet(), errors);
+                classMap.keySet(), loadedStats, errors);
+        ru.projectst.rpgcore.item.ItemLinker.link(itemMap.values(), itemRegistry,
+                loadedStats, skillRegistry, classMap.keySet(), errors);
+        ru.projectst.rpgcore.craft.RecipeLinker.link(recipeMap.values(), itemRegistry, errors);
 
         return new Loaded(loadedStats, loadedStatuses, loadedBalance,
-                new SkillRegistry(skillMap), new ClassRegistry(classMap));
+                skillRegistry, new ClassRegistry(classMap), itemRegistry,
+                new ru.projectst.rpgcore.craft.RecipeRegistry(recipeMap));
     }
 
     private List<Path> filesIn(String subfolder, ContentErrors errors) {

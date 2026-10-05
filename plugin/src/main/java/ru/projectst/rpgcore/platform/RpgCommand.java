@@ -30,11 +30,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
-            "progress", "xp");
+            "progress", "xp", "give", "items");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
-            Set.of("validate", "reload", "debug", "why", "xp");
+            Set.of("validate", "reload", "debug", "why", "xp", "give");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
 
@@ -45,12 +45,17 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final ru.projectst.rpgcore.classes.ClassService playerClasses;
     private final ru.projectst.rpgcore.cast.CastService casts;
     private final ru.projectst.rpgcore.platform.gui.MenuContext menus;
+    private final RpgItems rpgItems;
+    private final EquipmentWatcher equipment;
+    private final RecipeRegistrar recipes;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
                       ru.projectst.rpgcore.classes.ClassService playerClasses,
                       ru.projectst.rpgcore.cast.CastService casts,
-                      ru.projectst.rpgcore.platform.gui.MenuContext menus) {
+                      ru.projectst.rpgcore.platform.gui.MenuContext menus,
+                      RpgItems rpgItems, EquipmentWatcher equipment,
+                      RecipeRegistrar recipes) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
@@ -58,6 +63,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         this.playerClasses = playerClasses;
         this.casts = casts;
         this.menus = menus;
+        this.rpgItems = rpgItems;
+        this.equipment = equipment;
+        this.recipes = recipes;
     }
 
     @Override
@@ -86,6 +94,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg skills §7— навыки своего класса");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
+            sender.sendMessage("§e/rpg items §7— список предметов");
+            sender.sendMessage("§e/rpg give <предмет> [сколько] §7— выдать себе предмет");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
             sender.sendMessage("§e/rpg unlock <навык> §7— изучить навык");
             sender.sendMessage("§e/rpg upgrade <навык> §7— вложить очко в уровень навыка");
@@ -105,6 +115,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "skills" -> listSkills(sender);
             case "progress" -> progress(sender);
             case "xp" -> giveXp(sender, args);
+            case "give" -> give(sender, args);
+            case "items" -> listItems(sender);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
             case "upgrade" -> upgrade(sender, args);
@@ -125,10 +137,68 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private boolean reload(CommandSender sender) {
         ContentErrors errors = content.reload();
         report(sender, errors, "Перезагрузка");
+        // Рецепты перерегистрируются здесь же: иначе верстак остался бы с
+        // прежними, и правка файла ничего бы не меняла до перезапуска.
+        int added = recipes.reload(content.recipes());
         sender.sendMessage("§7Статов: §f" + content.stats().size()
                 + "§7, статусов: §f" + content.statuses().size()
                 + "§7, навыков: §f" + content.skills().size()
-                + "§7, классов: §f" + content.playerClasses().size());
+                + "§7, классов: §f" + content.playerClasses().size()
+                + "§7, предметов: §f" + content.items().size()
+                + "§7, рецептов: §f" + added);
+        return true;
+    }
+
+    /** Выдача предмета себе: иначе проверить предмет можно только крафтом. */
+    private boolean give(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cНужен предмет: /rpg give <предмет> [сколько]");
+            return true;
+        }
+        String id = args[1].toLowerCase(Locale.ROOT);
+        var def = content.items().find(id);
+        if (def.isEmpty()) {
+            sender.sendMessage("§cПредмет не загружен: " + id);
+            return true;
+        }
+        int amount = 1;
+        if (args.length > 2) {
+            try {
+                amount = Math.clamp(Integer.parseInt(args[2]), 1, 64);
+            } catch (NumberFormatException e) {
+                sender.sendMessage("§cКоличество должно быть числом");
+                return true;
+            }
+        }
+        var leftover = player.getInventory().addItem(rpgItems.build(def.get(), amount));
+        if (!leftover.isEmpty()) {
+            sender.sendMessage("§7Часть не поместилась в инвентарь");
+        }
+        // Снаряжение сверяется сразу: предмет мог попасть в руку, и ждать
+        // секунды до пересчёта статов незачем.
+        equipment.apply(player);
+        sender.sendMessage("§aВыдано: §f" + def.get().display() + " §7x" + amount);
+        return true;
+    }
+
+    /** Что вообще объявлено: по идентификаторам их и выдают. */
+    private boolean listItems(CommandSender sender) {
+        if (content.items().size() == 0) {
+            sender.sendMessage("§7Предметов не объявлено");
+            return true;
+        }
+        sender.sendMessage("§6Предметов: §f" + content.items().size());
+        for (var item : content.items().all()) {
+            var rarity = content.items().rarity(item.rarityId());
+            sender.sendMessage("§8- §f" + item.display() + " §8(" + item.id() + ") §7"
+                    + rarity.display() + "§8, слот " + item.slot().key()
+                    + (item.abilities().isEmpty() ? ""
+                            : "§8, умений " + item.abilities().size()));
+        }
         return true;
     }
 
@@ -520,6 +590,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("why"))) {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+            List<String> ids = new ArrayList<>();
+            content.items().ids().forEach(ids::add);
+            return ids;
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("cast")
                 || args[0].equalsIgnoreCase("unlock") || args[0].equalsIgnoreCase("upgrade")

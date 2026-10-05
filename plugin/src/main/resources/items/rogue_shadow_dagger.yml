@@ -1,0 +1,25 @@
+# Теневой кинжал — оружие плута.
+#
+# Умение висит на ударе, а не на щелчке: кинжал работает в бою, а не из меню.
+
+id: rogue_shadow_dagger
+display: "Теневой кинжал"
+material: IRON_SWORD
+rarity: rare
+slot: hand
+unbreakable: true
+
+lore:
+  - "Лёгкий настолько, что удар"
+  - "слышно позже, чем видно."
+
+requires:
+  class: rogue
+  level: 5
+
+stats:
+  physical_damage: 5
+  critical_strike_chance: 8
+
+abilities:
+  - { skill: item_shadow_nick, trigger: on-hit }

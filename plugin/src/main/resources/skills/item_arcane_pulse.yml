@@ -1,0 +1,26 @@
+# Умение Посоха ученика: короткий импульс вперёд.
+#
+# Навык служебный и без класса — его запускает предмет, а не триггер класса.
+# Связывание проверяет и то, и другое: иначе умение предмета давало бы игроку
+# классовый навык в обход изучения.
+
+id: item_arcane_pulse
+display: "Импульс арканы"
+icon: AMETHYST_SHARD
+tier: 1
+internal: true
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.8 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: enchant
+        on-hit: item_arcane_pulse_hit

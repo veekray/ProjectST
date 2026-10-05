@@ -67,7 +67,19 @@ class ShippedContentTest {
     }
 
     private record Content(List<SkillDef> skills, List<ClassDef> classes,
-                           BalanceBook balance, StatusRegistry statuses, StatRegistry stats) {
+                           BalanceBook balance, StatusRegistry statuses, StatRegistry stats,
+                           ru.projectst.rpgcore.item.ItemRegistry items,
+                           List<ru.projectst.rpgcore.craft.RecipeDef> recipes) {
+    }
+
+    private static List<Path> filesIn(String subfolder) throws IOException {
+        Path dir = RESOURCES.resolve(subfolder);
+        if (!Files.isDirectory(dir)) {
+            return List.of();
+        }
+        try (var files = Files.list(dir)) {
+            return files.filter(f -> f.toString().endsWith(".yml")).sorted().toList();
+        }
     }
 
     private static Content load() throws IOException {
@@ -92,8 +104,26 @@ class ShippedContentTest {
         StatRegistry stats = StatDefLoader
                 .load("stats.yml", read("stats.yml"), errors).orElseThrow();
 
+        var rarities = ru.projectst.rpgcore.item.ItemDefLoader
+                .loadRarities("rarities.yml", read("rarities.yml"), errors).orElseThrow();
+        Map<String, ru.projectst.rpgcore.item.ItemDef> itemMap = new LinkedHashMap<>();
+        for (Path file : filesIn("items")) {
+            String name = file.getFileName().toString();
+            ru.projectst.rpgcore.item.ItemDefLoader
+                    .load(name, Files.readString(file, StandardCharsets.UTF_8), errors)
+                    .ifPresent(item -> itemMap.put(item.id(), item));
+        }
+        List<ru.projectst.rpgcore.craft.RecipeDef> recipes = new ArrayList<>();
+        for (Path file : filesIn("recipes")) {
+            String name = file.getFileName().toString();
+            ru.projectst.rpgcore.craft.RecipeLoader
+                    .load(name, Files.readString(file, StandardCharsets.UTF_8), errors)
+                    .ifPresent(recipes::add);
+        }
+
         assertTrue(errors.isEmpty(), () -> "контент не читается:\n" + join(errors));
-        return new Content(skills, classes, balance, statuses, stats);
+        return new Content(skills, classes, balance, statuses, stats,
+                new ru.projectst.rpgcore.item.ItemRegistry(itemMap, rarities), recipes);
     }
 
     private static String join(ContentErrors errors) {
@@ -143,6 +173,11 @@ class ShippedContentTest {
         content.classes().forEach(def -> classIds.add(def.id()));
 
         for (SkillDef skill : content.skills()) {
+            if (skill.classId().isBlank()) {
+                assertTrue(skill.internal(),
+                        "без класса бывают только служебные навыки: " + skill.id());
+                continue;
+            }
             assertTrue(classIds.contains(skill.classId()),
                     "навык " + skill.id() + " ссылается на класс " + skill.classId());
         }
@@ -230,5 +265,64 @@ class ShippedContentTest {
             assertNotEquals(ClassDef.DEFAULT_ICON, def.icon(),
                     "класс " + def.id() + " остался с иконкой по умолчанию");
         }
+    }
+
+    // ------------------------------------------------------------------ предметы
+
+    @Test
+    @DisplayName("предметы и рецепты связываются: ни одной ссылки в пустоту")
+    void itemsAndRecipesLink() throws IOException {
+        Content content = load();
+        Set<String> classIds = new LinkedHashSet<>();
+        content.classes().forEach(def -> classIds.add(def.id()));
+        Map<String, SkillDef> skillMap = new LinkedHashMap<>();
+        content.skills().forEach(skill -> skillMap.put(skill.id(), skill));
+
+        ContentErrors link = new ContentErrors();
+        ru.projectst.rpgcore.item.ItemLinker.link(
+                List.copyOf(toList(content.items().all())), content.items(), content.stats(),
+                new ru.projectst.rpgcore.skill.SkillRegistry(skillMap), classIds, link);
+        ru.projectst.rpgcore.craft.RecipeLinker.link(content.recipes(), content.items(), link);
+
+        assertTrue(link.isEmpty(), () -> "ссылки предметов и рецептов не разрешились:\n"
+                + join(link));
+    }
+
+    @Test
+    @DisplayName("умение предмета — всегда служебный навык без класса")
+    void itemAbilitiesAreInternal() throws IOException {
+        Content content = load();
+        Map<String, SkillDef> skillMap = new LinkedHashMap<>();
+        content.skills().forEach(skill -> skillMap.put(skill.id(), skill));
+
+        for (var item : content.items().all()) {
+            for (var ability : item.abilities()) {
+                SkillDef skill = skillMap.get(ability.skillId());
+                assertTrue(skill != null, "умение " + item.id() + " ссылается на "
+                        + ability.skillId());
+                assertTrue(skill.internal(), ability.skillId() + " должен быть служебным: иначе"
+                        + " предмет даёт классовый навык в обход изучения");
+                assertTrue(skill.classId().isBlank(),
+                        ability.skillId() + " не должен принадлежать классу");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("каждый рецепт делает объявленный предмет")
+    void recipesMakeDeclaredItems() throws IOException {
+        Content content = load();
+
+        assertFalse(content.recipes().isEmpty(), "рецепты должны быть поставлены");
+        for (var recipe : content.recipes()) {
+            assertTrue(content.items().has(recipe.resultItemId()),
+                    "рецепт " + recipe.id() + " делает " + recipe.resultItemId());
+        }
+    }
+
+    private static <T> List<T> toList(Iterable<T> source) {
+        List<T> out = new ArrayList<>();
+        source.forEach(out::add);
+        return out;
     }
 }

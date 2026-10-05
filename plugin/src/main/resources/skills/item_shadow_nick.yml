@@ -1,0 +1,19 @@
+# Умение Теневого кинжала: укол при каждом ударе.
+#
+# Перезарядка короткая и настоящая: умение на ударе без перезарядки удваивало бы
+# урон оружия, и это было бы видно только по жалобам.
+
+id: item_shadow_nick
+display: "Укол из тени"
+icon: IRON_SWORD
+tier: 1
+internal: true
+
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 6 }

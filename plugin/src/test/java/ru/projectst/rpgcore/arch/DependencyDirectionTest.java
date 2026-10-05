@@ -30,19 +30,21 @@ class DependencyDirectionTest {
     private static final Path SOURCE_ROOT = Path.of("src", "main", "java");
 
     /** Кому какие пакеты проекта разрешено импортировать. */
-    private static final Map<String, Set<String>> ALLOWED = Map.of(
-            "loader", Set.of(),
-            "stat", Set.of("loader"),
-            "damage", Set.of("loader", "stat"),
-            "status", Set.of("loader", "stat", "damage"),
-            "data", Set.of("loader", "stat"),
-            "balance", Set.of("loader"),
-            "classes", Set.of("loader", "stat", "balance", "skill", "data"),
-            "skill", Set.of("loader", "stat", "damage", "status", "balance"),
-            "cast", Set.of("loader", "stat", "damage", "status", "balance", "skill", "classes"),
-            "platform", Set.of("loader", "stat", "damage", "status", "data", "balance", "skill",
-                    "classes", "cast")
-    );
+    private static final Map<String, Set<String>> ALLOWED = Map.ofEntries(
+            Map.entry("loader", Set.<String>of()),
+            Map.entry("stat", Set.of("loader")),
+            Map.entry("damage", Set.of("loader", "stat")),
+            Map.entry("status", Set.of("loader", "stat", "damage")),
+            Map.entry("data", Set.of("loader", "stat")),
+            Map.entry("balance", Set.of("loader")),
+            Map.entry("classes", Set.of("loader", "stat", "balance", "skill", "data")),
+            Map.entry("skill", Set.of("loader", "stat", "damage", "status", "balance")),
+            Map.entry("cast", Set.of("loader", "stat", "damage", "status", "balance", "skill",
+                    "classes")),
+            Map.entry("item", Set.of("loader", "stat", "skill")),
+            Map.entry("craft", Set.of("loader", "item")),
+            Map.entry("platform", Set.of("loader", "stat", "damage", "status", "data", "balance",
+                    "skill", "classes", "cast", "item", "craft")));
 
     @Test
     @DisplayName("Bukkit не протекает за пределы platform/")

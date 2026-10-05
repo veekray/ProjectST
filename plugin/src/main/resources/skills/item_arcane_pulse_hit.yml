@@ -1,0 +1,14 @@
+# Попадание импульса арканы.
+
+id: item_arcane_pulse_hit
+display: "Импульс арканы — попадание"
+icon: AMETHYST_SHARD
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: particles, particle: enchant, shape: sphere, count: 14, size: 0.3 }

@@ -428,3 +428,27 @@ balance:
 
   rogue_mark_stack:
     duration: 200
+  # ================================================================ ПРЕДМЕТЫ
+  # Умения предметов платят тем же ресурсом и той же перезарядкой, что навыки.
+
+  item_arcane_pulse:
+    mana: 6
+    cooldown: 2.5
+    speed: 2.2
+    range: 20
+
+  item_arcane_pulse_hit:
+    radius: 1.5
+    damage: 5
+
+  item_soul_drain:
+    mana: 8
+    cooldown: 8.0
+    radius: 10
+    damage: 3
+    heal_per: 3
+
+  item_shadow_nick:
+    cooldown: 1.5
+    radius: 4
+    damage: 3

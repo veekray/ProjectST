@@ -1,0 +1,30 @@
+# Умение Фонаря душ: вытягивает немного жизни из проклятых рядом.
+#
+# Числа считаются за каждого проклятого через счётчик: то же решение, что у
+# Переливания душ, и ровно поэтому оно выражается здесь одной строкой.
+
+id: item_soul_drain
+display: "Вытяжка"
+icon: SOUL_LANTERN
+tier: 1
+internal: true
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: curse }
+    do:
+      - { action: count, counter: cursed }
+      - { action: damage, amount: $damage, school: magic }
+      - { action: particles, particle: soul, shape: point, count: 8 }
+
+  - target: { type: self }
+    if:
+      - { caster: counter, value: "cursed:1" }
+    do:
+      - { action: heal, amount: $heal_per * @cursed }
+      - { action: sound, sound: entity_vex_hurt, volume: 0.5, pitch: 1.2 }

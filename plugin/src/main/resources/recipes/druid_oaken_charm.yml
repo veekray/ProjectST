@@ -1,0 +1,7 @@
+# Дубовый оберег — бесформенный рецепт: порядок в сетке ничего не значит.
+
+id: druid_oaken_charm
+result: druid_oaken_charm
+amount: 1
+
+loose: [OAK_SAPLING, OAK_SAPLING, MOSS_BLOCK, "item:arcane_focus"]

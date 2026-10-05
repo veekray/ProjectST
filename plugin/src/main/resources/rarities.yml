@@ -1,0 +1,30 @@
+# Редкости: имя и цвет в одном месте.
+#
+# Цветовые коды, повторённые в каждом предмете, разъезжаются первыми: часть
+# «легендарных» оказывается золотой, часть жёлтой, и чинить это приходится
+# поиском по всем файлам.
+#
+# Цвет — имя из набора ванильных цветов: gray, green, aqua, light_purple, gold,
+# red, yellow, white, dark_purple и остальные.
+
+rarities:
+
+  common:
+    display: "Обычный"
+    color: GRAY
+
+  uncommon:
+    display: "Необычный"
+    color: GREEN
+
+  rare:
+    display: "Редкий"
+    color: AQUA
+
+  epic:
+    display: "Эпический"
+    color: LIGHT_PURPLE
+
+  legendary:
+    display: "Легендарный"
+    color: GOLD

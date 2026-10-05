@@ -1,0 +1,31 @@
+# Посох ученика — первое оружие мага.
+#
+# Статы предмета идут тем же путём, что статы класса: надетый предмет — это
+# источник надбавок в реестре статов. Поэтому «плюс магический урон» от посоха и
+# от класса считаются одним движком в одном порядке, а не двумя расчётами, как
+# было, когда MMOItems считал своё, а MythicLib своё.
+
+id: mage_apprentice_staff
+display: "Посох ученика"
+material: STICK
+model-data: 4001
+rarity: uncommon
+slot: hand
+unbreakable: true
+
+lore:
+  - "Палка, на которую хватило терпения"
+  - "нанести одну-единственную руну."
+
+requires:
+  class: mage
+  level: 3
+
+stats:
+  magic_damage: 6
+  max_mana:
+    op: percent
+    value: 10
+
+abilities:
+  - { skill: item_arcane_pulse, trigger: right-click }

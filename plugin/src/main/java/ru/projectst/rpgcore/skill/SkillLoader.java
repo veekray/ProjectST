@@ -54,7 +54,10 @@ public final class SkillLoader {
         // остальные непрочитанными, и они будут названы неизвестными.
         String id = root.str("id");
         String display = root.str("display", id);
-        String classId = root.str("class");
+        // Без значения по умолчанию: пустой класс допустим у служебных навыков
+        // предметов, и об отсутствии класса там, где он нужен, скажет проверка
+        // ниже — своими словами, а не общим «обязательный ключ отсутствует».
+        String classId = root.str("class", "");
         int tier = root.integer("tier", 1, 5, 1);
         NumberRef mana = number(root, "mana", errors, "skill", new NumberRef.Literal(0));
         NumberRef cooldown = number(root, "cooldown", errors, "skill", new NumberRef.Literal(0));
@@ -74,8 +77,16 @@ public final class SkillLoader {
             errors.add(root.at(), "id", "идентификатор навыка должен быть в нижнем регистре");
             ok = false;
         }
-        if (classId.isBlank()) {
+        if (classId.isBlank() && !internal) {
             errors.add(root.at(), "class", "навык должен принадлежать классу");
+            ok = false;
+        }
+        // Служебный навык без класса — это умение предмета: его запускает
+        // предмет, а не триггер класса. Поэтому класс у него не обязателен, и
+        // ровно поэтому такой навык никогда не срабатывает от событий класса.
+        if (classId.isBlank() && trigger != SkillTrigger.MANUAL) {
+            errors.add(root.at(), "on",
+                    "навык без класса не может срабатывать по триггеру: его запускает предмет");
             ok = false;
         }
         if (steps.isEmpty()) {

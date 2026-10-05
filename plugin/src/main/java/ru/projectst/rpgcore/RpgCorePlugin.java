@@ -24,6 +24,10 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
+import ru.projectst.rpgcore.platform.EquipmentWatcher;
+import ru.projectst.rpgcore.platform.ItemAbilityListener;
+import ru.projectst.rpgcore.platform.RecipeRegistrar;
+import ru.projectst.rpgcore.platform.RpgItems;
 import ru.projectst.rpgcore.platform.VitalsSync;
 import ru.projectst.rpgcore.platform.gui.MenuContext;
 import ru.projectst.rpgcore.platform.gui.MenuListener;
@@ -52,6 +56,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private ClassService classService;
     private ResourcePool resources;
     private VitalsSync vitals;
+    private RpgItems rpgItems;
+    private EquipmentWatcher equipment;
+    private RecipeRegistrar recipes;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -96,13 +103,19 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // выносливость, и знать ему незачем.
         runtime.useResources(resources::restore);
 
+        // Предметы: сборка по метке, статы от снаряжения, умения по щелчку.
+        rpgItems = new RpgItems(this, content.items());
+        equipment = new EquipmentWatcher(rpgItems, stats, classService);
+        recipes = new RecipeRegistrar(this, rpgItems, content.items());
+        int added = recipes.reload(content.recipes());
+
         MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
                 content.stats(), classService, casts, stats, statuses);
 
         var command = getCommand("rpg");
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
-                    classService, casts, menus);
+                    classService, casts, menus, rpgItems, equipment, recipes);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -115,6 +128,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
+        Bukkit.getPluginManager().registerEvents(
+                new ItemAbilityListener(rpgItems, casts), this);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память
@@ -128,6 +143,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (var online : Bukkit.getOnlinePlayers()) {
                 resources.regenerate(online.getUniqueId(), 1.0);
+                // Снаряжение сверяется до здоровья: шлем с запасом здоровья
+                // должен успеть прибавить его до того, как здоровье применится.
+                equipment.apply(online);
                 // Здоровье сверяется здесь же: стат, которого не видно в мире,
                 // хуже отсутствия стата.
                 vitals.apply(online);
@@ -164,7 +182,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         getLogger().info("RpgCore включён: статов " + content.stats().size()
                 + ", статусов " + content.statuses().size()
                 + ", навыков " + content.skills().size()
-                + ", классов " + content.playerClasses().size());
+                + ", классов " + content.playerClasses().size()
+                + ", предметов " + content.items().size()
+                + ", рецептов " + added);
     }
 
     @Override
@@ -201,6 +221,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         stats.forget(uuid);
         statuses.forget(uuid);
         resources.forget(uuid);
+        equipment.forget(uuid);
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);
@@ -211,15 +232,17 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
     private void saveDefaultContent() {
         for (String name : new String[] {
-                "stats.yml", "statuses.yml", "balance.yml", "skills/druid_abyss_bloom.yml",
-                "skills/druid_bark_guard.yml", "skills/druid_bark_react.yml",
-                "skills/druid_beast_call.yml", "skills/druid_beast_ward_tick.yml",
-                "skills/druid_bloom_tick.yml", "skills/druid_grasping_roots.yml",
-                "skills/druid_life_spores.yml", "skills/druid_poison_ivy.yml",
-                "skills/mage_bolt_hit.yml", "skills/mage_bolt_hit_strong.yml",
-                "skills/mage_collapse.yml", "skills/mage_collapse_do.yml",
-                "skills/mage_flow_loop.yml", "skills/mage_herd.yml",
-                "skills/mage_mana_bolt.yml", "skills/mage_scatter.yml",
+                "stats.yml", "statuses.yml", "balance.yml", "rarities.yml",
+                "skills/druid_abyss_bloom.yml", "skills/druid_bark_guard.yml",
+                "skills/druid_bark_react.yml", "skills/druid_beast_call.yml",
+                "skills/druid_beast_ward_tick.yml", "skills/druid_bloom_tick.yml",
+                "skills/druid_grasping_roots.yml", "skills/druid_life_spores.yml",
+                "skills/druid_poison_ivy.yml", "skills/item_arcane_pulse.yml",
+                "skills/item_arcane_pulse_hit.yml", "skills/item_shadow_nick.yml",
+                "skills/item_soul_drain.yml", "skills/mage_bolt_hit.yml",
+                "skills/mage_bolt_hit_strong.yml", "skills/mage_collapse.yml",
+                "skills/mage_collapse_do.yml", "skills/mage_flow_loop.yml",
+                "skills/mage_herd.yml", "skills/mage_mana_bolt.yml", "skills/mage_scatter.yml",
                 "skills/mage_seal_core.yml", "skills/mage_seal_drop.yml",
                 "skills/mage_void_step.yml", "skills/rogue_dash.yml",
                 "skills/rogue_fan_of_knives.yml", "skills/rogue_ghost_step.yml",
@@ -233,7 +256,10 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 "skills/warlock_reap_mark.yml", "skills/warlock_soul_gain.yml",
                 "skills/warlock_transfusion.yml", "skills/warlock_veil_tick.yml",
                 "classes/druid.yml", "classes/mage.yml", "classes/rogue.yml",
-                "classes/warlock.yml"}) {
+                "classes/warlock.yml", "items/arcane_focus.yml", "items/druid_oaken_charm.yml",
+                "items/mage_apprentice_staff.yml", "items/rogue_shadow_dagger.yml",
+                "items/warlock_soul_lantern.yml", "recipes/arcane_focus.yml",
+                "recipes/druid_oaken_charm.yml", "recipes/mage_apprentice_staff.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }

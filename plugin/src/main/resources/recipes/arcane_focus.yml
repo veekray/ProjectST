@@ -1,0 +1,10 @@
+# Фокус арканы: заготовка, с которой начинается цепочка.
+
+id: arcane_focus
+result: arcane_focus
+amount: 1
+
+shaped:
+  - "- AMETHYST_SHARD -"
+  - "AMETHYST_SHARD LAPIS_LAZULI AMETHYST_SHARD"
+  - "- AMETHYST_SHARD -"

@@ -1,0 +1,22 @@
+# Фонарь душ — вторая рука колдуна.
+
+id: warlock_soul_lantern
+display: "Фонарь душ"
+material: SOUL_LANTERN
+rarity: epic
+slot: offhand
+
+lore:
+  - "Внутри кто-то ещё помнит,"
+  - "как его звали."
+
+requires:
+  class: warlock
+  level: 6
+
+stats:
+  magic_damage: 4
+  effect_power: 10
+
+abilities:
+  - { skill: item_soul_drain, trigger: sneak-right-click }

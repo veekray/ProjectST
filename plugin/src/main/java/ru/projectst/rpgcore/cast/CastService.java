@@ -134,12 +134,34 @@ public final class CastService {
         List<String> out = new ArrayList<>(classes.unlockedSkills(player));
         classes.classOf(player).ifPresent(def -> {
             for (SkillDef skill : skills.all()) {
-                if (skill.internal() && skill.classId().equals(def.id())) {
+                if (skill.internal() && !skill.classId().isBlank()
+                        && skill.classId().equals(def.id())) {
                     out.add(skill.id());
                 }
             }
         });
         return out;
+    }
+
+    /**
+     * Применить умение предмета.
+     *
+     * <p>Идёт через те же ворота: ресурс, перезарядка, запрещающие статусы. От
+     * ручного каста отличается одним — изучения не требует, потому что право
+     * даёт сам предмет. Класс при этом не проверяется, и это не послабление:
+     * навык умения обязан быть служебным и без класса, что проверяет связывание.
+     */
+    public CastOutcome castItem(UUID player, String skillId) {
+        Optional<SkillDef> found = skills.find(skillId);
+        if (found.isEmpty()) {
+            return CastOutcome.of(CastOutcome.Kind.UNKNOWN_SKILL, skillId);
+        }
+        SkillDef skill = found.get();
+        if (!skill.internal()) {
+            return CastOutcome.of(CastOutcome.Kind.NOT_MANUAL,
+                    "навык не служебный: предмет не может его запускать");
+        }
+        return attempt(player, skill, null);
     }
 
     /** Применить навык по идентификатору. */
