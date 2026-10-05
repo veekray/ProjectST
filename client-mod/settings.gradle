@@ -1,0 +1,15 @@
+// Мод — отдельная сборка: его зависимости нужно выкачивать из сети, а плагин
+// собирается офлайн. Поэтому у него своё settings.gradle, и корневой проект про
+// него не знает.
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name = 'NeoForged'
+            url = 'https://maven.neoforged.net/releases'
+        }
+    }
+}
+
+rootProject.name = 'rpgcore-client'

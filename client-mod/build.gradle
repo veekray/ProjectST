@@ -5,7 +5,7 @@
 // включает, и сборка плагина мод не трогает.
 
 plugins {
-    id 'net.neoforged.moddev' version '2.0.78'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
 
 version = '1.0.0'
@@ -20,7 +20,7 @@ java {
 neoForge {
     // Версия под 1.21.1. Менять вместе с версией сервера и не раньше неё:
     // мод новее сервера получает отказ по версии протокола.
-    version = '21.1.95'
+    version = '21.1.255'
 
     runs {
         client {
