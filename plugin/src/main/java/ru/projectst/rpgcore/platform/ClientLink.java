@@ -11,13 +11,21 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import ru.projectst.rpgcore.cast.CastOutcome;
 import ru.projectst.rpgcore.cast.CastService;
+import ru.projectst.rpgcore.classes.ClassDef;
+import ru.projectst.rpgcore.classes.ClassRegistry;
 import ru.projectst.rpgcore.classes.ClassService;
 import ru.projectst.rpgcore.net.ClientState;
+import ru.projectst.rpgcore.net.MenuData;
 import ru.projectst.rpgcore.net.Protocol;
 import ru.projectst.rpgcore.net.StateCodec;
 import ru.projectst.rpgcore.skill.SkillDef;
+import ru.projectst.rpgcore.skill.SkillRegistry;
+import ru.projectst.rpgcore.stat.StatRegistry;
+import ru.projectst.rpgcore.stat.StatService;
 import ru.projectst.rpgcore.status.ActiveStatus;
+import ru.projectst.rpgcore.status.StatusRegistry;
 import ru.projectst.rpgcore.status.StatusService;
 
 /**
@@ -39,10 +47,18 @@ import ru.projectst.rpgcore.status.StatusService;
  */
 public final class ClientLink implements PluginMessageListener {
 
+    /** Метка статуса, по которой он считается счётчиком ядра класса. */
+    public static final String TAG_COUNTER = "counter";
+
     private final Plugin plugin;
     private final ClassService classes;
     private final CastService casts;
     private final StatusService statuses;
+    private final StatusRegistry statusDefs;
+    private final ClassRegistry classDefs;
+    private final SkillRegistry skills;
+    private final StatRegistry statDefs;
+    private final StatService statValues;
 
     /** Кто поздоровался и с какой версией мода. */
     private final Map<UUID, String> connected = new ConcurrentHashMap<>();
@@ -51,19 +67,28 @@ public final class ClientLink implements PluginMessageListener {
     private final Map<UUID, ClientState> lastSent = new ConcurrentHashMap<>();
 
     public ClientLink(Plugin plugin, ClassService classes, CastService casts,
-                      StatusService statuses) {
+                      StatusService statuses, StatusRegistry statusDefs,
+                      ClassRegistry classDefs, SkillRegistry skills, StatRegistry statDefs,
+                      StatService statValues) {
         this.plugin = plugin;
         this.classes = classes;
         this.casts = casts;
         this.statuses = statuses;
+        this.statusDefs = statusDefs;
+        this.classDefs = classDefs;
+        this.skills = skills;
+        this.statDefs = statDefs;
+        this.statValues = statValues;
     }
 
     /** Регистрирует каналы. Без этого Bukkit молча не доставит ни одного байта. */
     public void register() {
         var messenger = plugin.getServer().getMessenger();
         messenger.registerIncomingPluginChannel(plugin, Protocol.CHANNEL_HELLO, this);
+        messenger.registerIncomingPluginChannel(plugin, Protocol.CHANNEL_ACTION, this);
         messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_WELCOME);
         messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_STATE);
+        messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_MENU);
     }
 
     /** Версия мода у игрока, если он здоровался. */
@@ -84,6 +109,10 @@ public final class ClientLink implements PluginMessageListener {
 
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+        if (Protocol.CHANNEL_ACTION.equals(channel)) {
+            onAction(player, message);
+            return;
+        }
         if (!Protocol.CHANNEL_HELLO.equals(channel)) {
             return;
         }
@@ -115,6 +144,74 @@ public final class ClientLink implements PluginMessageListener {
         connected.put(player.getUniqueId(), hello.modVersion());
         lastSent.remove(player.getUniqueId());
         send(player);
+        sendMenu(player);
+    }
+
+    /**
+     * Просьба клиента.
+     *
+     * <p><b>Клиент просит, сервер решает.</b> Каждое действие идёт через те же
+     * службы, что и команда в чате: {@code ClassService} проверяет уровень,
+     * очки и класс, {@code CastService} — ресурс, перезарядку и статусы. Поэтому
+     * подменённый клиент может попросить ровно то, что игрок может набрать
+     * руками, и получит тот же отказ теми же словами.
+     */
+    private void onAction(Player player, byte[] message) {
+        if (!connected.containsKey(player.getUniqueId())) {
+            // Без рукопожатия действий не принимаем: версия формата неизвестна,
+            // а читать чужие байты наугад — как раз то, от чего версия в первом
+            // байте и защищает.
+            return;
+        }
+        StateCodec.ActionRequest request;
+        try {
+            request = StateCodec.readAction(message);
+        } catch (RuntimeException e) {
+            plugin.getLogger().warning("действие от " + player.getName()
+                    + " не читается: " + e.getMessage());
+            return;
+        }
+
+        UUID id = player.getUniqueId();
+        switch (request.action()) {
+            case CAST_SLOT -> {
+                CastOutcome outcome = casts.castSlot(id, request.number());
+                if (!outcome.succeeded() && outcome.kind() != CastOutcome.Kind.ON_COOLDOWN) {
+                    player.sendActionBar(Component.text(outcome.toString(), NamedTextColor.RED));
+                }
+            }
+            case UNLOCK -> {
+                var outcome = classes.unlock(id, request.id());
+                player.sendMessage(Component.text(outcome.toString(),
+                        outcome.succeeded() ? NamedTextColor.GREEN : NamedTextColor.RED));
+            }
+            case UPGRADE -> {
+                var outcome = classes.upgrade(id, request.id());
+                player.sendMessage(Component.text(outcome.toString(),
+                        outcome.succeeded() ? NamedTextColor.GREEN : NamedTextColor.RED));
+            }
+            case BIND -> {
+                var outcome = classes.bind(id, request.number(), request.id());
+                player.sendMessage(Component.text(outcome.toString(),
+                        outcome.succeeded() ? NamedTextColor.GREEN : NamedTextColor.RED));
+            }
+            case UNBIND -> classes.unbind(id, request.number());
+            case CHOOSE_CLASS -> {
+                if (!classes.setClass(id, request.id())) {
+                    player.sendMessage(Component.text("Такого класса нет: " + request.id(),
+                            NamedTextColor.RED));
+                }
+            }
+            case REFRESH_MENU -> {
+                // Ничего не меняет: ответ уйдёт ниже вместе со всеми остальными.
+            }
+        }
+        // После любого действия меню и состояние пересобираются: экран с
+        // прежними числами после нажатия — такая же тихая ложь, как стат,
+        // которого нет в мире.
+        lastSent.remove(id);
+        send(player);
+        sendMenu(player);
     }
 
     // ------------------------------------------------------------------ отправка
@@ -138,6 +235,70 @@ public final class ClientLink implements PluginMessageListener {
         player.sendPluginMessage(plugin, Protocol.CHANNEL_STATE, StateCodec.writeState(state));
     }
 
+    /** Шлёт данные меню: по запросу и после каждого действия, а не постоянно. */
+    public void sendMenu(Player player) {
+        player.sendPluginMessage(plugin, Protocol.CHANNEL_MENU,
+                StateCodec.writeMenu(menu(player)));
+    }
+
+    /**
+     * Данные меню.
+     *
+     * <p>Числа берутся из тех же служб, что отвечают командам: стоимость и
+     * перезарядка — из таблицы баланса навыка, статы — из того же снимка, что
+     * читает конвейер урона. Отдельный расчёт для показа означал бы два
+     * источника правды, и разошлись бы они молча.
+     */
+    private MenuData menu(Player player) {
+        UUID id = player.getUniqueId();
+        var own = classes.classOf(id);
+        var data = classes.snapshot(id);
+
+        List<MenuData.ClassLine> classLines = new ArrayList<>();
+        for (ClassDef def : classDefs.all()) {
+            classLines.add(new MenuData.ClassLine(def.id(), def.display(), def.icon(),
+                    def.resource().display(), def.slots(), def.maxLevel()));
+        }
+
+        List<MenuData.SkillLine> skillLines = new ArrayList<>();
+        if (own.isPresent()) {
+            ClassDef def = own.get();
+            for (SkillDef skill : skills.all()) {
+                if (!skill.selectable() || !skill.classId().equals(def.id())) {
+                    continue;
+                }
+                int level = data.skillLevel(skill.id());
+                int boundSlot = 0;
+                for (var entry : data.slotBindings().entrySet()) {
+                    if (entry.getValue().equals(skill.id())) {
+                        boundSlot = entry.getKey();
+                    }
+                }
+                var table = casts.balanceOf(skill.id());
+                int atLeast = Math.max(1, level);
+                skillLines.add(new MenuData.SkillLine(skill.id(), skill.display(), skill.icon(),
+                        skill.tier(), level,
+                        ru.projectst.rpgcore.classes.ClassService.MAX_SKILL_LEVEL,
+                        def.levelForTier(skill.tier()),
+                        skill.manaCost().resolve(table, atLeast),
+                        skill.cooldown().resolve(table, atLeast), boundSlot));
+            }
+            skillLines.sort(java.util.Comparator.comparingInt(MenuData.SkillLine::tier)
+                    .thenComparing(MenuData.SkillLine::id));
+        }
+
+        List<MenuData.StatLine> statLines = new ArrayList<>();
+        var snapshot = statValues.snapshot(id);
+        for (var def : statDefs.all()) {
+            statLines.add(new MenuData.StatLine(def.id(), def.display(),
+                    snapshot.get(def.id())));
+        }
+
+        return new MenuData(own.map(ClassDef::id).orElse(""), data.level(), data.xp(),
+                classes.xpToNextLevel(id), data.unspentPoints(),
+                own.map(ClassDef::slots).orElse(0), classLines, skillLines, statLines);
+    }
+
     /** Собирает состояние из тех же сервисов, что отвечают командам и интерфейсу. */
     private ClientState snapshot(Player player) {
         UUID id = player.getUniqueId();
@@ -146,10 +307,25 @@ public final class ClientLink implements PluginMessageListener {
         var data = classes.snapshot(id);
 
         List<ClientState.StatusLine> statusLines = new ArrayList<>();
+        List<ClientState.CounterLine> counterLines = new ArrayList<>();
         long now = plugin.getServer().getCurrentTick();
         for (ActiveStatus status : statuses.acting(id)) {
-            statusLines.add(new ClientState.StatusLine(status.id(), status.stacks(),
-                    (int) status.remaining(now), status.category().name()));
+            var statusDef = statusDefs.find(status.id());
+            String display = statusDef.map(d -> d.display()).orElse(status.id());
+            String colour = statusDef.map(d -> d.color()).orElse(null);
+
+            // Счётчик ядра — не эффект, который пройдёт, а ресурс, по которому
+            // игрок принимает решения. Поэтому он уходит отдельным списком и
+            // рисуется отдельно, а не теряется в строке из восьми статусов.
+            if (statusDef.filter(d -> d.hasTag(TAG_COUNTER)).isPresent()) {
+                counterLines.add(new ClientState.CounterLine(status.id(), display,
+                        status.stacks(), statusDef.get().maxStacks(),
+                        colour == null ? "" : colour));
+                continue;
+            }
+            statusLines.add(new ClientState.StatusLine(status.id(), display, status.stacks(),
+                    (int) status.remaining(now), status.category().name(),
+                    colour == null ? "" : colour));
         }
 
         List<ClientState.CooldownLine> cooldowns = new ArrayList<>();
@@ -177,6 +353,6 @@ public final class ClientLink implements PluginMessageListener {
 
         return new ClientState(resource.displayName(id), resource.current(id),
                 resource.max(id), data.level(), def.map(own -> own.display()).orElse(""),
-                statusLines, cooldowns, slots);
+                statusLines, cooldowns, slots, counterLines);
     }
 }

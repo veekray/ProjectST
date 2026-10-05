@@ -36,10 +36,14 @@ public final class RpgCoreClient {
                 ClientNetwork::onWelcome);
         registrar.playToClient(StatePayload.TYPE, StatePayload.STREAM_CODEC,
                 ClientNetwork::onState);
+        registrar.playToClient(MenuPayload.TYPE, MenuPayload.STREAM_CODEC,
+                ClientNetwork::onMenu);
+
+        // Грузы к серверу. Обработчик здесь пустой: сервер — это плагин, он
+        // читает их сам, а регистрация требует обработчик с обеих сторон.
         registrar.playToServer(HelloPayload.TYPE, HelloPayload.STREAM_CODEC,
-                (payload, context) -> {
-                    // Сервер — это плагин, он читает груз сам. Обработчик здесь
-                    // нужен только потому, что регистрация требует его наличия.
-                });
+                (payload, context) -> { });
+        registrar.playToServer(ActionPayload.TYPE, ActionPayload.STREAM_CODEC,
+                (payload, context) -> { });
     }
 }

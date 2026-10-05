@@ -33,7 +33,8 @@ class ProtocolCopyTest {
             "ru", "projectst", "rpgcore", "net");
 
     private static final List<String> COPIED =
-            List.of("Protocol.java", "ClientState.java", "StateCodec.java");
+            List.of("Protocol.java", "ClientState.java", "StateCodec.java",
+                    "MenuData.java");
 
     @Test
     @DisplayName("файлы протокола в моде совпадают с плагином до строки")

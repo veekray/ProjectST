@@ -20,11 +20,12 @@ class StateCodecTest {
 
     private static final ClientState SAMPLE = new ClientState(
             "Выносливость", 73.5, 120, 17, "&8Плут",
-            List.of(new ClientState.StatusLine("ambush", 1, 40, "BUFF"),
-                    new ClientState.StatusLine("mark_stacks", 7, 180, "BUFF")),
+            List.of(new ClientState.StatusLine("ambush", "Из тени", 1, 40, "BUFF", "GRAY"),
+                    new ClientState.StatusLine("stun", "Оглушение", 1, 20, "CONTROL", "RED")),
             List.of(new ClientState.CooldownLine("rogue_dash", 35, 120)),
             List.of(new ClientState.SlotLine(1, "rogue_dash", "Рывок", "SUGAR"),
-                    new ClientState.SlotLine(2, "", "", "")));
+                    new ClientState.SlotLine(2, "", "", "")),
+            List.of(new ClientState.CounterLine("mark_stacks", "Удары по метке", 7, 20, "RED")));
 
     @Test
     @DisplayName("состояние проходит туда и обратно без потерь")
@@ -39,6 +40,63 @@ class StateCodecTest {
         assertEquals(SAMPLE.statuses(), back.statuses());
         assertEquals(SAMPLE.cooldowns(), back.cooldowns());
         assertEquals(SAMPLE.slots(), back.slots());
+        assertEquals(SAMPLE.counters(), back.counters());
+    }
+
+    @Test
+    @DisplayName("счётчики ядра приходят отдельно от статусов и со своим пределом")
+    void countersComeSeparately() {
+        ClientState back = StateCodec.readState(StateCodec.writeState(SAMPLE));
+
+        assertEquals(1, back.counters().size());
+        ClientState.CounterLine counter = back.counters().get(0);
+        assertEquals("Удары по метке", counter.display(),
+                "в бою игрок читает имя, а не идентификатор");
+        assertEquals(7, counter.stacks());
+        assertEquals(20, counter.maxStacks(), "без предела не нарисовать деления");
+        assertTrue(back.statuses().stream().noneMatch(s -> s.id().equals("mark_stacks")),
+                "счётчик не должен дублироваться в списке статусов");
+    }
+
+    @Test
+    @DisplayName("данные меню проходят туда и обратно")
+    void menuRoundTrip() {
+        MenuData menu = new MenuData("rogue", 17, 120.5, 240, 3, 6,
+                List.of(new MenuData.ClassLine("rogue", "&8Плут", "LEATHER_BOOTS",
+                        "Выносливость", 6, 60)),
+                List.of(new MenuData.SkillLine("rogue_dash", "Рывок", "SUGAR", 1, 2, 5, 1,
+                        10, 6.0, 1)),
+                List.of(new MenuData.StatLine("physical_damage", "Физический урон", 12.5)));
+
+        MenuData back = StateCodec.readMenu(StateCodec.writeMenu(menu));
+
+        assertEquals(menu.classId(), back.classId());
+        assertEquals(menu.level(), back.level());
+        assertEquals(menu.points(), back.points());
+        assertEquals(menu.slots(), back.slots());
+        assertEquals(menu.classes(), back.classes());
+        assertEquals(menu.skills(), back.skills());
+        assertEquals(menu.stats(), back.stats());
+    }
+
+    @Test
+    @DisplayName("действие клиента читается: что просят, какой слот, какой навык")
+    void actionRoundTrip() {
+        var request = StateCodec.readAction(
+                StateCodec.writeAction(Protocol.Action.BIND, 3, "rogue_dash"));
+
+        assertEquals(Protocol.Action.BIND, request.action());
+        assertEquals(3, request.number());
+        assertEquals("rogue_dash", request.id());
+    }
+
+    @Test
+    @DisplayName("действие чужой версии отвергается, а не исполняется наугад")
+    void actionOfForeignVersionIsRefused() {
+        byte[] action = StateCodec.writeAction(Protocol.Action.UNLOCK, 0, "mage_collapse");
+        action[0] = (byte) (Protocol.VERSION + 1);
+
+        assertThrows(IllegalArgumentException.class, () -> StateCodec.readAction(action));
     }
 
     @Test
@@ -54,7 +112,8 @@ class StateCodecTest {
     @Test
     @DisplayName("пустое состояние тоже читается: класс может быть не выбран")
     void emptyStateRoundTrip() {
-        ClientState empty = new ClientState("", 0, 0, 1, "", List.of(), List.of(), List.of());
+        ClientState empty = new ClientState("", 0, 0, 1, "", List.of(), List.of(),
+                List.of(), List.of());
 
         ClientState back = StateCodec.readState(StateCodec.writeState(empty));
 
@@ -121,16 +180,12 @@ class StateCodecTest {
     @DisplayName("одинаковые состояния равны: на этом держится отправка только изменений")
     void equalStatesAreEqual() {
         ClientState copy = new ClientState("Выносливость", 73.5, 120, 17, "&8Плут",
-                List.of(new ClientState.StatusLine("ambush", 1, 40, "BUFF"),
-                        new ClientState.StatusLine("mark_stacks", 7, 180, "BUFF")),
-                List.of(new ClientState.CooldownLine("rogue_dash", 35, 120)),
-                List.of(new ClientState.SlotLine(1, "rogue_dash", "Рывок", "SUGAR"),
-                        new ClientState.SlotLine(2, "", "", "")));
+                SAMPLE.statuses(), SAMPLE.cooldowns(), SAMPLE.slots(), SAMPLE.counters());
 
         assertEquals(SAMPLE, copy);
 
         ClientState other = new ClientState("Выносливость", 73.4, 120, 17, "&8Плут",
-                copy.statuses(), copy.cooldowns(), copy.slots());
+                copy.statuses(), copy.cooldowns(), copy.slots(), copy.counters());
         assertNotEquals(SAMPLE, other, "иначе изменение запаса не ушло бы моду");
     }
 
@@ -139,7 +194,7 @@ class StateCodecTest {
     void longStringsAreTrimmed() {
         String huge = "я".repeat(5000);
         ClientState state = new ClientState(huge, 1, 1, 1, huge,
-                List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of());
 
         ClientState back = StateCodec.readState(StateCodec.writeState(state));
 

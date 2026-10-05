@@ -53,6 +53,7 @@ public final class RpgHud {
         drawResource(graphics, state, width, height);
         drawSlots(graphics, client, state, width, height);
         drawStatuses(graphics, client, state);
+        drawCounters(graphics, client, state, width, height);
     }
 
     /** Полоса ресурса — под ванильными полосами, чтобы не спорить с ними за место. */
@@ -125,14 +126,61 @@ public final class RpgHud {
         int y = 8;
         RenderSystem.enableBlend();
         for (ClientState.StatusLine status : state.statuses()) {
-            String text = status.id()
+            String text = status.display()
                     + (status.stacks() > 1 ? " x" + status.stacks() : "")
                     + "  " + seconds(status.remaining());
             graphics.drawString(client.font, Component.literal(text), x, y,
-                    colourOf(status.category()), true);
+                    colourOf(status.color(), status.category()), true);
             y += 10;
         }
         RenderSystem.disableBlend();
+    }
+
+    /**
+     * Счётчики ядра класса: стаки Роста и Увядания у друида, души у колдуна.
+     *
+     * <p>Рисуются делениями, а не числом: «два из трёх» в бою читается взглядом,
+     * а «2/3» требует прочесть. Числа тоже есть — но мелкие и рядом, для тех
+     * случаев, когда делений больше пяти.
+     *
+     * <p>Место выбрано слева от полосы ресурса и над хотбаром: это то, на что
+     * игрок смотрит, принимая решение, и смотреть он должен в одну точку.
+     */
+    private static void drawCounters(GuiGraphics graphics, Minecraft client,
+                                     ClientState state, int width, int height) {
+        if (state.counters().isEmpty()) {
+            return;
+        }
+        int x = width / 2 - 182;
+        int y = height - 54 - (state.counters().size() - 1) * 14;
+
+        for (ClientState.CounterLine counter : state.counters()) {
+            int colour = colourOf(counter.color(), "BUFF");
+            graphics.drawString(client.font, Component.literal(counter.display()),
+                    x, y, colour, true);
+
+            int pips = Math.max(1, counter.maxStacks());
+            if (pips <= 10) {
+                // Делениями: видно не читая.
+                int pipWidth = Math.max(4, Math.min(12, 72 / pips));
+                int pipX = x;
+                for (int i = 0; i < pips; i++) {
+                    boolean filled = i < counter.stacks();
+                    graphics.fill(pipX, y + 10, pipX + pipWidth - 2, y + 14,
+                            filled ? colour : 0x66101010);
+                    pipX += pipWidth;
+                }
+            } else {
+                // Делений было бы двадцать — вместо них полоса и число.
+                double share = Math.clamp((double) counter.stacks() / pips, 0, 1);
+                graphics.fill(x, y + 10, x + 72, y + 14, 0x66101010);
+                graphics.fill(x, y + 10, x + (int) Math.round(72 * share), y + 14, colour);
+                graphics.drawString(client.font,
+                        Component.literal(counter.stacks() + "/" + pips),
+                        x + 76, y + 7, colour, true);
+            }
+            y += 14;
+        }
     }
 
     private static int remainingOf(ClientState state, String skillId) {
@@ -159,8 +207,47 @@ public final class RpgHud {
                 : String.valueOf(Math.round(value * 10) / 10.0);
     }
 
-    /** Цвет по категории статуса: контроль красный, щит синий, усиление зелёное. */
-    private static int colourOf(String category) {
+    /**
+     * Цвет: сначала свой из файла статуса, иначе по категории.
+     *
+     * <p>Цвет в контенте, а не в коде, по той же причине, что иконки навыков:
+     * иначе новый статус нельзя покрасить, не трогая мод, то есть не пересобрав
+     * и не раздав его заново всем игрокам.
+     */
+    static int colourOf(String own, String category) {
+        if (own != null && !own.isEmpty()) {
+            Integer named = named(own);
+            if (named != null) {
+                return named;
+            }
+        }
+        return byCategory(category);
+    }
+
+    /** Ванильные имена цветов: те же, что в файлах статусов и редкостей. */
+    private static Integer named(String name) {
+        return switch (name) {
+            case "BLACK" -> 0xFF000000;
+            case "DARK_BLUE" -> 0xFF0000AA;
+            case "DARK_GREEN" -> 0xFF00AA00;
+            case "DARK_AQUA" -> 0xFF00AAAA;
+            case "DARK_RED" -> 0xFFAA0000;
+            case "DARK_PURPLE" -> 0xFFAA00AA;
+            case "GOLD" -> 0xFFFFAA00;
+            case "GRAY" -> 0xFFAAAAAA;
+            case "DARK_GRAY" -> 0xFF555555;
+            case "BLUE" -> 0xFF5555FF;
+            case "GREEN" -> 0xFF55FF55;
+            case "AQUA" -> 0xFF55FFFF;
+            case "RED" -> 0xFFFF5555;
+            case "LIGHT_PURPLE" -> 0xFFFF55FF;
+            case "YELLOW" -> 0xFFFFFF55;
+            case "WHITE" -> 0xFFFFFFFF;
+            default -> null;
+        };
+    }
+
+    private static int byCategory(String category) {
         return switch (category) {
             case "CONTROL" -> 0xFFE05A4F;
             case "DEBUFF" -> 0xFFE0A24F;

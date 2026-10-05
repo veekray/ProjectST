@@ -24,11 +24,22 @@ import java.util.Set;
  * @param removes        наложение этого статуса удаляет перечисленные
  * @param blocks         пока этот статус активен, перечисленные не наложить
  * @param tags           произвольные метки для условий навыков
+ * @param display        имя для показа игроку; пусто — показывается id
+ * @param color          цвет для показа; пусто — цвет по категории
  */
 public record StatusDef(String id, StatusCategory category, int duration, int maxStacks,
                         Stacking stacking, int priority, StatusCategory exclusiveWith,
                         Set<String> suppresses, Set<String> removes, Set<String> blocks,
-                        Set<String> tags) {
+                        Set<String> tags, String display, String color) {
+
+    /** Статус, у которого нет своего имени и цвета: показывается по id. */
+    public StatusDef(String id, StatusCategory category, int duration, int maxStacks,
+                     Stacking stacking, int priority, StatusCategory exclusiveWith,
+                     Set<String> suppresses, Set<String> removes, Set<String> blocks,
+                     Set<String> tags) {
+        this(id, category, duration, maxStacks, stacking, priority, exclusiveWith,
+                suppresses, removes, blocks, tags, null, null);
+    }
 
     public StatusDef {
         if (id == null || !id.equals(id.toLowerCase(Locale.ROOT))) {
@@ -47,6 +58,10 @@ public record StatusDef(String id, StatusCategory category, int duration, int ma
         removes = removes == null ? Set.of() : Set.copyOf(removes);
         blocks = blocks == null ? Set.of() : Set.copyOf(blocks);
         tags = tags == null ? Set.of() : Set.copyOf(tags);
+        // Имя и цвет — для показа игроку. Пусто означает «по идентификатору» и
+        // «по категории»: заставлять писать их у каждого стана было бы шумом.
+        display = display == null || display.isBlank() ? id : display;
+        color = color == null || color.isBlank() ? null : color.toUpperCase(Locale.ROOT);
     }
 
     public boolean hasTag(String tag) {

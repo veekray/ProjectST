@@ -76,9 +76,11 @@ public final class StateCodec {
             out.writeByte(Math.min(255, state.statuses().size()));
             for (ClientState.StatusLine line : limit(state.statuses())) {
                 writeString(out, line.id());
+                writeString(out, line.display());
                 out.writeByte(Math.min(255, line.stacks()));
                 out.writeInt(line.remaining());
                 writeString(out, line.category());
+                writeString(out, line.color());
             }
 
             out.writeByte(Math.min(255, state.cooldowns().size()));
@@ -94,6 +96,15 @@ public final class StateCodec {
                 writeString(out, line.skillId());
                 writeString(out, line.display());
                 writeString(out, line.icon());
+            }
+
+            out.writeByte(Math.min(255, state.counters().size()));
+            for (ClientState.CounterLine line : limit(state.counters())) {
+                writeString(out, line.id());
+                writeString(out, line.display());
+                out.writeByte(Math.min(255, line.stacks()));
+                out.writeByte(Math.min(255, line.maxStacks()));
+                writeString(out, line.color());
             }
         });
     }
@@ -114,8 +125,8 @@ public final class StateCodec {
             int statusCount = in.readUnsignedByte();
             List<ClientState.StatusLine> statuses = new ArrayList<>(statusCount);
             for (int i = 0; i < statusCount; i++) {
-                statuses.add(new ClientState.StatusLine(readString(in), in.readUnsignedByte(),
-                        in.readInt(), readString(in)));
+                statuses.add(new ClientState.StatusLine(readString(in), readString(in),
+                        in.readUnsignedByte(), in.readInt(), readString(in), readString(in)));
             }
 
             int cooldownCount = in.readUnsignedByte();
@@ -131,8 +142,132 @@ public final class StateCodec {
                 slots.add(new ClientState.SlotLine(in.readUnsignedByte(), readString(in),
                         readString(in), readString(in)));
             }
+
+            int counterCount = in.readUnsignedByte();
+            List<ClientState.CounterLine> counters = new ArrayList<>(counterCount);
+            for (int i = 0; i < counterCount; i++) {
+                counters.add(new ClientState.CounterLine(readString(in), readString(in),
+                        in.readUnsignedByte(), in.readUnsignedByte(), readString(in)));
+            }
             return new ClientState(resourceName, resource, resourceMax, level, className,
-                    statuses, cooldowns, slots);
+                    statuses, cooldowns, slots, counters);
+        });
+    }
+
+    // ------------------------------------------------------------------ меню
+
+    public static byte[] writeMenu(MenuData menu) {
+        return write(out -> {
+            out.writeByte(Protocol.VERSION);
+            writeString(out, menu.classId());
+            out.writeShort(menu.level());
+            out.writeFloat((float) menu.xp());
+            out.writeFloat((float) menu.xpToNext());
+            out.writeShort(menu.points());
+            out.writeByte(menu.slots());
+
+            out.writeByte(Math.min(255, menu.classes().size()));
+            for (MenuData.ClassLine line : limit(menu.classes())) {
+                writeString(out, line.id());
+                writeString(out, line.display());
+                writeString(out, line.icon());
+                writeString(out, line.resourceName());
+                out.writeByte(line.slots());
+                out.writeShort(line.maxLevel());
+            }
+
+            out.writeByte(Math.min(255, menu.skills().size()));
+            for (MenuData.SkillLine line : limit(menu.skills())) {
+                writeString(out, line.id());
+                writeString(out, line.display());
+                writeString(out, line.icon());
+                out.writeByte(line.tier());
+                out.writeByte(line.level());
+                out.writeByte(line.maxLevel());
+                out.writeShort(line.required());
+                out.writeFloat((float) line.mana());
+                out.writeFloat((float) line.cooldown());
+                out.writeByte(line.boundSlot());
+            }
+
+            out.writeByte(Math.min(255, menu.stats().size()));
+            for (MenuData.StatLine line : limit(menu.stats())) {
+                writeString(out, line.id());
+                writeString(out, line.display());
+                out.writeFloat((float) line.value());
+            }
+        });
+    }
+
+    public static MenuData readMenu(byte[] bytes) {
+        return read(bytes, in -> {
+            int version = in.readUnsignedByte();
+            if (version != Protocol.VERSION) {
+                throw new IllegalArgumentException("версия формата " + version
+                        + ", поддерживается " + Protocol.VERSION);
+            }
+            String classId = readString(in);
+            int level = in.readShort();
+            double xp = in.readFloat();
+            double xpToNext = in.readFloat();
+            int points = in.readShort();
+            int slots = in.readUnsignedByte();
+
+            int classCount = in.readUnsignedByte();
+            List<MenuData.ClassLine> classes = new ArrayList<>(classCount);
+            for (int i = 0; i < classCount; i++) {
+                classes.add(new MenuData.ClassLine(readString(in), readString(in),
+                        readString(in), readString(in), in.readUnsignedByte(), in.readShort()));
+            }
+
+            int skillCount = in.readUnsignedByte();
+            List<MenuData.SkillLine> skills = new ArrayList<>(skillCount);
+            for (int i = 0; i < skillCount; i++) {
+                skills.add(new MenuData.SkillLine(readString(in), readString(in), readString(in),
+                        in.readUnsignedByte(), in.readUnsignedByte(), in.readUnsignedByte(),
+                        in.readShort(), in.readFloat(), in.readFloat(), in.readUnsignedByte()));
+            }
+
+            int statCount = in.readUnsignedByte();
+            List<MenuData.StatLine> stats = new ArrayList<>(statCount);
+            for (int i = 0; i < statCount; i++) {
+                stats.add(new MenuData.StatLine(readString(in), readString(in), in.readFloat()));
+            }
+            return new MenuData(classId, level, xp, xpToNext, points, slots, classes, skills,
+                    stats);
+        });
+    }
+
+    // ------------------------------------------------------------------ действия
+
+    /**
+     * Просьба клиента.
+     *
+     * @param action что просят
+     * @param number число: номер слота
+     * @param id     идентификатор: навык или класс
+     */
+    public record ActionRequest(Protocol.Action action, int number, String id) {
+    }
+
+    public static byte[] writeAction(Protocol.Action action, int number, String id) {
+        return write(out -> {
+            out.writeByte(Protocol.VERSION);
+            out.writeByte(action.code());
+            out.writeByte(Math.clamp(number, 0, 255));
+            writeString(out, id);
+        });
+    }
+
+    public static ActionRequest readAction(byte[] bytes) {
+        return read(bytes, in -> {
+            int version = in.readUnsignedByte();
+            if (version != Protocol.VERSION) {
+                throw new IllegalArgumentException("версия формата " + version
+                        + ", поддерживается " + Protocol.VERSION);
+            }
+            return new ActionRequest(Protocol.Action.of(in.readUnsignedByte()),
+                    in.readUnsignedByte(), readString(in));
         });
     }
 

@@ -25,6 +25,8 @@ statuses:
   # Все жёсткие контроли исключительны внутри своей категории: два
   # одновременных контроля — это и есть то самое наложение механик.
   stun:
+    display: "Оглушение"
+    color: RED
     category: control
     duration: 40
     stacking: refresh
@@ -33,6 +35,8 @@ statuses:
     tags: [hard, blocks-cast]
 
   root:
+    display: "Корни"
+    color: DARK_GREEN
     category: control
     duration: 60
     stacking: refresh
@@ -44,6 +48,8 @@ statuses:
   # Проверка в CastService читает её, а не перечисляет статусы по именам:
   # иначе новый контроль молча оказался бы кастуемым.
   silence:
+    display: "Тишина"
+    color: DARK_PURPLE
     category: debuff
     duration: 60
     stacking: refresh
@@ -52,6 +58,8 @@ statuses:
   # Изъятие из боя: Кокон мучений колдуна. Приоритетнее любого контроля,
   # подавляет их и попутно не даёт наложить новые.
   banish:
+    display: "Изъятие"
+    color: YELLOW
     category: immunity
     duration: 80
     # Продлеваемое, а не обновляемое: Кокон накладывает базовые четыре секунды и
@@ -68,6 +76,8 @@ statuses:
   # Запас берётся из amount при наложении, поэтому один статус обслуживает
   # щиты любого размера.
   shield:
+    display: "Щит"
+    color: BLUE
     category: shield
     duration: 200
     stacking: refresh
@@ -91,6 +101,8 @@ statuses:
     category: buff
     duration: 20
     stacking: refresh
+    display: "Печать съедена"
+    color: AQUA
     tags: [soft]
   # ---------------------------------------------------------------- друид
   # Счётчики ролей. Стаки, а не отдельные статусы на каждое число: «три Роста»
@@ -100,6 +112,10 @@ statuses:
     duration: 300
     stacking: stacks
     max-stacks: 3
+    # Имя и цвет — для ХУДа мода. Счётчик ядра игрок читает в бою, и читать он
+    # должен «Рост», а не growth: идентификатор нужен файлам, а не глазам.
+    display: "Рост"
+    color: GREEN
     tags: [counter]
 
   wither:
@@ -107,10 +123,14 @@ statuses:
     duration: 300
     stacking: stacks
     max-stacks: 3
+    display: "Увядание"
+    color: GOLD
     tags: [counter]
 
   # Заряды ответа коры: обычная держит один, усиленная два.
   bark_guard:
+    display: "Кора"
+    color: GOLD
     category: buff
     duration: 200
     stacking: stacks
@@ -130,10 +150,14 @@ statuses:
     duration: 600
     stacking: stacks
     max-stacks: 5
+    display: "Души"
+    color: LIGHT_PURPLE
     tags: [counter]
 
   # Иссушение: по нему тикает урон и считается дань Переливания.
   curse:
+    display: "Иссушение"
+    color: DARK_PURPLE
     category: debuff
     duration: 100
     stacking: refresh
@@ -153,6 +177,8 @@ statuses:
   # ---------------------------------------------------------------- плут
   # Метка Шага призрака: держится до первого удара, поэтому крит ровно один.
   ambush:
+    display: "Из тени"
+    color: GRAY
     category: buff
     duration: 60
     stacking: refresh
@@ -171,4 +197,6 @@ statuses:
     duration: 200
     stacking: stacks
     max-stacks: 20
+    display: "Удары по метке"
+    color: RED
     tags: [counter]

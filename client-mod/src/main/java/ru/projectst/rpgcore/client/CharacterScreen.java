@@ -1,0 +1,379 @@
+package ru.projectst.rpgcore.client;
+
+import java.util.List;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import ru.projectst.rpgcore.net.MenuData;
+import ru.projectst.rpgcore.net.Protocol;
+
+/**
+ * Окно персонажа: класс, навыки, слоты, статы.
+ *
+ * <p>Экран только показывает и просит. Ни одной проверки здесь нет: можно ли
+ * изучить навык, хватает ли очков, открыт ли уровень — решает сервер, и он же
+ * отвечает словами. Повторять эти правила на клиенте значило бы держать их в
+ * двух местах, и однажды клиент начал бы разрешать то, что сервер запрещает,
+ * или наоборот — гасить кнопку, которая на самом деле работает.
+ *
+ * <p>Подсказка под каждым навыком всё же есть: что мешает, видно до нажатия. Но
+ * это <b>показ</b> присланных сервером чисел, а не собственное решение экрана.
+ */
+public final class CharacterScreen extends Screen {
+
+    /** Вкладки. Порядок тот же, что в старом меню на сундуках: привычка дороже. */
+    public enum Tab {
+        CHARACTER("Персонаж"),
+        SKILLS("Навыки"),
+        SLOTS("Слоты"),
+        STATS("Статы");
+
+        private final String title;
+
+        Tab(String title) {
+            this.title = title;
+        }
+
+        public String title() {
+            return title;
+        }
+    }
+
+    private static final int PANEL_WIDTH = 320;
+    private static final int PANEL_HEIGHT = 200;
+    private static final int COLOUR_PANEL = 0xE8101418;
+    private static final int COLOUR_EDGE = 0xFF2E3A44;
+    private static final int COLOUR_TAB_ON = 0xFF2E7FE0;
+    private static final int COLOUR_TAB_OFF = 0xFF1C242B;
+
+    private Tab tab = Tab.CHARACTER;
+    private int scroll;
+    /** Слот, для которого выбирают навык; ноль — никакой. */
+    private int choosingSlot;
+
+    public CharacterScreen() {
+        super(Component.literal("RpgCore"));
+    }
+
+    private int left() {
+        return (width - PANEL_WIDTH) / 2;
+    }
+
+    private int top() {
+        return (height - PANEL_HEIGHT) / 2;
+    }
+
+    @Override
+    protected void init() {
+        clearWidgets();
+        int x = left() + 6;
+        int y = top() + 6;
+        for (Tab value : Tab.values()) {
+            Tab target = value;
+            addRenderableWidget(Button.builder(Component.literal(value.title()), button -> {
+                tab = target;
+                scroll = 0;
+                choosingSlot = 0;
+                rebuild();
+            }).bounds(x, y, 74, 18).build());
+            x += 76;
+        }
+    }
+
+    private void rebuild() {
+        init();
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        scroll = Math.max(0, scroll - (int) Math.signum(deltaY));
+        return true;
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics, mouseX, mouseY, partialTick);
+
+        int x = left();
+        int y = top();
+        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, COLOUR_PANEL);
+        graphics.renderOutline(x, y, PANEL_WIDTH, PANEL_HEIGHT, COLOUR_EDGE);
+
+        MenuData menu = ClientNetwork.menu().orElse(null);
+        if (menu == null) {
+            graphics.drawCenteredString(font, Component.literal(
+                            "Сервер не прислал данные: нажмите заново"),
+                    x + PANEL_WIDTH / 2, y + PANEL_HEIGHT / 2, 0xFFBFBFBF);
+            super.render(graphics, mouseX, mouseY, partialTick);
+            return;
+        }
+
+        // Полоса вкладки: видно, где находишься, без чтения заголовков.
+        int tabX = left() + 6 + tab.ordinal() * 76;
+        graphics.fill(tabX, y + 24, tabX + 74, y + 26, COLOUR_TAB_ON);
+        graphics.fill(left() + 6, y + 25, left() + PANEL_WIDTH - 6, y + 26, COLOUR_TAB_OFF);
+        graphics.fill(tabX, y + 24, tabX + 74, y + 26, COLOUR_TAB_ON);
+
+        switch (tab) {
+            case CHARACTER -> renderCharacter(graphics, menu, x + 12, y + 36);
+            case SKILLS -> renderSkills(graphics, menu, x + 12, y + 36, mouseX, mouseY);
+            case SLOTS -> renderSlots(graphics, menu, x + 12, y + 36);
+            case STATS -> renderStats(graphics, menu, x + 12, y + 36);
+        }
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    // ------------------------------------------------------------------ вкладки
+
+    private void renderCharacter(GuiGraphics graphics, MenuData menu, int x, int y) {
+        if (menu.classId().isEmpty()) {
+            graphics.drawString(font, Component.literal("Класс не выбран"), x, y,
+                    0xFFE05A4F, false);
+            int line = y + 16;
+            for (MenuData.ClassLine klass : menu.classes()) {
+                graphics.drawString(font, Component.literal(strip(klass.display())
+                                + "  —  " + klass.resourceName() + ", слотов "
+                                + klass.slots()), x, line, 0xFFFFFFFF, false);
+                line += 12;
+            }
+            graphics.drawString(font, Component.literal(
+                            "Выбрать класс можно во вкладке и командой /rpg class"),
+                    x, line + 6, 0xFF8A8A8A, false);
+            return;
+        }
+
+        graphics.drawString(font, Component.literal(strip(classDisplay(menu))), x, y,
+                0xFFFFD479, false);
+        graphics.drawString(font, Component.literal("Уровень: " + menu.level()), x, y + 16,
+                0xFFFFFFFF, false);
+        graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()),
+                x, y + 28, menu.points() > 0 ? 0xFF6FD07A : 0xFF8A8A8A, false);
+
+        // Полоса опыта: доля посчитана сервером, клиент только делит на длину.
+        int barWidth = PANEL_WIDTH - 36;
+        int barY = y + 46;
+        graphics.fill(x, barY, x + barWidth, barY + 6, 0xFF1C242B);
+        if (menu.xpToNext() > 0) {
+            double total = menu.xp() + menu.xpToNext();
+            double share = total <= 0 ? 0 : Math.clamp(menu.xp() / total, 0, 1);
+            graphics.fill(x, barY, x + (int) Math.round(barWidth * share), barY + 6,
+                    0xFF6FD07A);
+            graphics.drawString(font, Component.literal(Math.round(menu.xp()) + " / "
+                            + Math.round(menu.xp() + menu.xpToNext())),
+                    x, barY + 10, 0xFFBFBFBF, false);
+        } else {
+            graphics.fill(x, barY, x + barWidth, barY + 6, 0xFFFFD479);
+            graphics.drawString(font, Component.literal("Предел уровня"), x, barY + 10,
+                    0xFFFFD479, false);
+        }
+
+        ClientNetwork.state().ifPresent(state -> {
+            graphics.drawString(font, Component.literal(state.resourceName() + ": "
+                            + Math.round(Math.floor(state.resource())) + " / "
+                            + Math.round(state.resourceMax())),
+                    x, barY + 28, 0xFF4F9FE0, false);
+            if (!state.counters().isEmpty()) {
+                int line = barY + 44;
+                graphics.drawString(font, Component.literal("Ядро класса:"), x, line,
+                        0xFF8A8A8A, false);
+                line += 12;
+                for (var counter : state.counters()) {
+                    graphics.drawString(font, Component.literal(counter.display() + ": "
+                                    + counter.stacks() + " / " + counter.maxStacks()),
+                            x, line, RpgHud.colourOf(counter.color(), "BUFF"), false);
+                    line += 11;
+                }
+            }
+        });
+    }
+
+    private void renderSkills(GuiGraphics graphics, MenuData menu, int x, int y,
+                              int mouseX, int mouseY) {
+        if (menu.classId().isEmpty()) {
+            graphics.drawString(font, Component.literal("Сначала выберите класс"), x, y,
+                    0xFFE05A4F, false);
+            return;
+        }
+        graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()
+                        + "   ЛКМ — изучить или вложить очко"),
+                x, y, 0xFFBFBFBF, false);
+
+        int line = y + 16;
+        for (MenuData.SkillLine skill : visible(menu.skills())) {
+            boolean learned = skill.level() > 0;
+            int colour = learned ? 0xFF8FD3FF : 0xFF8A8A8A;
+            String left = (learned ? skill.level() + "/" + skill.maxLevel() : "—")
+                    + "  " + skill.display();
+            String right = reason(menu, skill);
+
+            graphics.drawString(font, Component.literal(left), x, line, colour, false);
+            graphics.drawString(font, Component.literal(right),
+                    x + PANEL_WIDTH - 36 - font.width(right), line,
+                    right.startsWith("Нажмите") ? 0xFF6FD07A : 0xFFB4421F, false);
+            line += 12;
+        }
+    }
+
+    private void renderSlots(GuiGraphics graphics, MenuData menu, int x, int y) {
+        if (menu.classId().isEmpty()) {
+            graphics.drawString(font, Component.literal("Сначала выберите класс"), x, y,
+                    0xFFE05A4F, false);
+            return;
+        }
+        if (choosingSlot > 0) {
+            graphics.drawString(font, Component.literal("Слот " + choosingSlot
+                            + ": выберите навык, ПКМ — освободить"),
+                    x, y, 0xFFFFD479, false);
+            int line = y + 16;
+            for (MenuData.SkillLine skill : menu.skills()) {
+                if (skill.level() == 0) {
+                    continue;
+                }
+                graphics.drawString(font, Component.literal(skill.display()), x, line,
+                        0xFF8FD3FF, false);
+                line += 12;
+            }
+            return;
+        }
+
+        graphics.drawString(font, Component.literal(
+                        "ЛКМ — занять слот, ПКМ — освободить. Клавиши: настройки управления"),
+                x, y, 0xFFBFBFBF, false);
+        int line = y + 16;
+        for (int slot = 1; slot <= menu.slots(); slot++) {
+            String bound = "пусто";
+            for (MenuData.SkillLine skill : menu.skills()) {
+                if (skill.boundSlot() == slot) {
+                    bound = skill.display();
+                }
+            }
+            graphics.drawString(font, Component.literal("Слот " + slot + ": " + bound),
+                    x, line, bound.equals("пусто") ? 0xFF8A8A8A : 0xFFFFFFFF, false);
+            line += 12;
+        }
+    }
+
+    private void renderStats(GuiGraphics graphics, MenuData menu, int x, int y) {
+        int line = y;
+        int column = 0;
+        for (MenuData.StatLine stat : menu.stats()) {
+            int columnX = x + column * 150;
+            graphics.drawString(font, Component.literal(stat.display() + ": "
+                            + trim(stat.value())), columnX, line, 0xFFFFFFFF, false);
+            line += 11;
+            if (line > top() + PANEL_HEIGHT - 20) {
+                line = y;
+                column++;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ щелчки
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        MenuData menu = ClientNetwork.menu().orElse(null);
+        if (menu == null) {
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+        int x = left() + 12;
+        int y = top() + 36;
+        int row = (int) ((mouseY - y - 16) / 12);
+
+        if (tab == Tab.CHARACTER && menu.classId().isEmpty()) {
+            List<MenuData.ClassLine> classes = menu.classes();
+            if (row >= 0 && row < classes.size()) {
+                ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0, classes.get(row).id());
+                return true;
+            }
+        }
+        if (tab == Tab.SKILLS && row >= 0) {
+            List<MenuData.SkillLine> skills = visible(menu.skills());
+            if (row < skills.size()) {
+                MenuData.SkillLine skill = skills.get(row);
+                // Изучение и вложение — одно нажатие: сервер сам знает, что
+                // именно сейчас уместно, и откажет, если ни то ни другое.
+                ActionPayload.send(skill.level() == 0
+                        ? Protocol.Action.UNLOCK : Protocol.Action.UPGRADE, 0, skill.id());
+                return true;
+            }
+        }
+        if (tab == Tab.SLOTS && row >= 0) {
+            if (choosingSlot > 0) {
+                List<MenuData.SkillLine> learned = menu.skills().stream()
+                        .filter(skill -> skill.level() > 0).toList();
+                if (button == 1) {
+                    ActionPayload.send(Protocol.Action.UNBIND, choosingSlot, "");
+                    choosingSlot = 0;
+                    return true;
+                }
+                if (row < learned.size()) {
+                    ActionPayload.send(Protocol.Action.BIND, choosingSlot,
+                            learned.get(row).id());
+                    choosingSlot = 0;
+                    return true;
+                }
+            } else if (row < menu.slots()) {
+                int slot = row + 1;
+                if (button == 1) {
+                    ActionPayload.send(Protocol.Action.UNBIND, slot, "");
+                } else {
+                    choosingSlot = slot;
+                }
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    // ------------------------------------------------------------------ мелочи
+
+    private List<MenuData.SkillLine> visible(List<MenuData.SkillLine> skills) {
+        int from = Math.min(scroll, Math.max(0, skills.size() - 1));
+        return skills.subList(from, skills.size());
+    }
+
+    /**
+     * Почему навык не берётся.
+     *
+     * <p>Показ присланных чисел, а не решение: уровень и очки посчитал сервер,
+     * и он же откажет теми же словами, если нажать всё равно.
+     */
+    private String reason(MenuData menu, MenuData.SkillLine skill) {
+        if (skill.level() == 0) {
+            if (menu.level() < skill.required()) {
+                return "с уровня " + skill.required();
+            }
+            return menu.points() > 0 ? "Нажмите — изучить" : "нет очков";
+        }
+        if (skill.level() >= skill.maxLevel()) {
+            return "максимум";
+        }
+        return menu.points() > 0 ? "Нажмите — +уровень" : "нет очков";
+    }
+
+    private String classDisplay(MenuData menu) {
+        for (MenuData.ClassLine klass : menu.classes()) {
+            if (klass.id().equals(menu.classId())) {
+                return klass.display();
+            }
+        }
+        return menu.classId();
+    }
+
+    /** Убирает цветовые коды вида {@code &a}: в моде цвет задаётся иначе. */
+    private static String strip(String text) {
+        return text.replaceAll("&[0-9a-fk-or]", "");
+    }
+
+    private static String trim(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value)
+                : String.valueOf(Math.round(value * 10) / 10.0);
+    }
+}

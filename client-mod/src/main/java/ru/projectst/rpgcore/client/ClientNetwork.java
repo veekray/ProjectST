@@ -10,6 +10,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import ru.projectst.rpgcore.net.ClientState;
+import ru.projectst.rpgcore.net.MenuData;
 import ru.projectst.rpgcore.net.Protocol;
 import ru.projectst.rpgcore.net.StateCodec;
 
@@ -24,6 +25,7 @@ import ru.projectst.rpgcore.net.StateCodec;
 public final class ClientNetwork {
 
     private static volatile ClientState state;
+    private static volatile MenuData menu;
     private static volatile boolean accepted;
 
     private ClientNetwork() {
@@ -33,10 +35,15 @@ public final class ClientNetwork {
         return accepted ? Optional.ofNullable(state) : Optional.empty();
     }
 
+    public static Optional<MenuData> menu() {
+        return accepted ? Optional.ofNullable(menu) : Optional.empty();
+    }
+
     /** Здороваемся при входе: до рукопожатия сервер ничего не присылает. */
     @SubscribeEvent
     public static void onJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         state = null;
+        menu = null;
         accepted = false;
         PacketDistributor.sendToServer(HelloPayload.of());
     }
@@ -44,6 +51,7 @@ public final class ClientNetwork {
     @SubscribeEvent
     public static void onQuit(ClientPlayerNetworkEvent.LoggingOut event) {
         state = null;
+        menu = null;
         accepted = false;
     }
 
@@ -67,6 +75,18 @@ public final class ClientNetwork {
                                     ? "RpgCore: мод старее сервера, обновите мод"
                                     : "RpgCore: мод новее сервера, обновите плагин"), false);
                 }
+            }
+        });
+    }
+
+    static void onMenu(MenuPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            try {
+                menu = StateCodec.readMenu(payload.data());
+            } catch (RuntimeException e) {
+                // Как и с состоянием: лучше пустой экран, чем экран с чужими
+                // числами. Пустой виден сразу, чужие — нет.
+                menu = null;
             }
         });
     }
