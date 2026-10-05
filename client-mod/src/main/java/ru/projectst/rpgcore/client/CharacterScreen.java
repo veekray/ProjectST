@@ -47,7 +47,7 @@ public final class CharacterScreen extends Screen {
     private static final int PANEL_WIDTH = 416;
     private static final int PANEL_HEIGHT = 240;
     private static final int TAB_SIZE = 26;
-    private static final int TAB_STEP = 30;
+    private static final int TAB_STEP = 34;
     private static final int CLASS_ROW_HEIGHT = 26;
     private static final int STAT_ROW_HEIGHT = 12;
 
@@ -62,7 +62,7 @@ public final class CharacterScreen extends Screen {
     private static final int SLOT_HEIGHT = 44;
 
     /** Ширина левой колонки вкладки героя. */
-    private static final int HERO_COLUMN = 168;
+    private static final int HERO_COLUMN = 160;
 
     /** Куда вернуться по Esc; null — закрыть совсем. */
     private final Screen parent;
@@ -114,7 +114,7 @@ public final class CharacterScreen extends Screen {
     }
 
     private int contentBottom() {
-        return top() + PANEL_HEIGHT - RpgStyle.FRAME - 6;
+        return top() + PANEL_HEIGHT - RpgStyle.FRAME - 8;
     }
 
     @Override
@@ -161,8 +161,8 @@ public final class CharacterScreen extends Screen {
             int tabY = tabY();
             boolean hovered = RpgStyle.hit(mouseX, mouseY, tabX, tabY, TAB_SIZE, TAB_SIZE);
             RpgStyle.tabPlate(graphics, tabX, tabY, TAB_SIZE, value == tab, hovered);
-            tabGlyph(graphics, value, tabX + TAB_SIZE / 2,
-                    tabY + TAB_SIZE / 2 + (value == tab ? -1 : 0));
+            tabGlyph(graphics, value, tabX + TAB_SIZE / 2, tabY + TAB_SIZE / 2,
+                    value == tab || hovered);
         }
 
         RpgStyle.inkButton(graphics, footerX(), footerY(), 128, 18, "Расставить интерфейс",
@@ -197,15 +197,15 @@ public final class CharacterScreen extends Screen {
     }
 
     private int tabX(Tab value) {
-        return left() + RpgStyle.FRAME + 2 + value.ordinal() * TAB_STEP;
+        return contentX() + value.ordinal() * TAB_STEP;
     }
 
     private int tabY() {
-        return top() + (RpgStyle.HEAD - TAB_SIZE) / 2 + 1;
+        return top() + (RpgStyle.HEAD - TAB_SIZE) / 2 - 2;
     }
 
     private int footerX() {
-        return left() + PANEL_WIDTH - RpgStyle.FRAME - 6 - 128;
+        return contentX() + contentWidth() - 128;
     }
 
     private int footerY() {
@@ -213,13 +213,13 @@ public final class CharacterScreen extends Screen {
     }
 
     /** Значок закладки: рисуется, а не берётся предметом, — предмета для этого нет. */
-    private void tabGlyph(GuiGraphics graphics, Tab value, int centerX, int centerY) {
-        int ink = 0xFFF0E0C0;
+    private void tabGlyph(GuiGraphics graphics, Tab value, int centerX, int centerY,
+                          boolean lit) {
+        int ink = lit ? RpgStyle.INK_TITLE : RpgStyle.INK_DIM;
         if (value == Tab.HERO) {
             // Голова и плечи: самая короткая запись слова «персонаж».
             graphics.fill(centerX - 3, centerY - 7, centerX + 3, centerY - 1, ink);
             graphics.fill(centerX - 6, centerY + 1, centerX + 6, centerY + 7, ink);
-            graphics.fill(centerX - 4, centerY + 1, centerX + 4, centerY + 3, 0xFF8A3028);
         } else {
             RpgStyle.pip(graphics, centerX - 7, centerY - 7, 14, true, ink);
         }
@@ -261,8 +261,10 @@ public final class CharacterScreen extends Screen {
         for (MenuData.ClassLine klass : menu.classes()) {
             boolean hovered = rowAt(mouseY, y, CLASS_ROW_HEIGHT, 36) == row;
             if (hovered) {
-                RpgStyle.slot(graphics, x - 4, line - 3, contentWidth(),
-                        CLASS_ROW_HEIGHT - 2, true);
+                graphics.fill(x - 4, line - 3, x + contentWidth() - 4,
+                        line + CLASS_ROW_HEIGHT - 5, 0x22D8C68A);
+                graphics.fill(x - 4, line - 3, x - 3, line + CLASS_ROW_HEIGHT - 5,
+                        RpgStyle.INK_TITLE);
             }
             graphics.drawString(font, Component.literal(strip(klass.display())),
                     x, line, RpgStyle.INK_TITLE, false);
@@ -367,7 +369,7 @@ public final class CharacterScreen extends Screen {
                     columnWidth - 4, STAT_ROW_HEIGHT);
             if (under) {
                 graphics.fill(columnX - 2, line - 2, columnX + columnWidth - 6,
-                        line + STAT_ROW_HEIGHT - 2, 0x22000000);
+                        line + STAT_ROW_HEIGHT - 2, 0x22D8C68A);
                 hovered = stat;
             }
 
@@ -491,15 +493,15 @@ public final class CharacterScreen extends Screen {
         if (pendingSkill.isEmpty()) {
             graphics.drawString(font, Component.literal(
                             "Правая кнопка по навыку — занять слот, по гнезду — освободить"),
-                    x, barY + SLOT_HEIGHT + 8, RpgStyle.INK_DIM, false);
+                    x, barY + SLOT_HEIGHT + 4, RpgStyle.INK_DIM, false);
         } else {
             graphics.drawString(font, Component.literal(
                             "Выберите гнездо для навыка,  правая кнопка — отмена"),
-                    x, barY + SLOT_HEIGHT + 8, RpgStyle.INK_BAD, false);
+                    x, barY + SLOT_HEIGHT + 4, RpgStyle.INK_BAD, false);
         }
         graphics.drawString(font, Component.literal(
                         "Клавиши меняются в настройках управления, раздел RpgCore"),
-                x, barY + SLOT_HEIGHT + 20, RpgStyle.INK_DIM, false);
+                x, barY + SLOT_HEIGHT + 16, RpgStyle.INK_DIM, false);
     }
 
     /** Подсказка о навыке: всё, что сервер посчитал, одним столбиком. */
