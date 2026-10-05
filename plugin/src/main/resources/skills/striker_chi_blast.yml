@@ -1,0 +1,33 @@
+# 5. Выброс Энергии — снаряд ци.
+#
+# Из Бреши: снаряд пробивает броню.
+
+id: striker_chi_blast
+display: "Выброс Энергии"
+class: striker
+icon: HEART_OF_THE_SEA
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Сгусток энергии по прямой."
+  - "Из Бреши проходит сквозь броню."
+  - "Оставляет Напор."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_evoker_cast_spell, volume: 1.0, pitch: 1.6 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: end_rod
+        on-hit: striker_chi_blast_hit
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: striker_mark_press, at-targets: true }

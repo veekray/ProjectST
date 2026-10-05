@@ -1149,3 +1149,160 @@ balance:
     duration: 100
     speed: 50
     damage_bonus: 70
+
+  # ================================================================ страйкер
+  # Усиленные значения стоят рядом с обычными: видно, что именно даёт след,
+  # и правятся они вместе. Срок следа один на все три — в striker_mark_*.
+
+  striker_mark_press:
+    duration: 100
+
+  striker_mark_breach:
+    duration: 100
+
+  striker_mark_calm:
+    duration: 100
+
+  striker_soaring_fist:
+    stamina: 10
+    cooldown:
+      base: 5.0
+      per-level: -0.05
+      min: 3.0
+    leap: 1.2
+    leap_calm: 1.8
+    range: 3
+    damage:
+      base: 4
+      per-level: 0.7
+    damage_calm:
+      base: 8
+      per-level: 1.2
+
+  striker_gale_palm:
+    stamina: 12
+    cooldown:
+      base: 8.0
+      per-level: -0.05
+      min: 5.0
+    range: 6
+    range_breach: 8
+    damage:
+      base: 4
+      per-level: 0.6
+    damage_breach:
+      base: 6
+      per-level: 0.9
+    push: 1.0
+    push_breach: 2.0
+
+  striker_sweep_kick:
+    stamina: 10
+    cooldown:
+      base: 7.0
+      per-level: -0.05
+      min: 4.0
+    radius: 3
+    damage:
+      base: 3
+      per-level: 0.5
+    stun: 10
+    stun_press: 30
+
+  striker_wind_flurry:
+    stamina: 14
+    cooldown:
+      base: 9.0
+      per-level: -0.06
+      min: 5.0
+    range: 3
+    damage:
+      base: 2
+      per-level: 0.3
+
+  striker_chi_blast:
+    stamina: 12
+    cooldown:
+      base: 8.0
+      per-level: -0.05
+      min: 5.0
+    speed: 2.0
+    range: 25
+
+  striker_chi_blast_hit:
+    damage:
+      base: 6
+      per-level: 0.9
+    damage_breach:
+      base: 7
+      per-level: 1.0
+
+  striker_rising_dragon:
+    stamina: 16
+    cooldown:
+      base: 11.0
+      per-level: -0.08
+      min: 6.0
+    range: 3
+    damage:
+      base: 10
+      per-level: 1.4
+    damage_breach:
+      base: 13
+      per-level: 1.8
+    lift: 0.9
+    lift_breach: 1.4
+
+  striker_touch_of_karma:
+    stamina: 20
+    cooldown:
+      base: 18.0
+      per-level: -0.1
+      min: 11.0
+    range: 8
+    delay: 60
+    delay_calm: 30
+    # Доля предела здоровья цели: расплата тем весомее, чем крупнее жертва.
+    burst: 0.12
+
+  striker_phantom_step:
+    stamina: 12
+    cooldown:
+      base: 10.0
+      per-level: -0.08
+      min: 6.0
+    leap: 1.6
+    invuln: 8
+
+  striker_zen_meditation:
+    stamina: 18
+    cooldown:
+      base: 22.0
+      per-level: -0.12
+      min: 14.0
+    heal:
+      base: 8
+      per-level: 1.2
+    duration: 40
+    root: -70
+    reduction: 50
+
+  striker_asura_mode:
+    stamina: 35
+    cooldown:
+      base: 110.0
+      per-level: -0.5
+      min: 70.0
+    duration: 200
+
+  striker_asura_tick:
+    hold: 100
+
+  striker_asura_wave:
+    unused: 0
+
+  striker_asura_splash:
+    radius: 3
+    damage:
+      base: 4
+      per-level: 0.6

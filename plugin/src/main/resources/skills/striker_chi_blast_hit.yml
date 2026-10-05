@@ -1,0 +1,27 @@
+# Попадание сгустка. Брешь решает, чем он бьёт: обычный урон режется бронёй,
+# пробивающий — нет.
+
+id: striker_chi_blast_hit
+display: "Выброс Энергии — попадание"
+class: striker
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: stance_breach, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: stance_breach }
+    do:
+      - { action: damage, amount: $damage_breach, school: true }
+
+  - target: { type: trigger }
+    do:
+      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.3 }
+      - { action: sound, sound: entity_evoker_cast_spell, volume: 0.8, pitch: 2.0 }

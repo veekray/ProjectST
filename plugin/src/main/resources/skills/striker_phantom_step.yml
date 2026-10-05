@@ -1,0 +1,28 @@
+# 8. Уклонение — кувырок с кадрами неуязвимости.
+#
+# Один из двух входов в Покой: быстрая связка Напор-Брешь крутится сама, а
+# чтобы добраться до финишера, нужно разорвать её защитным навыком.
+
+id: striker_phantom_step
+display: "Уклонение"
+class: striker
+icon: PHANTOM_MEMBRANE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Кувырок, во время которого"
+  - "страйкера не задеть."
+  - "Оставляет Покой."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $leap, lift: 0.3 }
+      - { action: status, id: phantom, duration: $invuln }
+      - { action: sound, sound: entity_phantom_flap, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: cloud, shape: sphere, count: 20, size: 0.4 }
+      - { action: cast, skill: striker_mark_calm, at-targets: true }

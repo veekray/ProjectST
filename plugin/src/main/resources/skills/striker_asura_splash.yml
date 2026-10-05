@@ -1,0 +1,14 @@
+# Всплеск вокруг того, кого ударили.
+
+id: striker_asura_splash
+display: "Режим Асуры — всплеск"
+class: striker
+tier: 5
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: soul_fire_flame, shape: point, count: 8, size: 0.3 }

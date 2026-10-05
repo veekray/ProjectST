@@ -1,0 +1,60 @@
+# 4. Дрожь Ветра — серия быстрых ударов.
+#
+# Из Напора: ударов пять вместо трёх. Серия сделана отложенными шагами, а не
+# тиком ауры: видно, сколько именно ударов прошло, и каждый считается
+# конвейером отдельно, как любой другой.
+
+id: striker_wind_flurry
+display: "Дрожь Ветра"
+class: striker
+icon: STRING
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Очередь быстрых ударов перед собой."
+  - "Из Напора их пять вместо трёх."
+  - "Оставляет Брешь."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_player_attack_weak, volume: 1.0, pitch: 1.6 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 3, size: 0.2 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 3
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 6
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  # Четвёртый и пятый — только из Напора.
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 9
+    if:
+      - { caster: has-status, value: stance_press }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 12
+    if:
+      - { caster: has-status, value: stance_press }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: self }
+    delay: 13
+    do:
+      - { action: cast, skill: striker_mark_breach, at-targets: true }

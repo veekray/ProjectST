@@ -34,6 +34,7 @@ public final class SkillIcons {
             "trickster", 0xFF7A4FD1,
             "hunter", 0xFF8A6A2E,
             "berserker", 0xFF8A2A1E,
+            "striker", 0xFFC9A227,
             "item", 0xFFC9A227);
 
     private SkillIcons() {
@@ -820,6 +821,118 @@ public final class SkillIcons {
                         "..ccccc..",
                         ".c.ccc.c.",
                         "c...c...c"}));
+
+        // ------------------------------------------------------------ страйкер
+        ICONS.put("striker_soaring_fist", new Icon(0xFF3A2A0A, 0xFFC9A227, 0xFFF0E8B0,
+                new String[] {
+                        ".........",
+                        "c........",
+                        ".c...bbb.",
+                        "..c.bbbbb",
+                        "ccccbbbbb",
+                        "..c.bbbbb",
+                        ".c...bbb.",
+                        "c........",
+                        "........."}));
+        ICONS.put("striker_gale_palm", new Icon(0xFF2A3A3A, 0xFF7AB0B0, 0xFFD8F0F0,
+                new String[] {
+                        "c........",
+                        ".cc...bb.",
+                        "..cc.bbbb",
+                        "...ccbbbb",
+                        "....cbbbb",
+                        "...ccbbbb",
+                        "..cc.bbbb",
+                        ".cc...bb.",
+                        "c........"}));
+        ICONS.put("striker_sweep_kick", new Icon(0xFF3A2A1A, 0xFF8A6A3A, 0xFFE0C080,
+                new String[] {
+                        "....bb...",
+                        "....bb...",
+                        "...bbb...",
+                        "...bbb...",
+                        "..bbbb...",
+                        ".ccbbb...",
+                        "cc.......",
+                        "c........",
+                        "........."}));
+        ICONS.put("striker_wind_flurry", new Icon(0xFF2A3A3A, 0xFF9AC0C0, 0xFFF0F8F8,
+                new String[] {
+                        "c.c.c.c.c",
+                        ".........",
+                        "cccccccc.",
+                        ".........",
+                        "c.c.c.c.c",
+                        ".........",
+                        "cccccccc.",
+                        ".........",
+                        "c.c.c.c.c"}));
+        ICONS.put("striker_chi_blast", new Icon(0xFF2A2A4A, 0xFF6A8AD0, 0xFFD8E8FF,
+                new String[] {
+                        "....c....",
+                        "..cbbbc..",
+                        ".cbbbbbc.",
+                        "cbbcccbbc",
+                        "cbbcccbbc",
+                        "cbbcccbbc",
+                        ".cbbbbbc.",
+                        "..cbbbc..",
+                        "....c...."}));
+        ICONS.put("striker_rising_dragon", new Icon(0xFF3A2A0A, 0xFFC9892A, 0xFFF0E0A0,
+                new String[] {
+                        "....c....",
+                        "...ccc...",
+                        "..ccccc..",
+                        "....c....",
+                        "....c....",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        ".bbbbbbb.",
+                        "..bbbbb.."}));
+        ICONS.put("striker_touch_of_karma", new Icon(0xFF2A0A3A, 0xFF8A3AC0, 0xFFE0C0F0,
+                new String[] {
+                        "...ccc...",
+                        "..c...c..",
+                        ".c.bbb.c.",
+                        "c.bbbbb.c",
+                        "c.bbbbb.c",
+                        "c.bbbbb.c",
+                        ".c.bbb.c.",
+                        "..c...c..",
+                        "...ccc..."}));
+        ICONS.put("striker_phantom_step", new Icon(0xFF2A2A3A, 0xFF9A9AB0, 0xFFF0F0F8,
+                new String[] {
+                        ".........",
+                        "..bbb.c..",
+                        ".bbbbb.c.",
+                        ".bbbbb..c",
+                        "..bbb...c",
+                        "...b...c.",
+                        "..b.b.c..",
+                        ".b...bc..",
+                        "........."}));
+        ICONS.put("striker_zen_meditation", new Icon(0xFF1A3A3A, 0xFF4AA0A0, 0xFFD0F0F0,
+                new String[] {
+                        "....c....",
+                        "...ccc...",
+                        "....c....",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        "bb.bbb.bb",
+                        "b..bbb..b",
+                        ".bbbbbbb.",
+                        "ccccccccc"}));
+        ICONS.put("striker_asura_mode", new Icon(0xFF3A0A0A, 0xFFC94A1A, 0xFFF0C050,
+                new String[] {
+                        "c.c...c.c",
+                        ".ccc.ccc.",
+                        "..bbbbb..",
+                        ".bb.b.bb.",
+                        "cbbbbbbbc",
+                        ".bbbbbbb.",
+                        "..bb.bb..",
+                        ".ccc.ccc.",
+                        "c.c...c.c"}));
     }
 
     /**

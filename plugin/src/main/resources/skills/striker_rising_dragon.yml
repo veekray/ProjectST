@@ -1,0 +1,45 @@
+# 6. Воздушный Апперкот — подброс, который открывает Покой.
+#
+# Из Бреши: пробивает броню и подбрасывает заметно выше. Это главный выход из
+# быстрой связки в медленную: Напор и Брешь гоняются друг за другом сколько
+# угодно, а Покой достаётся только отсюда или через защитные навыки.
+
+id: striker_rising_dragon
+display: "Воздушный Апперкот"
+class: striker
+icon: RABBIT_FOOT
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Удар снизу вверх подбрасывает врага."
+  - "Из Бреши бьёт сквозь броню и выше."
+  - "Оставляет Покой."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_warden_sonic_boom, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 45 }
+    if:
+      - { caster: has-status, value: stance_breach, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: 0.05, lift: $lift }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 45 }
+    if:
+      - { caster: has-status, value: stance_breach }
+    do:
+      - { action: damage, amount: $damage_breach, school: true }
+      - { action: push, strength: 0.05, lift: $lift_breach }
+      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.5 }
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: striker_mark_calm, at-targets: true }

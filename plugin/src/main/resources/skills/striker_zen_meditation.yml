@@ -1,0 +1,39 @@
+# 9. Стойка Дзэн — неподвижность в обмен на восстановление.
+#
+# Второй вход в Покой, медленный: страйкер встаёт на месте и залечивается.
+# Неуязвимости здесь нет намеренно — иначе Дзэн заменял бы Уклонение, а он
+# должен быть другим выбором: безопасность за время вместо безопасности за
+# движение.
+
+id: striker_zen_meditation
+display: "Стойка Дзэн"
+class: striker
+icon: AMETHYST_SHARD
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Страйкер замирает и быстро приходит"
+  - "в себя, но почти не может двигаться."
+  - "Оставляет Покой."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: heal, amount: $heal }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $root
+        duration: $duration
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $reduction
+        duration: $duration
+      - { action: sound, sound: block_amethyst_block_chime, volume: 1.0, pitch: 1.2 }
+      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5 }
+      - { action: cast, skill: striker_mark_calm, at-targets: true }

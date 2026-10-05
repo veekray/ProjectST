@@ -1,0 +1,31 @@
+# 10. Режим Асуры — след не гаснет.
+#
+# В прежней версии ульта делала финишеры бесплатными: они не тратили Ци. Здесь
+# у неё тот же смысл, выраженный новым ядром — пока Асура держится, след не
+# остывает и не тратится. Связку можно не собирать заново после каждого
+# финишера, и за десять секунд успеваешь пройти её несколько раз.
+#
+# Плюс каждый удар бьёт по площади, как и было.
+
+id: striker_asura_mode
+display: "Режим Асуры"
+class: striker
+icon: BLAZE_POWDER
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "След перестаёт гаснуть, и каждый удар"
+  - "задевает всех рядом."
+  - "Связка держится, пока держится Асура."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: asura, duration: $duration }
+      - { action: sound, sound: entity_wither_spawn, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 40, size: 1.0 }
+      - { action: message, text: "&cРежим Асуры" }

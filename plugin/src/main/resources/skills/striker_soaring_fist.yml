@@ -1,0 +1,66 @@
+# 1. Летящий Кулак — рывок в одну точку.
+#
+# Ядро страйкера — следы, а не шкала. Было: Ци, 0-5, генераторы копят,
+# финишеры тратят. Ровно то же самое, что Честь у рыцаря, вплоть до имени
+# ауры, — поэтому и казалось скучным: решение возникало раз в пять нажатий.
+#
+# Стало: каждый навык оставляет след и усиливается, если пришёл из нужного.
+# Следов три — Напор, Брешь, Покой, — и держится всегда ровно один. Решение
+# появляется на каждом нажатии, а «неправильный» порядок не наказывает: навык
+# просто срабатывает обычным.
+#
+# Из Покоя: рывок дальше и удар сильнее.
+
+id: striker_soaring_fist
+display: "Летящий Кулак"
+class: striker
+icon: FEATHER
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рывок вперёд с ударом."
+  - "Из Покоя летит дальше и бьёт тяжелее."
+  - "Оставляет Напор."
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: stance_calm, not: true }
+    do:
+      - { action: dash, strength: $leap, lift: 0.2 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: stance_calm }
+    do:
+      - { action: dash, strength: $leap_calm, lift: 0.25 }
+      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.4 }
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_breeze_jump, volume: 1.0, pitch: 1.4 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 45 }
+    delay: 2
+    if:
+      - { caster: has-status, value: stance_calm, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 45 }
+    delay: 2
+    if:
+      - { caster: has-status, value: stance_calm }
+    do:
+      - { action: damage, amount: $damage_calm, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4 }
+
+  # След ставится последним шагом: иначе он сбил бы собственную проверку.
+  - target: { type: self }
+    delay: 2
+    do:
+      - { action: cast, skill: striker_mark_press, at-targets: true }

@@ -1,0 +1,42 @@
+# Асура держит след: пока она идёт, текущий след обновляется и не остывает.
+#
+# Три одинаковых шага, по одному на след: условия шага складываются только
+# через «и», и три честных шага понятнее одного хитрого.
+
+id: striker_asura_tick
+display: "Режим Асуры"
+class: striker
+tier: 5
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: asura }
+      - { caster: has-status, value: stance_press }
+    do:
+      - { action: status, id: stance_press, duration: $hold }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: asura }
+      - { caster: has-status, value: stance_breach }
+    do:
+      - { action: status, id: stance_breach, duration: $hold }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: asura }
+      - { caster: has-status, value: stance_calm }
+    do:
+      - { action: status, id: stance_calm, duration: $hold }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: asura }
+    do:
+      - { action: particles, particle: soul_fire_flame, shape: point, count: 6, size: 0.4 }

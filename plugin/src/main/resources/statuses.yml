@@ -473,3 +473,53 @@ statuses:
     priority: 90
     duration: 100
     tags: [hard, immunity]
+
+  # ---------------------------------------------------------------- страйкер
+  # Следы — ядро класса. Держится всегда ровно один: наложение любого снимает
+  # два других, и это объявлено здесь, а не повторено в каждом навыке. Иначе
+  # «ровно один» было бы договорённостью, которую однажды нарушили бы.
+  stance_press:
+    display: "Напор"
+    color: RED
+    category: buff
+    duration: 100
+    removes: [stance_breach, stance_calm]
+    tags: [soft, buff]
+
+  stance_breach:
+    display: "Брешь"
+    color: GOLD
+    category: buff
+    duration: 100
+    removes: [stance_press, stance_calm]
+    tags: [soft, buff]
+
+  stance_calm:
+    display: "Покой"
+    color: AQUA
+    category: buff
+    duration: 100
+    removes: [stance_press, stance_breach]
+    tags: [soft, buff]
+
+  karma_mark:
+    display: "Карма"
+    color: DARK_PURPLE
+    category: mark
+    duration: 60
+    tags: [mark]
+
+  phantom:
+    display: "Уклонение"
+    color: WHITE
+    category: immunity
+    priority: 80
+    duration: 8
+    tags: [soft, immunity]
+
+  asura:
+    display: "Режим Асуры"
+    color: DARK_RED
+    category: buff
+    duration: 200
+    tags: [soft, buff]

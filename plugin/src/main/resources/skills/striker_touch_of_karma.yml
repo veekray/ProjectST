@@ -1,0 +1,54 @@
+# 7. Касание Кармы — метка, которая взрывается сама.
+#
+# Из Покоя: срок метки вдвое короче, то есть расплата приходит быстрее, и
+# жертва не успевает отбежать. Это и есть смысл связки — финишер готовится
+# заранее, а не нажимается наугад.
+
+id: striker_touch_of_karma
+display: "Касание Кармы"
+class: striker
+icon: ECHO_SHARD
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Метка на враге, которая взрывается"
+  - "чистым уроном от его же запаса сил."
+  - "Из Покоя срабатывает вдвое быстрее."
+
+steps:
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
+    do:
+      - { action: status, id: karma_mark, duration: $delay }
+      - { action: particles, particle: witch, shape: point, count: 15, size: 0.4 }
+      - { action: sound, sound: block_beacon_power_select, volume: 1.0, pitch: 1.6 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
+    delay: $delay
+    if:
+      - { caster: has-status, value: stance_calm, not: true }
+      - { target: has-status, value: karma_mark }
+    do:
+      - { action: damage, amount: $burst, school: true, basis: target_max_health }
+      - { action: remove-status, id: karma_mark }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
+    delay: $delay_calm
+    if:
+      - { caster: has-status, value: stance_calm }
+      - { target: has-status, value: karma_mark }
+    do:
+      - { action: damage, amount: $burst, school: true, basis: target_max_health }
+      - { action: remove-status, id: karma_mark }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6 }
+
+  # Карма тратит Покой: финишер снимает след, а своего не оставляет.
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: stance_calm }

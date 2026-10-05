@@ -1,0 +1,43 @@
+# 2. Ладонь Бури — волна, расталкивающая строй.
+#
+# Из Бреши: волна шире и отбрасывает вдвое.
+
+id: striker_gale_palm
+display: "Ладонь Бури"
+class: striker
+icon: WHITE_DYE
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Волна отталкивает всех перед собой."
+  - "Из Бреши — шире и вдвое дальше."
+  - "Оставляет Напор."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_breeze_shoot, volume: 1.0, pitch: 1.2 }
+      - { action: particles, particle: sweep_attack, shape: point, count: 10, size: 1.0 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 60 }
+    if:
+      - { caster: has-status, value: stance_breach, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: $push, lift: 0.3 }
+
+  - target: { type: enemies_in_cone, radius: $range_breach, angle: 100 }
+    if:
+      - { caster: has-status, value: stance_breach }
+    do:
+      - { action: damage, amount: $damage_breach, school: physical }
+      - { action: push, strength: $push_breach, lift: 0.4 }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: 3.0 }
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: striker_mark_press, at-targets: true }

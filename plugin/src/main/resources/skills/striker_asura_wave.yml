@@ -1,0 +1,17 @@
+# Удар в Асуре задевает всех рядом с целью.
+
+id: striker_asura_wave
+display: "Режим Асуры — волна"
+class: striker
+tier: 5
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: asura }
+    do:
+      - { action: cast, skill: striker_asura_splash, at-targets: false }
