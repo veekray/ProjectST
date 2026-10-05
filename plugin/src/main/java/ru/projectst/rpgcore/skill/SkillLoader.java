@@ -65,6 +65,7 @@ public final class SkillLoader {
         int interval = root.integer("every", 1, 12_000, 0);
         boolean internal = root.bool("internal", false);
         String icon = root.str("icon", SkillDef.DEFAULT_ICON);
+        List<String> description = new ArrayList<>(root.strings("description"));
         List<Step> steps = readSteps(root, errors);
 
         doc.finish();
@@ -107,7 +108,7 @@ public final class SkillLoader {
             return Optional.empty();
         }
         return Optional.of(new SkillDef(id, display, classId, tier, mana, cooldown, steps,
-                trigger, interval, internal, icon));
+                trigger, interval, internal, icon, description));
     }
 
     /**

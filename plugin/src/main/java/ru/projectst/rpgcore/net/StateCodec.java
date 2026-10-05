@@ -186,6 +186,11 @@ public final class StateCodec {
                 out.writeFloat((float) line.mana());
                 out.writeFloat((float) line.cooldown());
                 out.writeByte(line.boundSlot());
+                out.writeFloat((float) line.damage());
+                out.writeByte(Math.min(255, line.description().size()));
+                for (String row : limit(line.description())) {
+                    writeString(out, row);
+                }
             }
 
             out.writeByte(Math.min(255, menu.stats().size()));
@@ -221,9 +226,24 @@ public final class StateCodec {
             int skillCount = in.readUnsignedByte();
             List<MenuData.SkillLine> skills = new ArrayList<>(skillCount);
             for (int i = 0; i < skillCount; i++) {
-                skills.add(new MenuData.SkillLine(readString(in), readString(in), readString(in),
-                        in.readUnsignedByte(), in.readUnsignedByte(), in.readUnsignedByte(),
-                        in.readShort(), in.readFloat(), in.readFloat(), in.readUnsignedByte()));
+                String skillId = readString(in);
+                String display = readString(in);
+                String icon = readString(in);
+                int tier = in.readUnsignedByte();
+                int skillLevel = in.readUnsignedByte();
+                int maxLevel = in.readUnsignedByte();
+                int required = in.readShort();
+                double mana = in.readFloat();
+                double cooldown = in.readFloat();
+                int boundSlot = in.readUnsignedByte();
+                double damage = in.readFloat();
+                int rows = in.readUnsignedByte();
+                List<String> description = new ArrayList<>(rows);
+                for (int row = 0; row < rows; row++) {
+                    description.add(readString(in));
+                }
+                skills.add(new MenuData.SkillLine(skillId, display, icon, tier, skillLevel,
+                        maxLevel, required, mana, cooldown, boundSlot, damage, description));
             }
 
             int statCount = in.readUnsignedByte();

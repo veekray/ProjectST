@@ -281,7 +281,8 @@ public final class ClientLink implements PluginMessageListener {
                         ru.projectst.rpgcore.classes.ClassService.MAX_SKILL_LEVEL,
                         def.levelForTier(skill.tier()),
                         skill.manaCost().resolve(table, atLeast),
-                        skill.cooldown().resolve(table, atLeast), boundSlot));
+                        skill.cooldown().resolve(table, atLeast), boundSlot,
+                        damageOf(skill, table, atLeast), skill.description()));
             }
             skillLines.sort(java.util.Comparator.comparingInt(MenuData.SkillLine::tier)
                     .thenComparing(MenuData.SkillLine::id));
@@ -297,6 +298,31 @@ public final class ClientLink implements PluginMessageListener {
         return new MenuData(own.map(ClassDef::id).orElse(""), data.level(), data.xp(),
                 classes.xpToNextLevel(id), data.unspentPoints(),
                 own.map(ClassDef::slots).orElse(0), classLines, skillLines, statLines);
+    }
+
+    /**
+     * Наибольший урон навыка за одно попадание.
+     *
+     * <p>Наибольший, а не суммарный: у навыков с ветками обычная и усиленная
+     * считаются по разным числам, и складывать их значило бы обещать урон,
+     * который нельзя нанести за один каст. Считается по той же таблице баланса,
+     * что и бой: число в подсказке обязано совпадать с числом в бою, а два
+     * расчёта разошлись бы.
+     *
+     * <p>Урон, умноженный на счётчик каста, здесь ноль: сколько будет печатей,
+     * до каста не знает никто, и выдумывать это в подсказке незачем.
+     */
+    private double damageOf(SkillDef skill, ru.projectst.rpgcore.balance.BalanceTable table,
+                            int level) {
+        double most = 0;
+        for (var step : skill.steps()) {
+            for (var action : step.actions()) {
+                if (action instanceof ru.projectst.rpgcore.skill.Action.Damage damage) {
+                    most = Math.max(most, damage.amount().resolve(table, level));
+                }
+            }
+        }
+        return most;
     }
 
     /** Собирает состояние из тех же сервисов, что отвечают командам и интерфейсу. */

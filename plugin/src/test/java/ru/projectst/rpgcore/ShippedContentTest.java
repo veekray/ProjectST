@@ -259,6 +259,27 @@ class ShippedContentTest {
     }
 
     @Test
+    @DisplayName("у каждого навыка есть короткое описание для подсказки")
+    void everySkillIsDescribed() throws IOException {
+        Content content = load();
+
+        for (SkillDef skill : content.skills()) {
+            if (!skill.selectable()) {
+                continue;
+            }
+            assertFalse(skill.description().isEmpty(),
+                    "навык " + skill.id() + " без описания: в подсказке игрок увидит"
+                            + " числа и ничего о том, что навык делает");
+            for (String line : skill.description()) {
+                assertFalse(line.matches(".*[0-9]+.*"),
+                        "в описании " + skill.id() + " есть число: «" + line + "»."
+                                + " Числа считает и присылает сервер, а переписанное"
+                                + " в текст разъедется с балансом");
+            }
+        }
+    }
+
+    @Test
     @DisplayName("у каждого перенесённого навыка и класса своя иконка")
     void everythingHasAnIcon() throws IOException {
         Content content = load();

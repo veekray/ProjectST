@@ -17,6 +17,11 @@ tier: 3
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Кора гасит удар целиком и оглушает"
+  - "того, кто его нанёс. Копит Рост."
+  - "На трёх Увядания: держит два удара."
+
 steps:
 
   - target: { type: self }

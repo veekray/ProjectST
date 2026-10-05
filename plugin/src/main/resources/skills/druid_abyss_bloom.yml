@@ -15,6 +15,11 @@ tier: 5
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Поле, которое каждую секунду меняет"
+  - "сторону: то лечит своих, то жжёт чужих."
+  - "Тратит оба счётчика целиком."
+
 steps:
 
   - target: { type: self }

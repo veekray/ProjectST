@@ -14,6 +14,11 @@ tier: 2
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Облако спор лечит вас и союзников."
+  - "Копит Рост."
+  - "На трёх Увядания: споры разъедают врагов."
+
 steps:
 
   - target: { type: self }

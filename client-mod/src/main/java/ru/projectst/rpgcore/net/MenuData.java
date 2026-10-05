@@ -55,10 +55,19 @@ public record MenuData(String classId, int level, double xp, double xpToNext, in
      * @param mana      стоимость
      * @param cooldown  перезарядка в секундах
      * @param boundSlot слот, на котором он стоит; ноль — ни на каком
+     * @param damage    наибольший урон за одно попадание на текущем уровне;
+     *                  ноль — навык не бьёт. Считает сервер по тому же балансу,
+     *                  что и бой: число в подсказке и число в бою обязаны
+     *                  совпадать, а два расчёта разошлись бы
+     * @param description короткое описание из файла навыка
      */
     public record SkillLine(String id, String display, String icon, int tier, int level,
                             int maxLevel, int required, double mana, double cooldown,
-                            int boundSlot) {
+                            int boundSlot, double damage, List<String> description) {
+
+        public SkillLine {
+            description = description == null ? List.of() : List.copyOf(description);
+        }
     }
 
     /** Стат в меню: имя, значение и идентификатор для тех, кто правит файлы. */

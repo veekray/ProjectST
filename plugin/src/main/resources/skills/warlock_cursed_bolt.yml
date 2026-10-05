@@ -15,6 +15,11 @@ tier: 2
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Снаряд вешает Иссушение: урон по времени"
+  - "и ослабление цели. Отработав срок,"
+  - "проклятие отдаёт вам душу."
+
 steps:
 
   - target: { type: self }

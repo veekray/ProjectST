@@ -29,6 +29,8 @@ import ru.projectst.rpgcore.net.ClientState;
 public final class RpgHud {
 
     private static final int BAR_WIDTH = 110;
+    /** Сторона ромба со значком навыка на экране. */
+    private static final int ICON = 22;
     private static final int BAR_HEIGHT = 7;
 
     private RpgHud() {
@@ -162,6 +164,9 @@ public final class RpgHud {
         }
         int x = HudLayout.screenX(HudLayout.Element.SLOTS, width);
         int y = HudLayout.screenY(HudLayout.Element.SLOTS, height);
+        // Ряд слотов стал выше: считаем от его низа, чтобы он не уезжал под
+        // хотбар при шести слотах.
+        y -= Math.max(0, state.slots().size() - 4) * (ICON + 2);
 
         if (!RpgKeys.anySlotBound()) {
             graphics.drawString(client.font, Component.literal(
@@ -172,24 +177,32 @@ public final class RpgHud {
         for (ClientState.SlotLine slot : state.slots()) {
             String key = RpgKeys.slotKeyLabel(slot.slot());
             if (slot.skillId().isEmpty()) {
-                graphics.drawString(client.font, Component.literal(key + "  —"),
-                        x, y, RpgStyle.TEXT_DIM, true);
-                y += 13;
+                // Пустой слот — пустой ромб: ряд не рвётся, и видно, сколько
+                // слотов вообще есть.
+                SkillIcons.draw(graphics, "", x, y, ICON, false);
+                graphics.drawString(client.font, Component.literal(key),
+                        x + ICON + 4, y + ICON / 2 - 4, RpgStyle.TEXT_DIM, true);
+                y += ICON + 2;
                 continue;
             }
             int remaining = remainingOf(state, slot.skillId());
             int total = totalOf(state, slot.skillId());
             boolean ready = remaining <= 0;
 
-            RpgStyle.bar(graphics, x, y + 9, 84, 3,
+            // Значок вместо названия: в бою навык вспоминают по нему, а не по
+            // слову, и место под хотбаром дорогое.
+            SkillIcons.draw(graphics, slot.skillId(), x, y, ICON, ready);
+
+            graphics.drawString(client.font, Component.literal(key),
+                    x + ICON + 4, y + 2, ready ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
+            RpgStyle.bar(graphics, x + ICON + 4, y + ICON - 10, 48, 3,
                     ready ? 1 : 1.0 - (double) remaining / Math.max(1, total),
                     ready ? RpgStyle.READY : RpgStyle.COOLDOWN);
-
-            String text = key + "  " + slot.display()
-                    + (ready ? "" : "  " + seconds(remaining));
-            graphics.drawString(client.font, Component.literal(text), x, y,
-                    ready ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
-            y += 15;
+            if (!ready) {
+                graphics.drawString(client.font, Component.literal(seconds(remaining)),
+                        x + ICON + 56, y + ICON - 13, RpgStyle.COOLDOWN, true);
+            }
+            y += ICON + 2;
         }
     }
 

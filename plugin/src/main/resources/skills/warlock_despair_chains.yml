@@ -12,6 +12,11 @@ tier: 3
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Теневая цепь на ближайшего врага."
+  - "Пока держится — подтягивает его к вам"
+  - "и замедляет, если он и так рядом."
+
 steps:
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }

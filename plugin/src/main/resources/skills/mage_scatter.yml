@@ -18,6 +18,11 @@ tier: 4
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Веер печатей без всякого урона."
+  - "Готовит поле под Сгон и Коллапс."
+  - "На своей печати: печатей больше."
+
 steps:
 
   - target: { type: self }

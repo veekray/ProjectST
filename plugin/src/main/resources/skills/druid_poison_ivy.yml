@@ -13,6 +13,11 @@ tier: 2
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Лозы бьют по площади: оглушение и яд."
+  - "Копит Увядание."
+  - "На трёх Роста: шире и с замедлением."
+
 steps:
 
   - target: { type: self }

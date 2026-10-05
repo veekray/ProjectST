@@ -65,7 +65,7 @@ class StateCodecTest {
                 List.of(new MenuData.ClassLine("rogue", "&8Плут", "LEATHER_BOOTS",
                         "Выносливость", 6, 60)),
                 List.of(new MenuData.SkillLine("rogue_dash", "Рывок", "SUGAR", 1, 2, 5, 1,
-                        10, 6.0, 1)),
+                        10, 6.0, 1, 12.5, List.of("Рывок по взгляду.", "Дёшево и быстро."))),
                 List.of(new MenuData.StatLine("physical_damage", "Физический урон", 12.5)));
 
         MenuData back = StateCodec.readMenu(StateCodec.writeMenu(menu));
@@ -76,6 +76,9 @@ class StateCodecTest {
         assertEquals(menu.slots(), back.slots());
         assertEquals(menu.classes(), back.classes());
         assertEquals(menu.skills(), back.skills());
+        assertEquals(12.5, back.skills().get(0).damage(), 0.01,
+                "урон считает сервер: подсказка и бой обязаны показывать одно число");
+        assertEquals(2, back.skills().get(0).description().size());
         assertEquals(menu.stats(), back.stats());
     }
 

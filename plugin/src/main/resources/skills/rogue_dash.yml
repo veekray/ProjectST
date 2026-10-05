@@ -13,6 +13,11 @@ tier: 1
 mana: $stamina
 cooldown: $cooldown
 
+description:
+  - "Рывок по взгляду."
+  - "Самый дешёвый способ оказаться там,"
+  - "где нужно."
+
 steps:
 
   - target: { type: self }

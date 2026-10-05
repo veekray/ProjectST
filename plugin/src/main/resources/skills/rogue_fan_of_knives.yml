@@ -13,6 +13,11 @@ tier: 3
 mana: $stamina
 cooldown: $cooldown
 
+description:
+  - "Кинжалы во всех вокруг: замедляют"
+  - "и возвращают выносливость"
+  - "за каждое попадание."
+
 steps:
 
   - target: { type: self }

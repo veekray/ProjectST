@@ -49,10 +49,25 @@ public final class CharacterScreen extends Screen {
     private static final int TAB_HEIGHT = 18;
     private static final int ROW_HEIGHT = 12;
     private static final int CLASS_ROW_HEIGHT = 26;
+    /** Сторона ромба со значком навыка. */
+    private static final int ICON = 30;
+    /** Шаг сетки значков: ромбы не должны соприкасаться углами. */
+    private static final int ICON_STEP = 38;
+    private static final int ICON_COLUMNS = 6;
 
     private Tab tab = Tab.CHARACTER;
-    /** Слот, для которого выбирают навык; ноль — никакой. */
+    /**
+     * Идёт ли выбор слота.
+     *
+     * <p>На вкладке слотов это номер слота, для которого выбирают навык; на
+     * вкладке навыков — минус один, то есть «навык выбран, ждём слот». Одно поле
+     * на оба случая: два независимых состояния выбора рано или поздно оказались
+     * бы включены одновременно.
+     */
     private int choosingSlot;
+
+    /** Навык, которому ищут слот на вкладке навыков. */
+    private String pendingSkill = "";
 
     public CharacterScreen() {
         super(Component.literal("RpgCore"));
@@ -119,7 +134,7 @@ public final class CharacterScreen extends Screen {
         int contentY = y + 36;
         switch (tab) {
             case CHARACTER -> renderCharacter(graphics, menu, contentX, contentY, mouseY);
-            case SKILLS -> renderSkills(graphics, menu, contentX, contentY, mouseY);
+            case SKILLS -> renderSkills(graphics, menu, contentX, contentY, mouseX, mouseY);
             case SLOTS -> renderSlots(graphics, menu, contentX, contentY, mouseY);
             case STATS -> renderStats(graphics, menu, contentX, contentY);
         }
@@ -216,35 +231,139 @@ public final class CharacterScreen extends Screen {
         });
     }
 
-    private void renderSkills(GuiGraphics graphics, MenuData menu, int x, int y, int mouseY) {
+    /**
+     * Навыки сеткой ромбов.
+     *
+     * <p>Значок вместо строки с названием: шесть названий в столбик читаются
+     * дольше, чем шесть узнаваемых значков, а в бою вспоминают именно значок.
+     * Всё остальное — название, стоимость, перезарядку, урон и что навык делает —
+     * показывает подсказка под курсором, и там это не мешает смотреть на сетку.
+     *
+     * <p>Приглушённый значок значит «не изучен». Цвет появляется ровно тогда,
+     * когда навык начинает работать.
+     */
+    private void renderSkills(GuiGraphics graphics, MenuData menu, int x, int y,
+                              int mouseX, int mouseY) {
         if (menu.classId().isEmpty()) {
             graphics.drawString(font, Component.literal("Сначала выберите класс"), x, y,
                     RpgStyle.HEALTH_LOW, true);
             return;
         }
-        graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()
-                        + "     нажатие — изучить или вложить очко"),
-                x, y, RpgStyle.TEXT_DIM, true);
+        graphics.drawString(font, Component.literal("Свободных очков: " + menu.points()),
+                x, y, menu.points() > 0 ? RpgStyle.READY : RpgStyle.TEXT_DIM, true);
+        graphics.drawString(font, Component.literal(
+                        "нажатие — изучить или вложить очко,  правая кнопка — в слот"),
+                x + 110, y, RpgStyle.TEXT_DIM, true);
 
-        int line = y + 16;
-        int row = 0;
-        for (MenuData.SkillLine skill : menu.skills()) {
-            boolean hovered = rowAt(mouseY, y, ROW_HEIGHT, 16) == row;
-            RpgStyle.row(graphics, x - 6, line - 2, PANEL_WIDTH - 24, ROW_HEIGHT, hovered);
-
+        List<MenuData.SkillLine> skills = menu.skills();
+        for (int i = 0; i < skills.size(); i++) {
+            MenuData.SkillLine skill = skills.get(i);
+            int iconX = iconX(x, i);
+            int iconY = iconY(y, i);
             boolean learned = skill.level() > 0;
-            String left = (learned ? skill.level() + "/" + skill.maxLevel() : "—")
-                    + "  " + skill.display();
-            String right = reason(menu, skill);
 
-            graphics.drawString(font, Component.literal(left), x, line,
+            SkillIcons.draw(graphics, skill.id(), iconX, iconY, ICON, learned);
+
+            // Уровень под значком: сколько очков уже вложено, видно без наведения.
+            String level = learned ? skill.level() + "/" + skill.maxLevel() : "—";
+            graphics.drawString(font, Component.literal(level),
+                    iconX + ICON / 2 - font.width(level) / 2, iconY + ICON - 1,
                     learned ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
-            graphics.drawString(font, Component.literal(right),
-                    x + PANEL_WIDTH - 36 - font.width(right), line,
-                    right.startsWith("нажмите") ? RpgStyle.READY : RpgStyle.COOLDOWN, true);
-            line += ROW_HEIGHT;
-            row++;
+
+            // Слот, если навык на него поставлен: иначе пришлось бы ходить на
+            // другую вкладку, чтобы проверить, что именно висит на клавише.
+            if (skill.boundSlot() > 0) {
+                String slot = String.valueOf(skill.boundSlot());
+                graphics.fill(iconX + ICON - 9, iconY + 1, iconX + ICON - 1, iconY + 9,
+                        0xF01C1510);
+                graphics.drawString(font, Component.literal(slot),
+                        iconX + ICON - 7, iconY + 2, RpgStyle.TEXT_WARN, true);
+            }
         }
+
+        if (choosingSlot > 0) {
+            graphics.drawString(font, Component.literal(
+                            "Выберите слот для навыка, или нажмите мимо, чтобы отменить"),
+                    x, y + 4 + rows(skills.size()) * ICON_STEP, RpgStyle.TEXT_WARN, true);
+            for (int slot = 1; slot <= menu.slots(); slot++) {
+                int slotX = x + (slot - 1) * 34;
+                int slotY = y + 16 + rows(skills.size()) * ICON_STEP;
+                boolean hovered = RpgStyle.hit(mouseX, mouseY, slotX, slotY, 30, 18);
+                RpgStyle.button(graphics, slotX, slotY, 30, 18,
+                        String.valueOf(slot), hovered, false);
+            }
+        }
+
+        // Подсказка рисуется последней: поверх всего, иначе её перекроют значки.
+        int hovered = iconAt(x, y, mouseX, mouseY, skills.size());
+        if (hovered >= 0 && choosingSlot == 0) {
+            tooltip(graphics, menu, skills.get(hovered), mouseX, mouseY);
+        }
+    }
+
+    /** Подсказка о навыке: всё, что сервер посчитал, одним столбиком. */
+    private void tooltip(GuiGraphics graphics, MenuData menu, MenuData.SkillLine skill,
+                         int mouseX, int mouseY) {
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(skill.display())
+                .withStyle(style -> style.withColor(skill.level() > 0
+                        ? RpgStyle.TEXT_WARN : RpgStyle.TEXT_DIM)));
+        lines.add(Component.literal("Ступень " + skill.tier())
+                .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+
+        for (String row : skill.description()) {
+            lines.add(Component.literal(row)
+                    .withStyle(style -> style.withColor(RpgStyle.TEXT)));
+        }
+
+        lines.add(Component.literal(" "));
+        if (skill.damage() > 0) {
+            lines.add(Component.literal("Урон за попадание: до " + trim(skill.damage()))
+                    .withStyle(style -> style.withColor(RpgStyle.HEALTH_LOW)));
+        }
+        if (skill.mana() > 0) {
+            lines.add(Component.literal("Стоимость: " + trim(skill.mana()))
+                    .withStyle(style -> style.withColor(RpgStyle.RESOURCE)));
+        }
+        if (skill.cooldown() > 0) {
+            lines.add(Component.literal("Перезарядка: " + trim(skill.cooldown()) + " с")
+                    .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+        }
+
+        lines.add(Component.literal(" "));
+        lines.add(Component.literal(reason(menu, skill))
+                .withStyle(style -> style.withColor(
+                        reason(menu, skill).startsWith("нажмите")
+                                ? RpgStyle.READY : RpgStyle.COOLDOWN)));
+        if (skill.level() > 0) {
+            lines.add(Component.literal(skill.boundSlot() > 0
+                            ? "в слоте " + skill.boundSlot() + ", правая кнопка — сменить"
+                            : "правая кнопка — поставить в слот")
+                    .withStyle(style -> style.withColor(RpgStyle.TEXT_DIM)));
+        }
+        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+    }
+
+    private int iconX(int x, int index) {
+        return x + (index % ICON_COLUMNS) * ICON_STEP;
+    }
+
+    private int iconY(int y, int index) {
+        return y + 16 + (index / ICON_COLUMNS) * ICON_STEP;
+    }
+
+    private int rows(int count) {
+        return (count + ICON_COLUMNS - 1) / ICON_COLUMNS;
+    }
+
+    /** Какой значок под курсором; -1 — никакой. */
+    private int iconAt(int x, int y, double mouseX, double mouseY, int count) {
+        for (int i = 0; i < count; i++) {
+            if (RpgStyle.hit(mouseX, mouseY, iconX(x, i), iconY(y, i), ICON, ICON)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private void renderSlots(GuiGraphics graphics, MenuData menu, int x, int y, int mouseY) {
@@ -286,10 +405,15 @@ public final class CharacterScreen extends Screen {
             RpgStyle.row(graphics, x - 6, line - 2, PANEL_WIDTH - 24, ROW_HEIGHT, hovered);
 
             String bound = "пусто";
+            String boundId = "";
             for (MenuData.SkillLine skill : menu.skills()) {
                 if (skill.boundSlot() == slot) {
                     bound = skill.display();
+                    boundId = skill.id();
                 }
+            }
+            if (!boundId.isEmpty()) {
+                SkillIcons.draw(graphics, boundId, x + PANEL_WIDTH - 60, line - 4, 12, true);
             }
             // Клавиша — та, что игрок назначил сам: подсказка, не совпадающая с
             // настройкой, врёт, и после неё перестают доверять всем остальным.
@@ -358,9 +482,39 @@ public final class CharacterScreen extends Screen {
             }
         }
         if (tab == Tab.SKILLS) {
-            int row = rowAt(mouseY, contentY, ROW_HEIGHT, 16);
-            if (row >= 0 && row < menu.skills().size()) {
-                MenuData.SkillLine skill = menu.skills().get(row);
+            List<MenuData.SkillLine> skills = menu.skills();
+            int contentX = left() + 12;
+
+            // Выбор слота открыт: сначала проверяем кнопки слотов, иначе щелчок
+            // по ним улетел бы в значок под ними.
+            if (choosingSlot > 0) {
+                for (int slot = 1; slot <= menu.slots(); slot++) {
+                    int slotX = contentX + (slot - 1) * 34;
+                    int slotY = contentY + 16 + rows(skills.size()) * ICON_STEP;
+                    if (RpgStyle.hit(mouseX, mouseY, slotX, slotY, 30, 18)) {
+                        ActionPayload.send(Protocol.Action.BIND, slot, pendingSkill);
+                        choosingSlot = 0;
+                        pendingSkill = "";
+                        return true;
+                    }
+                }
+                choosingSlot = 0;
+                pendingSkill = "";
+                return true;
+            }
+
+            int index = iconAt(contentX, contentY, mouseX, mouseY, skills.size());
+            if (index >= 0) {
+                MenuData.SkillLine skill = skills.get(index);
+                if (button == 1) {
+                    // Правая кнопка — в слот, и только у изученного: ставить в
+                    // слот неизученное сервер всё равно откажется.
+                    if (skill.level() > 0) {
+                        choosingSlot = -1;
+                        pendingSkill = skill.id();
+                    }
+                    return true;
+                }
                 // Изучение и вложение — одно нажатие: сервер сам знает, что
                 // сейчас уместно, и откажет, если ни то ни другое.
                 ActionPayload.send(skill.level() == 0

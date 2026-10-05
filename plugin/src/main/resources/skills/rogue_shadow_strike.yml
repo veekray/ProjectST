@@ -16,6 +16,11 @@ tier: 3
 mana: $stamina
 cooldown: $cooldown
 
+description:
+  - "Оказывается за спиной ближайшего врага"
+  - "и бьёт."
+  - "Иногда оглушает."
+
 steps:
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }

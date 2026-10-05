@@ -12,6 +12,11 @@ tier: 3
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Корни держат всех вокруг на месте."
+  - "Копит Увядание."
+  - "На трёх Роста: держат заметно дольше."
+
 steps:
 
   - target: { type: self }

@@ -19,6 +19,11 @@ tier: 3
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Конус сгоняет врагов к точке впереди,"
+  - "а не к вам. Там же остаётся печать."
+  - "На своей печати: шире и приковывает."
+
 steps:
 
   - target: { type: self }

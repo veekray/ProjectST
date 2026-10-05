@@ -19,6 +19,10 @@ import java.util.Locale;
  * @param steps       тело навыка
  * @param trigger     что его запускает
  * @param intervalTicks для {@link SkillTrigger#ON_INTERVAL} — как часто
+ * @param description короткое описание для подсказки: что навык делает.
+ *                    Числа сюда не переписываются — их считает и присылает
+ *                    сервер, а переписанное число разъезжается с балансом в
+ *                    первый же вечер правок
  * @param icon        чем навык выглядит в интерфейсе; имя ванильного
      *                    предмета. Лежит в контенте, а не в таблице внутри кода:
      *                    иначе добавить навык было бы нельзя без правки Java
@@ -29,7 +33,15 @@ import java.util.Locale;
  */
 public record SkillDef(String id, String display, String classId, int tier,
                        NumberRef manaCost, NumberRef cooldown, List<Step> steps,
-                       SkillTrigger trigger, int intervalTicks, boolean internal, String icon) {
+                       SkillTrigger trigger, int intervalTicks, boolean internal, String icon,
+                       List<String> description) {
+
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    SkillTrigger trigger, int intervalTicks, boolean internal, String icon) {
+        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+                internal, icon, List.of());
+    }
 
     /** Чем выглядит навык, у которого иконка не указана. */
     public static final String DEFAULT_ICON = "PAPER";
@@ -64,6 +76,7 @@ public record SkillDef(String id, String display, String classId, int tier,
         steps = steps == null ? List.of() : List.copyOf(steps);
         trigger = trigger == null ? SkillTrigger.MANUAL : trigger;
         icon = icon == null || icon.isBlank() ? DEFAULT_ICON : icon.toUpperCase(Locale.ROOT);
+        description = description == null ? List.of() : List.copyOf(description);
         if (trigger == SkillTrigger.ON_INTERVAL && intervalTicks < 1) {
             throw new IllegalArgumentException(
                     "периодическому навыку нужен промежуток: " + id);

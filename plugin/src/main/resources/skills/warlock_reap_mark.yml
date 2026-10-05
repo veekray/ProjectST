@@ -13,6 +13,11 @@ tier: 2
 mana: $mana
 cooldown: $cooldown
 
+description:
+  - "Метка на ближайшего врага."
+  - "С помеченной цели урожай двойной:"
+  - "две души вместо одной."
+
 steps:
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }

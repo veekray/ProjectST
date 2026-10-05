@@ -17,6 +17,11 @@ tier: 4
 mana: $stamina
 cooldown: $cooldown
 
+description:
+  - "Двойник на месте, вы — в сторону."
+  - "Когда к нему подходят, он взрывается:"
+  - "слепит и делает задетых уязвимее."
+
 steps:
 
   - target: { type: self }
