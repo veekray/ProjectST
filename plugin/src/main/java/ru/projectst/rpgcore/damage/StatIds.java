@@ -10,6 +10,9 @@ package ru.projectst.rpgcore.damage;
  */
 public final class StatIds {
 
+    /** Запас здоровья. Переносится в ванильный атрибут игрока. */
+    public static final String MAX_HEALTH = "max_health";
+
     /** Запас маны. */
     public static final String MAX_MANA = "max_mana";
 

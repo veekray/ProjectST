@@ -24,6 +24,7 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
+import ru.projectst.rpgcore.platform.VitalsSync;
 import ru.projectst.rpgcore.platform.ZoneTicker;
 import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.skill.MinionService;
@@ -48,6 +49,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private PlayerDataStore data;
     private ClassService classService;
     private ResourcePool resources;
+    private VitalsSync vitals;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -116,9 +118,13 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // Восстановление маны. Стат задан в мане за секунду, и таймер идёт
         // ровно раз в секунду, чтобы между ними не было пересчёта, который
         // однажды разошёлся бы с написанным в stats.yml.
+        vitals = new VitalsSync(stats);
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (var online : Bukkit.getOnlinePlayers()) {
                 resources.regenerate(online.getUniqueId(), 1.0);
+                // Здоровье сверяется здесь же: стат, которого не видно в мире,
+                // хуже отсутствия стата.
+                vitals.apply(online);
             }
         }, 20L, 20L);
 
@@ -171,6 +177,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             classService.applyBaseStats(event.getPlayer().getUniqueId());
             // Полный запас при входе: ноль выглядел бы как поломка.
             resources.fill(event.getPlayer().getUniqueId());
+            vitals.apply(event.getPlayer());
         } catch (PlayerDataException e) {
             // Испорченный файл не затирается пустышкой: игрок получает отказ,
             // администратор — строку в логе с причиной.

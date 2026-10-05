@@ -905,6 +905,208 @@ class SkillRuntimeTest {
         assertTrue(f.minions.of(B).isPresent());
     }
 
+    // --------------------------------------------- точка действия, лимит, счёт
+
+    @Test
+    @DisplayName("точка действия шага считается у самого шага и не меняется по ходу")
+    void stepOriginIsPerStep() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    origin: forward 9
+                    do:
+                      - { action: pull, strength: 0.6, ticks: 1 }
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    origin: self
+                    do:
+                      - { action: pull, strength: 0.6, ticks: 1 }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("pull A 0.6 -> 9.0"),
+                "первый шаг тянет к точке в девяти блоках впереди: " + f.world.calls);
+        assertTrue(f.world.calls.contains("pull A 0.6 -> 1.0"),
+                "второй — к самому кастеру: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("limit отрезает после выборки, а не до условий")
+    void limitAppliesAfterSelection() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A, B);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(1, f.world.calls.stream().filter(c -> c.startsWith("damage")).count(),
+                "цель должна остаться одна: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("счёт целей уходит в счётчик и умножает число")
+    void countScalesNumbers() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: count, counter: hit }
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 3 * @hit }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A, B);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("heal caster 6.0"),
+                "две цели по три: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("счёт стаков статуса берётся с кастера")
+    void countStacksOfStatus() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: count, counter: souls, status: charge }
+                      - { action: heal, amount: 2 * @souls }
+                """);
+        Fixture f = fixture(skill);
+        f.statuses.apply(CASTER, StatusApplication.of("charge", "test"));
+        f.statuses.apply(CASTER, StatusApplication.of("charge", "test"));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("heal caster 4.0"), f.world.calls.toString());
+    }
+
+    @Test
+    @DisplayName("рывок и сближение двигают кастера, а не цели")
+    void dashAndApproachMoveTheCaster() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: dash, strength: 1.4, lift: 0.3 }
+                  - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
+                    do:
+                      - { action: approach, distance: 1.2, behind: true }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("dash 1.4"), f.world.calls.toString());
+        assertTrue(f.world.calls.contains("offset 1.2 behind"), f.world.calls.toString());
+        assertTrue(f.world.calls.contains("teleport caster -> 5.0"),
+                "перемещается кастер, а не цель: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("возврат ресурса идёт кастеру по разу на каждую цель")
+    void restoreGoesPerTarget() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: restore, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        List<Double> restored = new ArrayList<>();
+        f.runtime.useResources((player, amount) -> {
+            assertEquals(CASTER, player, "ресурс возвращается кастующему");
+            restored.add(amount);
+        });
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of(5.0, 5.0), restored, "две цели — две доли");
+    }
+
+    @Test
+    @DisplayName("печать не ложится рядом со своей же, если задан просвет")
+    void zoneRespectsMinGap() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    origin: self
+                    do:
+                      - { action: zone, tag: seal, radius: 2.5, duration: 200, min-gap: 2.5, at-origin: true }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(1, f.zones.size(),
+                "иначе касты на месте копили бы печати, а финишер платит за каждую");
+    }
+
+    @Test
+    @DisplayName("снятие одного стака оставляет остальные")
+    void removeOneStack() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: remove-status, id: charge, stacks: 1 }
+                """);
+        Fixture f = fixture(skill);
+        f.statuses.apply(CASTER, StatusApplication.of("charge", "test"));
+        f.statuses.apply(CASTER, StatusApplication.of("charge", "test"));
+        f.statuses.apply(CASTER, StatusApplication.of("charge", "test"));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(2, f.statuses.all(CASTER).get(0).stacks());
+    }
+
+    @Test
+    @DisplayName("задержка шага берётся из баланса, как и любое другое число")
+    void delayComesFromBalance() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    delay: $radius
+                    do:
+                      - { action: message, text: "позже" }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("later 6"), f.world.calls, "radius в балансе равен шести");
+    }
+
     // ------------------------------------------------------------------ прочее
 
     @Test
