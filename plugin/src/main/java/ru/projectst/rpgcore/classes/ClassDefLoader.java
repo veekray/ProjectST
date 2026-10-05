@@ -59,6 +59,7 @@ public final class ClassDefLoader {
         int maxLevel = root.integer("max-level", 1, 1000, 60);
         int pointsPerLevel = root.integer("points-per-level", 0, 10, 1);
         BalanceValue xp = readXp(root, errors);
+        ResourceSpec resource = readResource(root, errors);
         Map<Integer, Integer> tiers = readTiers(root, errors);
         Map<String, BalanceValue> stats = readStats(root, errors);
 
@@ -76,7 +77,27 @@ public final class ClassDefLoader {
             return Optional.empty();
         }
         return Optional.of(new ClassDef(id, display, slots, tiers, stats,
-                maxLevel, xp, pointsPerLevel));
+                maxLevel, xp, pointsPerLevel, resource));
+    }
+
+    /**
+     * Ресурс класса. Без раздела — мана: самый частый случай не должен
+     * требовать строки, но плут объявляет выносливость явно.
+     */
+    private static ResourceSpec readResource(YmlMap root, ContentErrors errors) {
+        Optional<YmlMap> section = root.mapOpt("resource");
+        if (section.isEmpty()) {
+            return ResourceSpec.MANA;
+        }
+        YmlMap body = section.get();
+        String display = body.str("name", ResourceSpec.MANA.display());
+        String max = body.str("max", ResourceSpec.MANA.maxStat());
+        String regen = body.str("regen", ResourceSpec.MANA.regenStat());
+        if (display.isBlank() || max.isBlank() || regen.isBlank()) {
+            errors.add(body.at(), "resource", "нужны name, max и regen");
+            return ResourceSpec.MANA;
+        }
+        return new ResourceSpec(display, max, regen);
     }
 
     /**

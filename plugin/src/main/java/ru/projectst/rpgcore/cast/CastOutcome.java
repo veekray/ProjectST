@@ -30,8 +30,8 @@ public record CastOutcome(Kind kind, String detail) {
         BAD_SLOT,
         /** Идёт перезарядка. */
         ON_COOLDOWN,
-        /** Не хватает маны. */
-        NOT_ENOUGH_MANA,
+        /** Не хватает ресурса: маны у мага, выносливости у плута. */
+        NOT_ENOUGH_RESOURCE,
         /** Каст запрещён действующим статусом. */
         BLOCKED,
         /** Навык срабатывает сам, вручную его не применить. */

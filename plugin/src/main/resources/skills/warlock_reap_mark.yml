@@ -1,0 +1,21 @@
+# 2. Метка жатвы — ставка на того, кого собираются дожать.
+#
+# Цель одна и ближайшая: limit: 1 отрезает список после выборки, но до условий.
+# В старом стеке limit=1 работал наоборот — отрезал до фильтра, поэтому
+# ближайшая неподходящая цель вытесняла подходящую, и навык молча не срабатывал.
+
+id: warlock_reap_mark
+display: "Метка жатвы"
+class: warlock
+tier: 2
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: status, id: reaper_mark, duration: $duration }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 22, size: 0.5 }
+      - { action: sound, sound: particle_soul_escape, pitch: 0.8 }

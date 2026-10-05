@@ -1,0 +1,15 @@
+# Попадание обычного разряда.
+
+id: mage_bolt_hit
+display: "Мановый разряд — попадание"
+class: mage
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: particles, particle: enchant, shape: sphere, count: 18, size: 0.3 }
+      - { action: sound, sound: entity_illusioner_mirror_move, volume: 0.8, pitch: 1.5 }

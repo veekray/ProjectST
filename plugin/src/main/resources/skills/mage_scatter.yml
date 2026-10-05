@@ -1,0 +1,100 @@
+# 5. Россыпь — веером три печати разом. Урона нет совсем: это генератор поля
+#    под Сгон и Коллапс.
+#
+# Единственное исключение из правила «усиленный каст печатей не оставляет»:
+# здесь ставить печати и есть содержание навыка, поэтому усиление даёт их
+# больше.
+#
+# Снаряды намеренно никого не задевают: hit-players и hit-mobs выключены, и
+# именно поэтому у них есть on-end — иначе загрузчик сказал бы, что снаряд ни
+# во что не попадёт и ничего не сделает.
+
+id: mage_scatter
+display: "Россыпь"
+class: mage
+tier: 4
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: mage_seal_core, at-targets: true }
+      - { action: sound, sound: block_amethyst_cluster_break, pitch: 0.9 }
+      - { action: particles, particle: enchant, shape: sphere, count: 25, size: 0.4 }
+
+  # Обычный: три печати веером.
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-players: false
+        hit-mobs: false
+        particle: enchant
+        yaw-offset: -25
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-players: false
+        hit-mobs: false
+        particle: enchant
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-players: false
+        hit-mobs: false
+        particle: enchant
+        yaw-offset: 25
+        on-end: mage_seal_drop
+
+  # Усиленный: пять печатей и шире веер.
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered }
+    do:
+      - action: projectile
+        speed: $speed
+        range: $empowered_range
+        hit-players: false
+        hit-mobs: false
+        particle: witch
+        yaw-offset: -40
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $empowered_range
+        hit-players: false
+        hit-mobs: false
+        particle: witch
+        yaw-offset: -20
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $empowered_range
+        hit-players: false
+        hit-mobs: false
+        particle: witch
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $empowered_range
+        hit-players: false
+        hit-mobs: false
+        particle: witch
+        yaw-offset: 20
+        on-end: mage_seal_drop
+      - action: projectile
+        speed: $speed
+        range: $empowered_range
+        hit-players: false
+        hit-mobs: false
+        particle: witch
+        yaw-offset: 40
+        on-end: mage_seal_drop

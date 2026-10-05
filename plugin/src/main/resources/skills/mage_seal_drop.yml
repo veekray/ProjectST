@@ -1,0 +1,25 @@
+# Печать в точке действия.
+#
+# Отдельный навык, потому что её ставят из трёх разных мест: из-под ног, в
+# точке падения снаряда и в точке сбора. min-gap не даёт сложить две печати в
+# одну точку: иначе касты на месте копили бы их пачкой, а Коллапс считает
+# печати и платил бы за это уроном.
+
+id: mage_seal_drop
+display: "Печать"
+class: mage
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - action: zone
+        tag: seal
+        radius: $radius
+        duration: $duration
+        min-gap: $min_gap
+        particle: witch
+        at-origin: true
+      - { action: sound, sound: block_amethyst_block_chime, volume: 0.7, pitch: 1.6, at-origin: true }

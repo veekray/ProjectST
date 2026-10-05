@@ -10,7 +10,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.projectst.rpgcore.cast.CastService;
 import ru.projectst.rpgcore.cast.CooldownTracker;
-import ru.projectst.rpgcore.cast.ManaPool;
+import ru.projectst.rpgcore.cast.ResourcePool;
 import ru.projectst.rpgcore.damage.DamageEngine;
 import ru.projectst.rpgcore.data.PlayerDataException;
 import ru.projectst.rpgcore.data.PlayerDataStore;
@@ -24,6 +24,7 @@ import ru.projectst.rpgcore.platform.RpgCommand;
 import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
+import ru.projectst.rpgcore.platform.ZoneTicker;
 import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.skill.MinionService;
 import ru.projectst.rpgcore.skill.ZoneService;
@@ -46,7 +47,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private StatusService statuses;
     private PlayerDataStore data;
     private ClassService classService;
-    private ManaPool mana;
+    private ResourcePool resources;
     private CooldownTracker cooldowns;
     private ZoneService zones;
     private MinionService minions;
@@ -83,10 +84,13 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         classService = new ClassService(content.playerClasses(),
                 content.skills(), data, stats);
 
-        mana = new ManaPool(stats);
+        resources = new ResourcePool(stats, classService);
         cooldowns = new CooldownTracker(clock);
         CastService casts = new CastService(classService, content.skills(), content.balance(),
-                statuses, content.statuses(), stats, mana, cooldowns, runtime);
+                statuses, content.statuses(), stats, resources, cooldowns, runtime);
+        // Возврат ресурса навыком: исполнитель не знает, мана это или
+        // выносливость, и знать ему незачем.
+        runtime.useResources(resources::restore);
 
         var command = getCommand("rpg");
         if (command != null) {
@@ -114,7 +118,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // однажды разошёлся бы с написанным в stats.yml.
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (var online : Bukkit.getOnlinePlayers()) {
-                mana.regenerate(online.getUniqueId(), 1.0);
+                resources.regenerate(online.getUniqueId(), 1.0);
             }
         }, 20L, 20L);
 
@@ -139,14 +143,11 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             }
         }, 20L, 20L);
 
-        // Отрисовка зон. Зона, которую игрок не видит, — ловушка, поэтому
-        // рисовать её обязанность плагина, а не автора навыка.
-        Bukkit.getScheduler().runTaskTimer(this, () -> {
-            zones.expireAll();
-            for (var zone : zones.all()) {
-                world.drawZone(zone);
-            }
-        }, 10L, 10L);
+        // Зоны: отрисовка, вход и собственные тики. Рисовать зону — обязанность
+        // плагина, а не автора навыка: невидимая зона это ловушка, а не механика.
+        Bukkit.getScheduler().runTaskTimer(this,
+                new ZoneTicker(zones, minions, content.skills(), runtime, classService, world),
+                ZoneTicker.PERIOD_TICKS, ZoneTicker.PERIOD_TICKS);
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
                 + ", статусов " + content.statuses().size()
@@ -169,7 +170,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             // измениться, пока игрока не было.
             classService.applyBaseStats(event.getPlayer().getUniqueId());
             // Полный запас при входе: ноль выглядел бы как поломка.
-            mana.fill(event.getPlayer().getUniqueId());
+            resources.fill(event.getPlayer().getUniqueId());
         } catch (PlayerDataException e) {
             // Испорченный файл не затирается пустышкой: игрок получает отказ,
             // администратор — строку в логе с причиной.
@@ -186,7 +187,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         data.unload(uuid);
         stats.forget(uuid);
         statuses.forget(uuid);
-        mana.forget(uuid);
+        resources.forget(uuid);
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);
@@ -196,11 +197,30 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     }
 
     private void saveDefaultContent() {
-        for (String name : new String[] {"stats.yml", "statuses.yml", "balance.yml",
-                "skills/mage_mana_bolt.yml", "skills/mage_mana_bolt_impact.yml",
-                "skills/mage_flux_loop.yml", "skills/mage_collapse.yml",
-                "skills/mage_mana_ward.yml",
-                "classes/mage.yml"}) {
+        for (String name : new String[] {
+                "stats.yml", "statuses.yml", "balance.yml", "skills/druid_abyss_bloom.yml",
+                "skills/druid_bark_guard.yml", "skills/druid_bark_react.yml",
+                "skills/druid_beast_call.yml", "skills/druid_beast_ward_tick.yml",
+                "skills/druid_bloom_tick.yml", "skills/druid_grasping_roots.yml",
+                "skills/druid_life_spores.yml", "skills/druid_poison_ivy.yml",
+                "skills/mage_bolt_hit.yml", "skills/mage_bolt_hit_strong.yml",
+                "skills/mage_collapse.yml", "skills/mage_collapse_do.yml",
+                "skills/mage_flow_loop.yml", "skills/mage_herd.yml",
+                "skills/mage_mana_bolt.yml", "skills/mage_scatter.yml",
+                "skills/mage_seal_core.yml", "skills/mage_seal_drop.yml",
+                "skills/mage_void_step.yml", "skills/rogue_dash.yml",
+                "skills/rogue_fan_of_knives.yml", "skills/rogue_ghost_step.yml",
+                "skills/rogue_ghost_strike.yml", "skills/rogue_mark_of_death.yml",
+                "skills/rogue_mark_stack.yml", "skills/rogue_mark_tally.yml",
+                "skills/rogue_mirror_burst.yml", "skills/rogue_mirror_image.yml",
+                "skills/rogue_shadow_strike.yml", "skills/warlock_agony_cocoon.yml",
+                "skills/warlock_bolt_hit.yml", "skills/warlock_chains_tick.yml",
+                "skills/warlock_curse_tick.yml", "skills/warlock_cursed_bolt.yml",
+                "skills/warlock_dark_veil.yml", "skills/warlock_despair_chains.yml",
+                "skills/warlock_reap_mark.yml", "skills/warlock_soul_gain.yml",
+                "skills/warlock_transfusion.yml", "skills/warlock_veil_tick.yml",
+                "classes/druid.yml", "classes/mage.yml", "classes/rogue.yml",
+                "classes/warlock.yml"}) {
             if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
                 saveResource(name, false);
             }

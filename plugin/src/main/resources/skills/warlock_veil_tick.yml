@@ -1,0 +1,19 @@
+# Тик пелены: слепит и ослабляет всех, кто внутри.
+
+id: warlock_veil_tick
+display: "Тёмная пелена — тик"
+class: warlock
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: potion, effect: blindness, duration: $blind_duration, amplifier: 1 }
+      - action: modify-stat
+        stat: physical_damage
+        op: percent
+        value: $weaken
+        duration: $blind_duration
+      - { action: particles, particle: squid_ink, shape: point, count: 6 }

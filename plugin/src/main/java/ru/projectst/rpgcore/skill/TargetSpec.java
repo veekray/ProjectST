@@ -11,8 +11,14 @@ package ru.projectst.rpgcore.skill;
  * @param type   способ выбора
  * @param radius радиус или дальность, где применимо
  * @param angle  угол конуса в градусах, только для {@link Type#ENEMIES_IN_CONE}
+ * @param tag    тег зоны, только для {@link Type#ENEMIES_NEAR_ZONE}
+ * @param limit  сколько целей оставить, считая от ближайшей; ноль — все
  */
-public record TargetSpec(Type type, NumberRef radius, NumberRef angle) {
+public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String tag, int limit) {
+
+    public TargetSpec(Type type, NumberRef radius, NumberRef angle) {
+        this(type, radius, angle, null, 0);
+    }
 
     public enum Type {
         /** Сам кастер. */
@@ -40,7 +46,19 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle) {
         ENEMIES_NEAR_ORIGIN(true, false),
 
         /** Все живые вокруг точки действия, без разбора своих и чужих. */
-        ALL_NEAR_ORIGIN(true, false);
+        ALL_NEAR_ORIGIN(true, false),
+
+        /** Союзники вокруг точки действия, включая кастера и его призванных. */
+        ALLIES_NEAR_ORIGIN(true, false),
+
+        /**
+         * Враги рядом с любой своей зоной заданного тега.
+         *
+         * <p>Нужен там, где важно, кто стоит на поле, а не кто стоит рядом с
+         * магом: Коллапс тянет тех, кого накрыли печати, и именно поэтому
+         * расстановка печатей что-то решает.
+         */
+        ENEMIES_NEAR_ZONE(true, false);
 
         private final boolean needsRadius;
         private final boolean needsAngle;
@@ -60,12 +78,18 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle) {
 
         /** Бьёт ли этот тип по своим: от этого зависит защита призванных. */
         public boolean hitsAllies() {
-            return this == SELF || this == ALLIES_IN_RADIUS;
+            return this == SELF || this == ALLIES_IN_RADIUS || this == ALLIES_NEAR_ORIGIN;
         }
 
         /** Нужна ли этому типу точка действия. */
         public boolean needsOrigin() {
-            return this == ENEMIES_NEAR_ORIGIN || this == ALL_NEAR_ORIGIN;
+            return this == ENEMIES_NEAR_ORIGIN || this == ALL_NEAR_ORIGIN
+                    || this == ALLIES_NEAR_ORIGIN;
+        }
+
+        /** Нужен ли этому типу тег зоны. */
+        public boolean needsTag() {
+            return this == ENEMIES_NEAR_ZONE;
         }
     }
 

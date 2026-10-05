@@ -43,7 +43,7 @@ public final class CastService {
     private final StatusService statuses;
     private final StatusRegistry statusDefs;
     private final StatService stats;
-    private final ManaPool mana;
+    private final ResourcePool resource;
     private final CooldownTracker cooldowns;
     private final SkillRuntime runtime;
 
@@ -52,14 +52,14 @@ public final class CastService {
 
     public CastService(ClassService classes, SkillRegistry skills, BalanceBook balance,
                        StatusService statuses, StatusRegistry statusDefs, StatService stats,
-                       ManaPool mana, CooldownTracker cooldowns, SkillRuntime runtime) {
+                       ResourcePool resource, CooldownTracker cooldowns, SkillRuntime runtime) {
         this.classes = classes;
         this.skills = skills;
         this.balance = balance;
         this.statuses = statuses;
         this.statusDefs = statusDefs;
         this.stats = stats;
-        this.mana = mana;
+        this.resource = resource;
         this.cooldowns = cooldowns;
         this.runtime = runtime;
     }
@@ -105,7 +105,7 @@ public final class CastService {
         }
         try {
             List<CastOutcome> out = new ArrayList<>();
-            for (String skillId : classes.unlockedSkills(player)) {
+            for (String skillId : firingCandidates(player)) {
                 Optional<SkillDef> skill = skills.find(skillId);
                 if (skill.isEmpty() || skill.get().trigger() != trigger) {
                     continue;
@@ -121,6 +121,25 @@ public final class CastService {
         } finally {
             firing.remove(player);
         }
+    }
+
+    /**
+     * Чьи навыки могут сработать: изученные плюс служебные навыки класса.
+     *
+     * <p>Служебные игрок не изучает — это отдачи и тики, без которых навык
+     * неполон. В старом стеке они жили безымянными метаскиллами и при этом
+     * попадали в меню наравне с настоящими.
+     */
+    private List<String> firingCandidates(UUID player) {
+        List<String> out = new ArrayList<>(classes.unlockedSkills(player));
+        classes.classOf(player).ifPresent(def -> {
+            for (SkillDef skill : skills.all()) {
+                if (skill.internal() && skill.classId().equals(def.id())) {
+                    out.add(skill.id());
+                }
+            }
+        });
+        return out;
     }
 
     /** Применить навык по идентификатору. */
@@ -158,6 +177,10 @@ public final class CastService {
     private CastOutcome attempt(UUID player, SkillDef skill, UUID source) {
         String skillId = skill.id();
         int level = classes.skillLevel(player, skillId);
+        if (level == 0 && skill.internal()) {
+            // Служебный навык не изучают, поэтому уровень ему даёт класс.
+            level = 1;
+        }
         if (level == 0) {
             return CastOutcome.of(CastOutcome.Kind.NOT_UNLOCKED, skillId);
         }
@@ -175,14 +198,16 @@ public final class CastService {
         }
 
         double cost = skill.manaCost().resolve(balance.table(skillId), level);
-        if (!mana.has(player, cost)) {
-            return CastOutcome.of(CastOutcome.Kind.NOT_ENOUGH_MANA,
-                    "нужно " + round(cost) + ", есть " + round(mana.current(player)));
+        if (!resource.has(player, cost)) {
+            return CastOutcome.of(CastOutcome.Kind.NOT_ENOUGH_RESOURCE,
+                    resource.displayName(player).toLowerCase(java.util.Locale.ROOT)
+                            + ": нужно " + round(cost)
+                            + ", есть " + round(resource.current(player)));
         }
 
         // Всё проверено — только теперь тратим. Обратного порядка быть не
         // может: списанная мана при последующем отказе не возвращается ничем.
-        mana.spend(player, cost);
+        resource.spend(player, cost);
         // Периодический навык не может сработать чаще своего промежутка, даже
         // если перезарядка у него нулевая: иначе «каждые две секунды» зависело
         // бы от того, как часто его зовёт слушатель.
@@ -222,8 +247,8 @@ public final class CastService {
         return classes.skillInSlot(player, slot);
     }
 
-    public ManaPool mana() {
-        return mana;
+    public ResourcePool resource() {
+        return resource;
     }
 
     public CooldownTracker cooldowns() {

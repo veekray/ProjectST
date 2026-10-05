@@ -3,7 +3,10 @@ package ru.projectst.rpgcore.skill;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.LongSupplier;
 
@@ -25,6 +28,8 @@ public final class ZoneService {
 
     private final LongSupplier clock;
     private final List<Zone> zones = new CopyOnWriteArrayList<>();
+    private final Map<UUID, java.util.Set<UUID>> occupants = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastTicks = new ConcurrentHashMap<>();
 
     public ZoneService(LongSupplier clock) {
         this.clock = clock;
@@ -42,14 +47,57 @@ public final class ZoneService {
      */
     public Zone place(String tag, UUID owner, Position center, double radius,
                       int durationTicks, String particle) {
+        return place(tag, owner, center, radius, durationTicks, particle, 0, null, null, 0)
+                .orElseThrow();
+    }
+
+    /**
+     * Ставит зону, если ближе {@code minGap} нет своей зоны с тем же тегом.
+     *
+     * @return поставленная зона либо пусто, если место уже занято своей
+     */
+    public Optional<Zone> place(String tag, UUID owner, Position center, double radius,
+                                int durationTicks, String particle, double minGap,
+                                String onEnter, String onTick, int tickInterval) {
         expireAll();
+        if (minGap > 0 && !near(center, minGap, tag).stream()
+                .filter(zone -> owner == null || zone.ownedBy(owner)).toList().isEmpty()) {
+            return Optional.empty();
+        }
         if (zones.size() >= LIMIT) {
             zones.remove(0);
         }
         Zone zone = new Zone(UUID.randomUUID(), tag, owner, center, radius,
-                clock.getAsLong() + Math.max(1, durationTicks), particle);
+                clock.getAsLong() + Math.max(1, durationTicks), particle,
+                onEnter, onTick, tickInterval);
         zones.add(zone);
-        return zone;
+        return Optional.of(zone);
+    }
+
+    /**
+     * Кто уже внутри этой зоны по учёту службы.
+     *
+     * <p>Вход определяется сравнением с прошлым разом, поэтому «вошёл»
+     * срабатывает один раз, а не каждый тик, пока цель стоит в круге.
+     */
+    public boolean markInside(UUID zoneId, UUID entity, boolean inside) {
+        java.util.Set<UUID> known = occupants.computeIfAbsent(zoneId,
+                id -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+        return inside ? known.add(entity) : known.remove(entity);
+    }
+
+    /** Когда зоны не стало, её учёт вошедших тоже не нужен. */
+    public void forgetOccupants(UUID zoneId) {
+        occupants.remove(zoneId);
+    }
+
+    /** Когда зона в последний раз тикала. */
+    public long lastTick(UUID zoneId) {
+        return lastTicks.getOrDefault(zoneId, 0L);
+    }
+
+    public void markTicked(UUID zoneId) {
+        lastTicks.put(zoneId, clock.getAsLong());
     }
 
     /** Зоны с этим тегом, в чьей области лежит точка. */
@@ -87,6 +135,11 @@ public final class ZoneService {
         return count;
     }
 
+    /** Свои зоны этого владельца с этим тегом. */
+    public List<Zone> ofOwner(UUID owner, String tag) {
+        return find(zone -> zone.ownedBy(owner) && (tag == null || zone.tag().equals(tag)));
+    }
+
     public boolean remove(Zone zone) {
         return zones.remove(zone);
     }
@@ -111,7 +164,13 @@ public final class ZoneService {
     /** Убирает истёкшие. Чтения делают это сами, таймеру остаётся память. */
     public void expireAll() {
         long now = clock.getAsLong();
-        zones.removeIf(zone -> zone.expired(now));
+        for (Zone zone : List.copyOf(zones)) {
+            if (zone.expired(now)) {
+                zones.remove(zone);
+                occupants.remove(zone.id());
+                lastTicks.remove(zone.id());
+            }
+        }
     }
 
     private List<Zone> find(java.util.function.Predicate<Zone> filter) {

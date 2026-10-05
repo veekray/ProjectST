@@ -1,0 +1,54 @@
+# 3. Шаг в пустоту — рывок. Печать остаётся в точке старта, то есть служит
+#    якорем возврата.
+#
+# Усиленный рывок вдвое длиннее и с ударной волной на выходе, печати не
+# оставляет.
+
+id: mage_void_step
+display: "Шаг в пустоту"
+class: mage
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: mage_seal_core, at-targets: true }
+      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.4 }
+
+  # Печать кладём ДО рывка: она должна остаться там, откуда ушли.
+  - target: { type: self }
+    origin: self
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - { action: cast, skill: mage_seal_drop, at-targets: false }
+      - { action: particles, particle: portal, shape: sphere, count: 40, size: 0.5 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - { action: teleport, forward: $distance }
+      - { action: particles, particle: reverse_portal, shape: sphere, count: 40, size: 0.5 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered }
+    do:
+      - { action: particles, particle: portal, shape: sphere, count: 70, size: 0.6 }
+      - { action: teleport, forward: $empowered_distance }
+      - { action: particles, particle: reverse_portal, shape: sphere, count: 70, size: 0.6 }
+      - { action: sound, sound: entity_generic_explode, volume: 0.7, pitch: 1.6 }
+
+  # Ударная волна считается после рывка, то есть от новой позиции.
+  - target: { type: enemies_in_radius, radius: $wave_radius }
+    if:
+      - { caster: has-status, value: empowered }
+    do:
+      - { action: damage, amount: $wave_damage, school: magic }
+      - { action: push, strength: $wave_push, lift: 0.4 }
+      - { action: particles, particle: witch, shape: point, count: 15 }

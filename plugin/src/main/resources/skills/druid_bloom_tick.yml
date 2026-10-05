@@ -1,0 +1,54 @@
+# Тик поля. Фаза переключается сама: метка на друиде есть — значит прошлый тик
+# был ростом, и этот будет увяданием.
+#
+# Так переключение видно в одном месте и не требует ни таймеров, ни счётчиков
+# снаружи. Метка живёт чуть дольше промежутка, иначе она истекала бы между
+# тиками и поле застревало бы в одной фазе.
+
+id: druid_bloom_tick
+display: "Цвет бездны — тик"
+class: druid
+tier: 5
+internal: true
+
+steps:
+
+  # Фаза роста: лечит много, ранит мало.
+  - target: { type: allies_near_origin, radius: $radius }
+    if:
+      - { caster: has-status, value: bloom_phase, not: true }
+    do:
+      - { action: heal, amount: $heal_big }
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    if:
+      - { caster: has-status, value: bloom_phase, not: true }
+    do:
+      - { action: damage, amount: $harm_small, school: magic }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: bloom_phase, not: true }
+    do:
+      - { action: status, id: bloom_phase, duration: $phase_duration }
+      - { action: particles, particle: composter, shape: ring, count: 44, size: $radius, at-origin: true }
+
+  # Фаза увядания: ранит много, лечит мало.
+  - target: { type: allies_near_origin, radius: $radius }
+    if:
+      - { caster: has-status, value: bloom_phase }
+    do:
+      - { action: heal, amount: $heal_small }
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    if:
+      - { caster: has-status, value: bloom_phase }
+    do:
+      - { action: damage, amount: $harm_big, school: magic }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: bloom_phase }
+    do:
+      - { action: remove-status, id: bloom_phase }
+      - { action: particles, particle: sculk_soul, shape: ring, count: 44, size: $radius, at-origin: true }

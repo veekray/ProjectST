@@ -40,7 +40,11 @@ public record Condition(Scope scope, Check check, String value, boolean negated)
         /** Проверяемый стоит в зоне с этим тегом; {@code тег:own} — только в своей. */
         IN_ZONE,
         /** Проверяемый стоит минимум в N зонах с этим тегом: {@code тег:N}. */
-        ZONE_COUNT
+        ZONE_COUNT,
+        /** Счётчик каста не меньше числа: {@code имя:N}. */
+        COUNTER,
+        /** У проверяемого есть свой призванный с этим тегом. */
+        HAS_MINION
     }
 
     public Condition {

@@ -265,8 +265,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         UUID id = player.getUniqueId();
-        sender.sendMessage("§6Мана: §f" + trim(Math.floor(casts.mana().current(id)))
-                + "§7/§f" + trim(casts.mana().max(id)));
+        sender.sendMessage("§6" + casts.resource().displayName(id) + ": §f"
+                + trim(Math.floor(casts.resource().current(id)))
+                + "§7/§f" + trim(casts.resource().max(id)));
         casts.blockingStatus(id).ifPresent(status ->
                 sender.sendMessage("§cКасты запрещены статусом §f" + status.id()));
 

@@ -1,0 +1,54 @@
+# 1. Петля потоков — кольцо маны расшвыривает всех вокруг.
+#
+# Намеренно не ставит контроль: отбросить и застанить одним нажатием — это два
+# контроля в одной кнопке, и именно такие совмещения приходилось потом
+# расплетать.
+#
+# Обычный каст оставляет печать под ногами, усиленный — нет: земля потрачена.
+# Это общее правило всех навыков мага, кроме Россыпи, где ставить печати и есть
+# содержание навыка.
+
+id: mage_flow_loop
+display: "Петля потоков"
+class: mage
+tier: 2
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: mage_seal_core, at-targets: true }
+      - { action: sound, sound: block_beacon_activate, volume: 0.8, pitch: 1.8 }
+      - { action: particles, particle: enchant, shape: ring, count: 40, size: $radius }
+
+  # Обычный: только расшвыривает.
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - { action: push, strength: $push, lift: 0.35 }
+      - { action: particles, particle: enchant, shape: point, count: 12 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - { action: cast, skill: mage_seal_drop, at-targets: false }
+
+  # Усиленный: шире, больно и толкает сильнее.
+  - target: { type: enemies_in_radius, radius: $empowered_radius }
+    if:
+      - { caster: has-status, value: empowered }
+    do:
+      - { action: damage, amount: $empowered_damage, school: magic }
+      - { action: push, strength: $empowered_push, lift: 0.45 }
+      - { action: particles, particle: witch, shape: point, count: 20 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: empowered }
+    do:
+      - { action: particles, particle: witch, shape: ring, count: 50, size: $empowered_radius }

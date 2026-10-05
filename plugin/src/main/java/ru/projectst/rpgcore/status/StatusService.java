@@ -114,10 +114,19 @@ public final class StatusService {
     private StatusOutcome reapply(ActiveStatus existing, StatusDef def,
                                   StatusApplication application, long expiry, int duration,
                                   Map<String, ActiveStatus> active) {
-        // Величина обновляется всегда: щит на 40 не должен остаться щитом на 10
-        // только потому, что предыдущий ещё не истёк.
+        // Щиты складываются, остальные величины заменяются.
+        //
+        // Складываются потому, что два щита подряд — это два щита: заменять
+        // означало бы, что второй каст иногда ослабляет защиту, и объяснить это
+        // игроку нечем. Для прочих статусов замена верна: щит... то есть эффект
+        // на 40 не должен остаться эффектом на 10 только из-за того, что
+        // предыдущий ещё не истёк.
         if (application.amount() > 0) {
-            existing.setAmount(application.amount());
+            if (def.category() == StatusCategory.SHIELD) {
+                existing.setAmount(existing.amount() + application.amount());
+            } else {
+                existing.setAmount(application.amount());
+            }
         }
         StatusOutcome.Kind kind = switch (def.stacking()) {
             case NONE -> StatusOutcome.Kind.IGNORED;
@@ -157,6 +166,27 @@ public final class StatusService {
     }
 
     /** Снимает все статусы, наложенные этим источником. */
+    /**
+     * Снимает один стак статуса; на последнем снимает статус целиком.
+     *
+     * <p>Нужно там, где стаки — это заряды: кора друида держит один удар или
+     * два, и каждый ответ тратит ровно один. Снимать статус целиком было бы
+     * неверно, а не снимать ничего — тем самым «эффект, который не кончается».
+     *
+     * @return {@code true}, если что-то сняли
+     */
+    public boolean removeStack(UUID target, String statusId) {
+        for (ActiveStatus status : all(target)) {
+            if (status.id().equals(statusId)) {
+                if (status.removeStack()) {
+                    remove(target, statusId);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int removeSource(UUID target, String source) {
         Map<String, ActiveStatus> active = byTarget.get(target);
         if (active == null) {

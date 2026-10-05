@@ -1,0 +1,35 @@
+# Колдун — подкласс мага, который живёт на проклятиях и душах.
+
+id: warlock
+display: "&5Колдун"
+slots: 6
+max-level: 60
+points-per-level: 1
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 1
+  3: 6
+  4: 13
+  5: 18
+
+stats:
+  max_health:
+    base: 18
+    per-level: 1.5
+  max_mana:
+    base: 60
+    per-level: 5.5
+  mana_regen:
+    base: 2.0
+    per-level: 0.1
+  magic_damage:
+    base: 0
+    per-level: 0.7
+  defense:
+    base: 1
+    per-level: 0.1

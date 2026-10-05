@@ -370,13 +370,15 @@ class StatusServiceTest {
     }
 
     @Test
-    @DisplayName("повторный щит обновляет запас, а не оставляет старый")
-    void reapplyingShieldUpdatesAmount() {
+    @DisplayName("повторный щит складывается с прежним, а не вытесняет его")
+    void reapplyingShieldAddsToPool() {
         StatusService s = service(def("shield", StatusCategory.SHIELD));
         s.apply(TARGET, StatusApplication.shield("shield", 40, 10, "skill:a"));
         s.apply(TARGET, StatusApplication.shield("shield", 40, 50, "skill:a"));
 
-        assertEquals(50, s.defenderState(TARGET).shieldPool(), 1e-9);
+        assertEquals(60, s.defenderState(TARGET).shieldPool(), 1e-9,
+                "два щита подряд — это два щита; замена означала бы, что второй каст "
+                        + "иногда ослабляет защиту, и объяснить это игроку нечем");
     }
 
     // ------------------------------------------------------------------ снятие

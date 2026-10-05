@@ -19,10 +19,19 @@ package ru.projectst.rpgcore.skill;
  * @param hitMobs    задевает мобов
  * @param stopAtBlock останавливается о блок
  * @param particle   чем рисуется; {@code null} — невидимый
+ * @param yawOffset  поворот вылета в градусах: так делается веер из нескольких
+ *                   снарядов одним навыком
  */
 public record ProjectileSpec(double speed, double range, double hitRadius, double gravity,
                              int pierce, boolean hitPlayers, boolean hitMobs,
-                             boolean stopAtBlock, String particle) {
+                             boolean stopAtBlock, String particle, double yawOffset) {
+
+    public ProjectileSpec(double speed, double range, double hitRadius, double gravity,
+                          int pierce, boolean hitPlayers, boolean hitMobs,
+                          boolean stopAtBlock, String particle) {
+        this(speed, range, hitRadius, gravity, pierce, hitPlayers, hitMobs, stopAtBlock,
+                particle, 0);
+    }
 
     public ProjectileSpec {
         if (speed <= 0) {

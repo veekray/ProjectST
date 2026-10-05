@@ -1,0 +1,30 @@
+# Удар из невидимости.
+#
+# Служебный навык класса: пока держится метка Шага призрака, первый же удар
+# плута добавляет урон и срывает невидимость. Метка снимается тем же шагом,
+# поэтому удар именно один — второй раз условие уже не пройдёт.
+
+id: rogue_ghost_strike
+display: "Шаг призрака — удар"
+class: rogue
+tier: 2
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: ambush }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: sphere, count: 20, size: 0.5 }
+      - { action: sound, sound: entity_player_attack_crit, pitch: 0.5 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: ambush }
+    do:
+      - { action: remove-status, id: ambush }
+      - { action: clear-potion, effect: invisibility }

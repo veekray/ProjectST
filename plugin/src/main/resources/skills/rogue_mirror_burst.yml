@@ -1,0 +1,27 @@
+# Взрыв двойника: слепит и делает задетых уязвимее.
+#
+# Вызывается зоной, когда в неё кто-то вошёл. Точка действия — центр зоны,
+# поэтому взрыв гремит там, где стоял двойник, а не там, где сейчас плут.
+
+id: rogue_mirror_burst
+display: "Отражение — взрыв"
+class: rogue
+tier: 4
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: potion, effect: blindness, duration: $duration, amplifier: 1 }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $vulnerability
+        duration: $duration
+      - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1 }
+
+  - target: { type: self }
+    do:
+      - { action: dismiss, tag: mirror }
+      - { action: sound, sound: entity_generic_explode, pitch: 1.5, at-origin: true }

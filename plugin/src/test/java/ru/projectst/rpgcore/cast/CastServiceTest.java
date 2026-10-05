@@ -102,6 +102,10 @@ class CastServiceTest {
         }
 
         @Override
+        public void clearPotion(UUID target, String effect) {
+        }
+
+        @Override
         public void push(UUID target, Position from, double strength, double lift) {
         }
 
@@ -121,6 +125,15 @@ class CastServiceTest {
         @Override
         public RayHit castRay(UUID caster, double range, boolean stopAtEntity) {
             return new RayHit(positionOf(caster).orElseThrow(), ENEMY);
+        }
+
+        @Override
+        public void dash(UUID entity, double strength, double lift) {
+        }
+
+        @Override
+        public Optional<Position> offsetOf(UUID entity, double distance, boolean behind) {
+            return positionOf(entity);
         }
 
         @Override
@@ -214,7 +227,7 @@ class CastServiceTest {
     private StatusRegistry statusDefs;
     private ClassService classes;
     private CastService casts;
-    private ManaPool mana;
+    private ResourcePool mana;
     private CooldownTracker cooldowns;
     private FakeWorld world;
     private SkillDef skill;
@@ -288,7 +301,7 @@ class CastServiceTest {
         minions = new ru.projectst.rpgcore.skill.MinionService(() -> tick);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats, balance, skills,
                 zones, minions, () -> 0.0);
-        mana = new ManaPool(stats);
+        mana = new ResourcePool(stats, classes);
         cooldowns = new CooldownTracker(() -> tick);
         casts = new CastService(classes, skills, balance, statuses, statusDefs, stats,
                 mana, cooldowns, runtime);
@@ -355,7 +368,7 @@ class CastServiceTest {
 
         CastOutcome out = casts.cast(PLAYER, "bolt");
 
-        assertEquals(CastOutcome.Kind.NOT_ENOUGH_MANA, out.kind());
+        assertEquals(CastOutcome.Kind.NOT_ENOUGH_RESOURCE, out.kind());
         assertTrue(out.detail().contains("20"), out.detail());
         assertTrue(out.detail().contains("5"), out.detail());
         assertEquals(5, mana.current(PLAYER), 1e-9);

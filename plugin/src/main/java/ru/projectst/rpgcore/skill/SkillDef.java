@@ -19,10 +19,21 @@ import java.util.Locale;
  * @param steps       тело навыка
  * @param trigger     что его запускает
  * @param intervalTicks для {@link SkillTrigger#ON_INTERVAL} — как часто
+ * @param internal    служебный навык: игрок его не изучает и не видит, он
+ *                    работает у всего класса. Нужен для отдач и тиков, которые
+ *                    в старом стеке висели безымянными метаскиллами и из-за
+ *                    этого попадали игроку в меню наравне с настоящими
  */
 public record SkillDef(String id, String display, String classId, int tier,
                        NumberRef manaCost, NumberRef cooldown, List<Step> steps,
-                       SkillTrigger trigger, int intervalTicks) {
+                       SkillTrigger trigger, int intervalTicks, boolean internal) {
+
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    SkillTrigger trigger, int intervalTicks) {
+        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+                false);
+    }
 
     /** Навык, который применяют вручную: самый частый случай. */
     public SkillDef(String id, String display, String classId, int tier,
@@ -47,5 +58,10 @@ public record SkillDef(String id, String display, String classId, int tier,
 
     public boolean passive() {
         return trigger.passive();
+    }
+
+    /** Можно ли его изучить и повесить на слот. */
+    public boolean selectable() {
+        return !internal && !passive();
     }
 }

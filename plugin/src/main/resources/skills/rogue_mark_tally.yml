@@ -1,0 +1,23 @@
+# Счёт ударов по помеченной цели.
+#
+# Служебный навык класса: срабатывает на каждом нанесённом уроне и, если
+# ударили помеченного, добавляет плуту стак. Стак кладётся на самого плута, а
+# условие проверяет цель, поэтому добавление вынесено в подчинённый навык —
+# иначе стак лёг бы на того, кого ударили.
+
+id: rogue_mark_tally
+display: "Метка смерти — счёт"
+class: rogue
+tier: 5
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: death_mark }
+    do:
+      - { action: cast, skill: rogue_mark_stack, at-targets: false }
+      - { action: particles, particle: crit, shape: point, count: 10 }

@@ -1,0 +1,13 @@
+# Один стак метки смерти плуту.
+
+id: rogue_mark_stack
+display: "Метка смерти — стак"
+class: rogue
+tier: 5
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: mark_stacks, duration: $duration }

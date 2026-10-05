@@ -97,6 +97,11 @@ class SkillRuntimeTest {
         }
 
         @Override
+        public void clearPotion(UUID target, String effect) {
+            calls.add("clear-potion " + name(target) + " " + effect);
+        }
+
+        @Override
         public void push(UUID target, Position from, double strength, double lift) {
             calls.add("push " + name(target) + " " + strength + " lift=" + lift);
         }
@@ -120,6 +125,17 @@ class SkillRuntimeTest {
         public RayHit castRay(UUID caster, double range, boolean stopAtEntity) {
             calls.add("ray " + range);
             return nextRayHit;
+        }
+
+        @Override
+        public void dash(UUID entity, double strength, double lift) {
+            calls.add("dash " + strength);
+        }
+
+        @Override
+        public Optional<Position> offsetOf(UUID entity, double distance, boolean behind) {
+            calls.add("offset " + distance + (behind ? " behind" : " front"));
+            return Optional.of(new Position(WORLD, 5, 64, 5));
         }
 
         @Override

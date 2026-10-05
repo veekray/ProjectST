@@ -1,0 +1,27 @@
+# 4. Веер клинков — кинжалы во всех вокруг, замедление и возврат выносливости.
+#
+# Возврат идёт за каждое попадание: действие применяется по разу на каждую цель
+# шага, поэтому «за каждое попадание» пишется само собой и не требует отдельного
+# ключа.
+
+id: rogue_fan_of_knives
+display: "Веер клинков"
+class: rogue
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: crit, shape: ring, count: 30, size: $radius }
+      - { action: sound, sound: entity_arrow_shoot, pitch: 1.6 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 0 }
+      - { action: restore, amount: $restore }
+      - { action: particles, particle: crit, shape: point, count: 5 }

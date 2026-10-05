@@ -81,4 +81,14 @@ public final class ActiveStatus {
         return def.id() + " x" + stacks + " до тика " + expiresAtTick
                 + (amount > 0 ? " (" + amount + ")" : "") + " от " + source;
     }
+
+    /**
+     * Снимает один стак.
+     *
+     * @return {@code true}, если стаков больше не осталось и статус пора убрать
+     */
+    boolean removeStack() {
+        stacks = stacks - 1;
+        return stacks <= 0;
+    }
 }

@@ -59,6 +59,8 @@ public final class BukkitSkillWorld implements SkillWorld {
     private final StatService stats;
     private final StatusService statuses;
     private final MinionService minions;
+    /** Частицы, о которых уже предупредили: в лог по одному разу. */
+    private final Set<String> badParticles = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public BukkitSkillWorld(Plugin plugin, DamageEngine engine, StatService stats,
                             StatusService statuses, MinionService minions) {
@@ -219,6 +221,20 @@ public final class BukkitSkillWorld implements SkillWorld {
         target.addPotionEffect(new PotionEffect(type, durationTicks, amplifier, false, true));
     }
 
+    @Override
+    public void clearPotion(UUID targetId, String effect) {
+        if (!(Bukkit.getEntity(targetId) instanceof LivingEntity target)) {
+            return;
+        }
+        PotionEffectType type = Registry.EFFECT.get(
+                NamespacedKey.minecraft(effect.toLowerCase(Locale.ROOT)));
+        if (type == null) {
+            plugin.getLogger().warning("неизвестный эффект зелья: " + effect);
+            return;
+        }
+        target.removePotionEffect(type);
+    }
+
     // ------------------------------------------------------------------ движение
 
     @Override
@@ -301,6 +317,39 @@ public final class BukkitSkillWorld implements SkillWorld {
         Location point = hit.getHitPosition().toLocation(caster.getWorld());
         return new RayHit(toPosition(point),
                 hit.getHitEntity() == null ? null : hit.getHitEntity().getUniqueId());
+    }
+
+    @Override
+    public void dash(UUID entityId, double strength, double lift) {
+        Entity entity = Bukkit.getEntity(entityId);
+        if (entity == null) {
+            return;
+        }
+        Vector look = entity.getLocation().getDirection().setY(0);
+        if (look.lengthSquared() < 1.0E-6) {
+            return;
+        }
+        entity.setVelocity(look.normalize().multiply(strength).setY(lift));
+    }
+
+    @Override
+    public Optional<Position> offsetOf(UUID entityId, double distance, boolean behind) {
+        Entity entity = Bukkit.getEntity(entityId);
+        if (entity == null) {
+            return Optional.empty();
+        }
+        Vector look = entity.getLocation().getDirection().setY(0);
+        if (look.lengthSquared() < 1.0E-6) {
+            look = new Vector(0, 0, 1);
+        }
+        look = look.normalize().multiply(behind ? -distance : distance);
+        Location at = entity.getLocation().clone().add(look);
+        // Внутрь блока не ставим: иначе удар в спину заканчивался бы застреванием
+        // в стене, и виноват был бы навык, а не геометрия.
+        if (at.getBlock().getType().isSolid()) {
+            return Optional.of(toPosition(entity.getLocation()));
+        }
+        return Optional.of(toPosition(at));
     }
 
     // ------------------------------------------------------------------ призыв
@@ -418,6 +467,10 @@ public final class BukkitSkillWorld implements SkillWorld {
             return;
         }
         Location start = living.getEyeLocation();
+        if (spec.yawOffset() != 0) {
+            start = start.clone();
+            start.setYaw((float) (start.getYaw() + spec.yawOffset()));
+        }
         Vector direction = start.getDirection().normalize();
 
         new ProjectileFlight(spec, handler, casterId, start, direction).start();
@@ -550,6 +603,22 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
         World world = location.get().getWorld();
         Location centre = location.get();
+        // Часть ванильных частиц требует данных: BLOCK хочет состояние блока,
+        // ITEM — предмет. Без них Bukkit бросает исключение, и навык обрывается
+        // на полпути, уже списав ману. Поэтому промах по частице — строка в
+        // логе, а не прерванный каст.
+        try {
+            draw(world, centre, type, shape, count, size);
+        } catch (RuntimeException e) {
+            if (badParticles.add(particle)) {
+                plugin.getLogger().warning("частица " + particle
+                        + " не рисуется без дополнительных данных: " + e.getMessage());
+            }
+        }
+    }
+
+    private void draw(World world, Location centre, Particle type,
+                      Action.Particles.Shape shape, int count, double size) {
         switch (shape) {
             case POINT -> world.spawnParticle(type, centre, count, 0.2, 0.2, 0.2, 0);
             case SPHERE -> world.spawnParticle(type, centre, count, size, size, size, 0);
@@ -572,6 +641,11 @@ public final class BukkitSkillWorld implements SkillWorld {
      * навыка. Автор навыка задаёт тег, радиус и частицу, а то, что зону видно,
      * обеспечивается здесь — забыть нарисовать печать невозможно.
      */
+    /** Точка модели как позиция мира: нужна тикеру зон. */
+    public Optional<Location> locationOf(Position at) {
+        return toLocation(at);
+    }
+
     public void drawZone(ru.projectst.rpgcore.skill.Zone zone) {
         if (zone.particle() == null) {
             return;

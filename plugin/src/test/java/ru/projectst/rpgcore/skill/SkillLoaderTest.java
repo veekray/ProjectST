@@ -72,7 +72,7 @@ class SkillLoaderTest {
         assertEquals("mark", status.statusId());
         assertEquals(160, status.duration().resolve(null, 1), 1e-9);
 
-        assertEquals(4, skill.steps().get(1).delayTicks());
+        assertEquals(4, skill.steps().get(1).delay().resolve(null, 1), 1e-9);
     }
 
     @Test

@@ -1,0 +1,28 @@
+# 3. Тёмная пелена — облако слепит и ослабляет.
+#
+# Зона живёт сама и тикает своим навыком, поэтому облако держит тех, кто в нём
+# стоит, а не тех, кто рядом с колдуном. Прежде для этого призывался невидимый
+# моб-маркер, и из-за него же облако попадало под выборку целей чужих навыков.
+
+id: warlock_dark_veil
+display: "Тёмная пелена"
+class: warlock
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    origin: forward $distance
+    do:
+      - { action: sound, sound: entity_wither_ambient, volume: 0.9, pitch: 0.6 }
+      - action: zone
+        tag: veil
+        radius: $radius
+        duration: $duration
+        particle: squid_ink
+        at-origin: true
+        on-tick: warlock_veil_tick
+        tick-interval: 20

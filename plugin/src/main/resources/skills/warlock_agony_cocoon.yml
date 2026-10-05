@@ -1,0 +1,39 @@
+# 6. Кокон мучений — финишер. Удар, затем цель изымается из боя: она ничего не
+#    может сделать, и ей никто не может навредить.
+#
+# Это не просто долгий стан. Изъятие — отдельный статус: он подавляет контроль,
+# не даёт накладывать новый и отменяет урон целиком. Поэтому союзники не могут
+# добить запечатанного, и именно так и задумано.
+#
+# Тратит все души: каждая удлиняет кокон и усиливает удар. Длительность
+# складывается, потому что изъятие объявлено продлеваемым статусом, а число душ
+# считается до того, как их снимут.
+
+id: warlock_agony_cocoon
+display: "Кокон мучений"
+class: warlock
+tier: 5
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  # Души считаем первым шагом: после снятия множитель был бы нулевым.
+  - target: { type: self }
+    do:
+      - { action: count, counter: souls, status: soul }
+      - { action: sound, sound: entity_wither_spawn, volume: 0.7, pitch: 1.4 }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: damage, amount: $damage_per_soul * @souls, school: magic }
+      - { action: status, id: banish, duration: $duration }
+      - { action: status, id: banish, duration: $duration_per_soul * @souls }
+      - { action: particles, particle: soul, shape: sphere, count: 60, size: 1.2 }
+      - { action: sound, sound: entity_wither_hurt, pitch: 0.5 }
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: soul }

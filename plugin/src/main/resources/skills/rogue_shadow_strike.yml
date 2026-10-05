@@ -1,0 +1,32 @@
+# 3. Удар из тени — плут оказывается за спиной ближайшего врага и бьёт.
+#
+# Сближение идёт к первой цели шага, поэтому у шага стоит limit: 1 — иначе «за
+# спину» означало бы «за спину кому-то из толпы».
+#
+# Шанс оглушения задан числом в навыке, а не статом: прежняя версия считала его
+# как мой шанс минус сопротивление цели, и ни того, ни другого стата в новом
+# ядре пока нет. Когда появятся, здесь будет ссылка, а не литерал.
+
+id: rogue_shadow_strike
+display: "Удар из тени"
+class: rogue
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: approach, distance: $behind_distance, behind: true }
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: portal, shape: sphere, count: 30, size: 0.6 }
+      - { action: sound, sound: entity_enderman_teleport, pitch: 1.2 }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    if:
+      - { caster: chance, value: "35" }
+    do:
+      - { action: status, id: stun, duration: $stun_duration }
+      - { action: sound, sound: block_anvil_land, volume: 0.5, pitch: 1.5 }

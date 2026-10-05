@@ -36,8 +36,8 @@ public final class SkillLoader {
 
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
-                    + "teleport, particles, sound, message, cast, ray, projectile, summon, "
-                    + "dismiss, zone, consume-zones";
+                    + "teleport, dash, approach, particles, sound, message, cast, ray, "
+                    + "projectile, summon, dismiss, zone, consume-zones, restore, count";
 
     private SkillLoader() {
     }
@@ -60,6 +60,7 @@ public final class SkillLoader {
         NumberRef cooldown = number(root, "cooldown", errors, "skill", new NumberRef.Literal(0));
         SkillTrigger trigger = readTrigger(root, errors);
         int interval = root.integer("every", 1, 12_000, 0);
+        boolean internal = root.bool("internal", false);
         List<Step> steps = readSteps(root, errors);
 
         doc.finish();
@@ -94,7 +95,7 @@ public final class SkillLoader {
             return Optional.empty();
         }
         return Optional.of(new SkillDef(id, display, classId, tier, mana, cooldown, steps,
-                trigger, interval));
+                trigger, interval, internal));
     }
 
     /**
@@ -143,7 +144,8 @@ public final class SkillLoader {
 
     private static Optional<Step> readStep(YmlMap body, String path, ContentErrors errors) {
         Optional<TargetSpec> target = readTarget(body, path, errors);
-        int delay = body.integer("delay", 0, 12_000, 0);
+        NumberRef delay = number(body, "delay", errors, path, new NumberRef.Literal(0));
+        OriginSpec origin = readOrigin(body, path, errors);
         List<Condition> conditions = readConditions(body, path, errors);
         List<Action> actions = readActions(body, path, errors);
 
@@ -153,7 +155,44 @@ public final class SkillLoader {
         if (target.isEmpty() || actions.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new Step(target.get(), actions, conditions, delay));
+        return Optional.of(new Step(target.get(), actions, conditions, origin, delay));
+    }
+
+    /**
+     * Точка действия шага: {@code origin: self} или {@code origin: forward 9}.
+     *
+     * <p>Отсутствие ключа означает «точка приходит извне» — от луча, снаряда или
+     * вызвавшего навыка. Это не то же самое, что «позиция кастера», и именно
+     * поэтому у него отдельное имя: молчаливый откат к кастеру был бы взрывом
+     * под ногами вместо взрыва в точке попадания.
+     */
+    private static OriginSpec readOrigin(YmlMap body, String path, ContentErrors errors) {
+        if (body.rawKind("origin") == YmlMap.Kind.ABSENT) {
+            body.str("origin", "");
+            return OriginSpec.INHERIT;
+        }
+        String raw = body.str("origin", "").trim();
+        if (raw.equals("self")) {
+            return OriginSpec.self();
+        }
+        if (raw.startsWith("forward")) {
+            String rest = raw.substring("forward".length()).trim();
+            if (rest.isEmpty()) {
+                errors.add(body.at(), path + ".origin",
+                        "для точки впереди нужна дистанция: origin: forward 9");
+                return OriginSpec.INHERIT;
+            }
+            try {
+                return OriginSpec.forward(NumberRef.parse(rest));
+            } catch (NumberFormatException e) {
+                errors.add(body.at(), path + ".origin",
+                        "дистанция точки впереди: " + e.getMessage());
+                return OriginSpec.INHERIT;
+            }
+        }
+        errors.add(body.at(), path + ".origin",
+                "неизвестная точка действия \"" + raw + "\", допустимы: self, forward <блоков>");
+        return OriginSpec.INHERIT;
     }
 
     private static Optional<TargetSpec> readTarget(YmlMap body, String path, ContentErrors errors) {
@@ -165,6 +204,8 @@ public final class SkillLoader {
         TargetSpec.Type type = t.enumOf("type", TargetSpec.Type.class, null);
         NumberRef radius = number(t, "radius", errors, path + ".target", null);
         NumberRef angle = number(t, "angle", errors, path + ".target", null);
+        String tag = t.str("tag", "");
+        int limit = t.integer("limit", 1, 100, 0);
 
         if (type == null) {
             errors.add(t.at(), path + ".target.type", "обязательный ключ type отсутствует");
@@ -179,7 +220,18 @@ public final class SkillLoader {
             errors.add(t.at(), path + ".target.angle", "для конуса нужен angle");
             return Optional.empty();
         }
-        return Optional.of(new TargetSpec(type, radius, angle));
+        if (type.needsTag() && tag.isBlank()) {
+            errors.add(t.at(), path + ".target.tag",
+                    "для цели " + type.name().toLowerCase(Locale.ROOT) + " нужен tag зоны");
+            return Optional.empty();
+        }
+        if (!type.needsTag() && !tag.isBlank()) {
+            errors.add(t.at(), path + ".target.tag",
+                    "tag имеет смысл только у цели enemies_near_zone");
+            return Optional.empty();
+        }
+        return Optional.of(new TargetSpec(type, radius, angle,
+                tag.isBlank() ? null : tag, limit));
     }
 
     // ------------------------------------------------------------------ условия
@@ -226,13 +278,15 @@ public final class SkillLoader {
             case "is-player" -> Condition.Check.IS_PLAYER;
             case "chance" -> Condition.Check.CHANCE;
             case "in-zone" -> Condition.Check.IN_ZONE;
+            case "counter" -> Condition.Check.COUNTER;
+            case "has-minion" -> Condition.Check.HAS_MINION;
             case "zone-count" -> Condition.Check.ZONE_COUNT;
             default -> null;
         };
         if (check == null) {
             errors.add(body.at(), path, "неизвестная проверка \"" + raw
                     + "\", допустимы: has-status, status-stacks, is-player, chance, "
-                    + "in-zone, zone-count");
+                    + "in-zone, zone-count, counter, has-minion");
             return Optional.empty();
         }
         if (check != Condition.Check.IS_PLAYER && value.isBlank()) {
@@ -283,11 +337,12 @@ public final class SkillLoader {
 
             case "remove-status" -> {
                 String statusId = b.str("id", "");
+                int stacks = b.integer("stacks", 1, 99, 0);
                 if (statusId.isBlank()) {
                     errors.add(b.at(), path + ".id", "обязательный ключ id отсутствует");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.RemoveStatus(statusId));
+                yield Optional.of(new Action.RemoveStatus(statusId, stacks));
             }
 
             case "modify-stat" -> {
@@ -300,6 +355,15 @@ public final class SkillLoader {
                     yield Optional.empty();
                 }
                 yield Optional.of(new Action.ModifyStat(statId, op, value, duration));
+            }
+
+            case "clear-potion" -> {
+                String effect = b.str("effect", "");
+                if (effect.isBlank()) {
+                    errors.add(b.at(), path + ".effect", "обязательный ключ effect отсутствует");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.ClearPotion(effect));
             }
 
             case "potion" -> {
@@ -334,6 +398,38 @@ public final class SkillLoader {
             }
 
             case "teleport" -> require(b, path, errors, "forward", Action.Teleport::new);
+
+            case "dash" -> {
+                NumberRef strength = number(b, "strength", errors, path, null);
+                NumberRef lift = number(b, "lift", errors, path, null);
+                if (strength == null) {
+                    errors.add(b.at(), path + ".strength",
+                            "обязательный ключ strength отсутствует");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Dash(strength, lift));
+            }
+
+            case "approach" -> {
+                NumberRef distance = number(b, "distance", errors, path,
+                        new NumberRef.Literal(1.2));
+                boolean behind = b.bool("behind", true);
+                yield Optional.of(new Action.Approach(distance, behind));
+            }
+
+            case "restore" -> require(b, path, errors, "amount", Action.Restore::new);
+
+            case "count" -> {
+                String counter = b.str("counter", "");
+                String ofStatus = b.str("status", "");
+                if (counter.isBlank()) {
+                    errors.add(b.at(), path + ".counter",
+                            "обязательный ключ counter отсутствует");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Count(counter,
+                        ofStatus.isBlank() ? null : ofStatus));
+            }
 
             case "particles" -> {
                 String particle = b.str("particle", "");
@@ -374,19 +470,22 @@ public final class SkillLoader {
                 String particle = b.str("particle", "");
                 String onHit = b.str("on-hit", "");
                 String onEnd = b.str("on-end", "");
-                if (range == null || onHit.isBlank()) {
-                    errors.add(b.at(), path, "нужны ключи range и on-hit");
+                double yawOffset = b.number("yaw-offset", -180, 180, 0);
+                if (range == null || (onHit.isBlank() && onEnd.isBlank())) {
+                    errors.add(b.at(), path, "нужны ключ range и хотя бы один из on-hit, on-end");
                     yield Optional.empty();
                 }
-                if (!hitPlayers && !hitMobs) {
+                if (!hitPlayers && !hitMobs && onEnd.isBlank()) {
                     errors.add(b.at(), path,
-                            "снаряд не задевает ни игроков, ни мобов: он ни во что не попадёт");
+                            "снаряд не задевает ни игроков, ни мобов и не имеет on-end: "
+                                    + "он ни во что не попадёт и ничего не сделает");
                     yield Optional.empty();
                 }
                 yield Optional.of(new Action.Projectile(speed, range, hitRadius, gravity, pierce,
                         hitPlayers, hitMobs, stopAtBlock,
                         particle.isBlank() ? null : particle,
-                        onHit, onEnd.isBlank() ? null : onEnd));
+                        onHit.isBlank() ? null : onHit,
+                        onEnd.isBlank() ? null : onEnd, yawOffset));
             }
 
             case "summon" -> {
@@ -420,12 +519,28 @@ public final class SkillLoader {
                 NumberRef duration = number(b, "duration", errors, path, null);
                 boolean atOrigin = b.bool("at-origin", false);
                 String particle = b.str("particle", "");
+                NumberRef minGap = number(b, "min-gap", errors, path, null);
+                String onEnter = b.str("on-enter", "");
+                String onTick = b.str("on-tick", "");
+                int tickInterval = b.integer("tick-interval", 1, 1200, 0);
                 if (tag.isBlank() || radius == null || duration == null) {
                     errors.add(b.at(), path, "нужны ключи tag, radius и duration");
                     yield Optional.empty();
                 }
+                if (!onTick.isBlank() && tickInterval < 1) {
+                    errors.add(b.at(), path + ".tick-interval",
+                            "зоне с on-tick нужен tick-interval");
+                    yield Optional.empty();
+                }
+                if (onTick.isBlank() && tickInterval > 0) {
+                    errors.add(b.at(), path + ".tick-interval",
+                            "tick-interval имеет смысл только с on-tick");
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.PlaceZone(tag, radius, duration, atOrigin,
-                        particle.isBlank() ? null : particle));
+                        particle.isBlank() ? null : particle, minGap,
+                        onEnter.isBlank() ? null : onEnter,
+                        onTick.isBlank() ? null : onTick, tickInterval));
             }
 
             case "consume-zones" -> {

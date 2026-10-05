@@ -1,0 +1,32 @@
+# Натяжение оков.
+#
+# Расхождение названо честно: прежде цепь тянула только тех, кто дальше восьми
+# блоков, а ближних лишь замедляла. Разделение по расстоянию в новом ядре пока
+# не выражается — цели выбираются радиусом, а не кольцом. Поэтому тянет всех
+# закованных, но слабо: на коротком расстоянии рывок почти не чувствуется, а
+# замедление ближних осталось отдельным шагом.
+
+id: warlock_chains_tick
+display: "Оковы отчаяния — натяжение"
+class: warlock
+tier: 3
+internal: true
+
+on: interval
+every: 10
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    origin: self
+    if:
+      - { target: has-status, value: chains }
+    do:
+      - { action: pull, strength: $pull, ticks: 1 }
+      - { action: particles, particle: crit, shape: point, count: 6 }
+
+  - target: { type: enemies_in_radius, radius: $near_radius }
+    if:
+      - { target: has-status, value: chains }
+    do:
+      - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 0 }

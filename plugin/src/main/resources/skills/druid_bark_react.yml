@@ -1,0 +1,29 @@
+# Ответ коры: оглушает того, кто ударил.
+#
+# Служебный навык класса: игрок его не изучает, он работает у всякого друида,
+# пока на нём держится кора. Каждый ответ тратит один заряд — поэтому обычная
+# кора отвечает один раз, а усиленная два.
+
+id: druid_bark_react
+display: "Кора — ответ"
+class: druid
+tier: 3
+internal: true
+
+on: damaged
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { caster: has-status, value: bark_guard }
+    do:
+      - { action: status, id: stun, duration: $stun_duration }
+      - { action: particles, particle: composter, shape: point, count: 25 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: bark_guard }
+    do:
+      - { action: remove-status, id: bark_guard, stacks: 1 }
+      - { action: sound, sound: block_wood_break, pitch: 0.8 }

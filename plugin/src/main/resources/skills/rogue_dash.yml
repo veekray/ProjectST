@@ -1,0 +1,21 @@
+# 1. Рывок — самый дешёвый способ оказаться там, где нужно.
+#
+# Отдельный примитив dash, а не отбрасывание от точки: он двигает самого плута
+# по его взгляду. В старом стеке и то и другое делалось механикой скорости, и
+# чтобы понять, кого она двигает, приходилось смотреть на таргетер.
+
+id: rogue_dash
+display: "Рывок"
+class: rogue
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $strength, lift: $lift }
+      - { action: particles, particle: crit, shape: sphere, count: 14, size: 0.4 }
+      - { action: sound, sound: entity_player_attack_sweep, pitch: 1.4 }

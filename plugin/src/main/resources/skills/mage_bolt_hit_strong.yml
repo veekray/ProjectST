@@ -1,0 +1,18 @@
+# Попадание усиленного разряда.
+#
+# Пробивающий снаряд зовёт этот навык на каждую задетую цель, поэтому урон
+# здесь считается по одной цели, а не по списку.
+
+id: mage_bolt_hit_strong
+display: "Мановый разряд — пробой"
+class: mage
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: particles, particle: witch, shape: sphere, count: 25, size: 0.35 }
+      - { action: sound, sound: entity_illusioner_mirror_move, pitch: 1.1 }

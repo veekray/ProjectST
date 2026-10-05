@@ -15,10 +15,13 @@ import java.util.List;
  *
  * @param conditions условия; на кастере отменяют шаг, на целях отсеивают
  *                   не прошедших
- * @param delayTicks задержка перед шагом
+ * @param origin     откуда считается шаг; по умолчанию точка приходит извне
+ * @param delay      задержка перед шагом в тиках; ссылка в баланс допустима,
+ *                   потому что задержка — такое же число для балансировки, как
+ *                   урон: «секунда на сбор» однажды станет полутора
  */
 public record Step(TargetSpec target, List<Action> actions, List<Condition> conditions,
-                   int delayTicks) {
+                   OriginSpec origin, NumberRef delay) {
 
     public Step {
         if (target == null) {
@@ -29,12 +32,17 @@ public record Step(TargetSpec target, List<Action> actions, List<Condition> cond
         }
         actions = List.copyOf(actions);
         conditions = conditions == null ? List.of() : List.copyOf(conditions);
-        if (delayTicks < 0) {
-            throw new IllegalArgumentException("задержка не может быть отрицательной");
-        }
+        origin = origin == null ? OriginSpec.INHERIT : origin;
+        delay = delay == null ? new NumberRef.Literal(0) : delay;
     }
 
     public Step(TargetSpec target, List<Action> actions, int delayTicks) {
-        this(target, actions, List.of(), delayTicks);
+        this(target, actions, List.of(), OriginSpec.INHERIT, new NumberRef.Literal(delayTicks));
+    }
+
+    public Step(TargetSpec target, List<Action> actions, List<Condition> conditions,
+                int delayTicks) {
+        this(target, actions, conditions, OriginSpec.INHERIT,
+                new NumberRef.Literal(delayTicks));
     }
 }

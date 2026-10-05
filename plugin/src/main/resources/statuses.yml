@@ -54,7 +54,10 @@ statuses:
   banish:
     category: immunity
     duration: 80
-    stacking: refresh
+    # Продлеваемое, а не обновляемое: Кокон накладывает базовые четыре секунды и
+    # добавку за каждую душу, и они должны складываться. С обновлением добавка
+    # заменяла бы базу, и кокон с одной душой выходил бы короче, чем без душ.
+    stacking: extend
     priority: 100
     exclusive: control
     suppresses: [stun, root]
@@ -81,3 +84,91 @@ statuses:
     duration: 300
     stacking: stacks
     max-stacks: 5
+  # ---------------------------------------------------------------- маг
+  # Усиление на один каст: ядро мага снимает его первым шагом каждого навыка,
+  # поэтому бесплатно дожить до следующего нажатия оно не может.
+  empowered:
+    category: buff
+    duration: 20
+    stacking: refresh
+    tags: [soft]
+  # ---------------------------------------------------------------- друид
+  # Счётчики ролей. Стаки, а не отдельные статусы на каждое число: «три Роста»
+  # проверяется одним условием, и максимум объявлен один раз здесь.
+  growth:
+    category: buff
+    duration: 300
+    stacking: stacks
+    max-stacks: 3
+    tags: [counter]
+
+  wither:
+    category: debuff
+    duration: 300
+    stacking: stacks
+    max-stacks: 3
+    tags: [counter]
+
+  # Заряды ответа коры: обычная держит один, усиленная два.
+  bark_guard:
+    category: buff
+    duration: 200
+    stacking: stacks
+    max-stacks: 2
+    tags: [soft]
+
+  # Метка фазы поля: есть — значит прошлый тик был ростом.
+  bloom_phase:
+    category: buff
+    duration: 30
+    stacking: refresh
+    tags: [soft]
+  # ---------------------------------------------------------------- колдун
+  # Души. Их даёт отработавшее проклятие, тратят Переливание и Кокон.
+  soul:
+    category: buff
+    duration: 600
+    stacking: stacks
+    max-stacks: 5
+    tags: [counter]
+
+  # Иссушение: по нему тикает урон и считается дань Переливания.
+  curse:
+    category: debuff
+    duration: 100
+    stacking: refresh
+    tags: [soft, curse]
+
+  reaper_mark:
+    category: mark
+    duration: 300
+    stacking: refresh
+    tags: [mark]
+
+  chains:
+    category: debuff
+    duration: 160
+    stacking: refresh
+    tags: [soft]
+  # ---------------------------------------------------------------- плут
+  # Метка Шага призрака: держится до первого удара, поэтому крит ровно один.
+  ambush:
+    category: buff
+    duration: 60
+    stacking: refresh
+    tags: [soft]
+
+  death_mark:
+    category: mark
+    duration: 100
+    stacking: refresh
+    tags: [mark]
+
+  # Удары, нанесённые по помеченному. Копятся у плута, а не у цели: метка одна,
+  # а бить по ней могут из нескольких рук.
+  mark_stacks:
+    category: buff
+    duration: 200
+    stacking: stacks
+    max-stacks: 20
+    tags: [counter]

@@ -1,0 +1,51 @@
+# 5. Переливание душ — тратит одну душу и собирает дань с каждого проклятого.
+#
+# Число проклятых рядом считается явно и уходит в счётчик, на который умножается
+# добавка. В старом стеке это изображалось отдельной механикой на каждую цель,
+# и сколько именно их засчиталось, узнавали из отладочных сообщений в чате.
+#
+# Щиты складываются, поэтому базовая часть и добавка за проклятых дают один
+# общий запас, а не вытесняют друг друга.
+
+id: warlock_transfusion
+display: "Переливание душ"
+class: warlock
+tier: 4
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  # Без души навык не работает: условие на кастере отменяет шаг целиком, и
+  # дальше тратить нечего.
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: soul }
+    do:
+      - { action: remove-status, id: soul, stacks: 1 }
+      - { action: sound, sound: entity_wither_ambient, volume: 0.8, pitch: 1.7 }
+      - { action: particles, particle: soul, shape: sphere, count: 50, size: 2 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: soul }
+      - { target: has-status, value: curse }
+    do:
+      - { action: count, counter: cursed }
+      - { action: particles, particle: soul, shape: point, count: 12 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: soul }
+    do:
+      - { action: status, id: shield, duration: $shield_duration, amount: $shield }
+      - { action: heal, amount: $heal }
+
+  - target: { type: self }
+    if:
+      - { caster: counter, value: "cursed:1" }
+    do:
+      - { action: status, id: shield, duration: $shield_duration, amount: $shield_per * @cursed }
+      - { action: heal, amount: $heal_per * @cursed }
+      - { action: sound, sound: entity_vex_hurt, volume: 0.4, pitch: 0.9 }

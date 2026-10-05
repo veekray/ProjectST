@@ -1,0 +1,19 @@
+# Жатва: проклятие отработало срок и отдало колдуну душу.
+#
+# Служебный навык: его зовут отложенные шаги проклятия, а не игрок. Души —
+# расходный счётчик колдуна, и ровно поэтому они статус со стаками: максимум
+# объявлен один раз в statuses.yml, а не проверяется в каждом навыке.
+
+id: warlock_soul_gain
+display: "Жатва"
+class: warlock
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: soul, duration: $duration }
+      - { action: particles, particle: soul, shape: sphere, count: 12, size: 0.4 }
+      - { action: sound, sound: entity_vex_ambient, volume: 0.6, pitch: 1.4 }

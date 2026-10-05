@@ -22,11 +22,20 @@ import ru.projectst.rpgcore.balance.BalanceValue;
  * @param maxLevel   предел уровня: выше опыт не копится
  * @param xpCurve    сколько опыта нужно, чтобы уйти с уровня N на N+1
  * @param pointsPerLevel сколько очков навыков даёт уровень
+ * @param resource   чем класс платит за навыки
  */
 public record ClassDef(String id, String display, int slots,
                        Map<Integer, Integer> tierLevels,
                        Map<String, BalanceValue> statCurves,
-                       int maxLevel, BalanceValue xpCurve, int pointsPerLevel) {
+                       int maxLevel, BalanceValue xpCurve, int pointsPerLevel,
+                       ResourceSpec resource) {
+
+    public ClassDef(String id, String display, int slots, Map<Integer, Integer> tierLevels,
+                    Map<String, BalanceValue> statCurves, int maxLevel, BalanceValue xpCurve,
+                    int pointsPerLevel) {
+        this(id, display, slots, tierLevels, statCurves, maxLevel, xpCurve, pointsPerLevel,
+                ResourceSpec.MANA);
+    }
 
     public ClassDef {
         if (id == null || !id.equals(id.toLowerCase(Locale.ROOT))) {
@@ -41,6 +50,7 @@ public record ClassDef(String id, String display, int slots,
         if (xpCurve == null) {
             throw new IllegalArgumentException("кривая опыта обязательна: " + id);
         }
+        resource = resource == null ? ResourceSpec.MANA : resource;
         tierLevels = Collections.unmodifiableMap(new LinkedHashMap<>(
                 tierLevels == null ? Map.of() : tierLevels));
         statCurves = Collections.unmodifiableMap(new LinkedHashMap<>(

@@ -37,6 +37,9 @@ public interface SkillWorld {
 
     void potion(UUID target, String effect, int durationTicks, int amplifier);
 
+    /** Снять эффект зелья: невидимость рвётся ударом, а не ждёт своего срока. */
+    void clearPotion(UUID target, String effect);
+
     /** Отбросить цель от точки. */
     void push(UUID target, Position from, double strength, double lift);
 
@@ -47,6 +50,16 @@ public interface SkillWorld {
 
     /** Точка в нескольких блоках перед сущностью по направлению взгляда. */
     Optional<Position> forwardOf(UUID entity, double distance);
+
+    /** Рывок сущности по её собственному взгляду. */
+    void dash(UUID entity, double strength, double lift);
+
+    /**
+     * Точка рядом с сущностью по её направлению взгляда.
+     *
+     * @param behind true — позади неё, false — перед ней
+     */
+    Optional<Position> offsetOf(UUID entity, double distance, boolean behind);
 
     /**
      * Первое, во что упрётся луч от глаз сущности.

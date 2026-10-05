@@ -1,0 +1,45 @@
+# 4. Хватающие корни — оглушают всех вокруг.
+#
+# Контроль здесь главное, урон — приправа. Усиление удлиняет стан с полутора
+# секунд до двух с половиной и тратит Рост.
+
+id: druid_grasping_roots
+display: "Хватающие корни"
+class: druid
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: block_rooted_dirt_place, pitch: 0.8 }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: status-stacks, value: "growth:3", not: true }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: status, id: root, duration: $root_duration }
+      - { action: particles, particle: composter, shape: point, count: 10 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: status-stacks, value: "growth:3" }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: status, id: root, duration: $empowered_root_duration }
+      - { action: particles, particle: composter, shape: point, count: 14 }
+
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "growth:3" }
+    do:
+      - { action: remove-status, id: growth }
+
+  - target: { type: self }
+    do:
+      - { action: status, id: wither, duration: $counter_duration }

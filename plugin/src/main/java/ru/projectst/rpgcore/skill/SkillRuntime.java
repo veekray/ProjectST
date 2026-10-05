@@ -36,6 +36,12 @@ public final class SkillRuntime {
     private final MinionService minions;
     private final DoubleSupplier random;
 
+    /**
+     * Куда возвращать ресурс. Исполнитель не знает, мана это или выносливость:
+     * чей ресурс и как он называется, решает класс игрока.
+     */
+    private java.util.function.ObjDoubleConsumer<UUID> resources = (player, amount) -> { };
+
     public SkillRuntime(SkillWorld world, StatusService statuses, StatService stats,
                         BalanceBook balance, SkillRegistry skills, ZoneService zones,
                         MinionService minions, DoubleSupplier random) {
@@ -47,6 +53,16 @@ public final class SkillRuntime {
         this.zones = zones;
         this.minions = minions;
         this.random = random;
+    }
+
+    /**
+     * Подключает возврат ресурса.
+     *
+     * <p>Ставится после сборки, потому что пул ресурсов знает о классах, а
+     * классы — о навыках: прямая ссылка замкнула бы круг.
+     */
+    public void useResources(java.util.function.ObjDoubleConsumer<UUID> sink) {
+        this.resources = sink == null ? (player, amount) -> { } : sink;
     }
 
     public void cast(UUID caster, SkillDef skill, int level) {
@@ -61,31 +77,35 @@ public final class SkillRuntime {
         }
         BalanceTable table = balance.table(skill.id());
         for (Step step : skill.steps()) {
-            if (step.delayTicks() > 0) {
-                world.runLater(step.delayTicks(),
-                        () -> runStep(context, skill, step, table, depth));
+            int delay = (int) resolve(step.delay(), table, context, 0);
+            if (delay > 0) {
+                world.runLater(delay, () -> runStep(context, skill, step, table, depth));
             } else {
                 runStep(context, skill, step, table, depth);
             }
         }
     }
 
-    private void runStep(CastContext context, SkillDef skill, Step step,
+    private void runStep(CastContext outer, SkillDef skill, Step step,
                          BalanceTable table, int depth) {
         // Условия на кастере отменяют шаг целиком.
         for (Condition condition : step.conditions()) {
             if (condition.scope() == Condition.Scope.CASTER
-                    && !matches(condition, context.caster(), context)) {
+                    && !matches(condition, outer.caster(), outer)) {
                 return;
             }
         }
+
+        // Точка действия шага. Считается здесь и дальше не меняется, поэтому
+        // «откуда считается этот шаг» читается в самом шаге, а не собирается
+        // из цепочки вложенных вызовов.
+        CastContext context = withStepOrigin(outer, step, table);
 
         double radius = resolve(step.target().radius(), table, context, 0);
         double angle = resolve(step.target().angle(), table, context, 0);
 
         // Единственное место, где определяются цели шага.
-        List<UUID> targets =
-                world.resolveTargets(context, step.target().type(), radius, angle);
+        List<UUID> targets = resolveTargets(context, step, radius, angle);
 
         // Условия на целях не отменяют шаг, а отсеивают не прошедших.
         List<UUID> kept = new ArrayList<>(targets.size());
@@ -111,6 +131,61 @@ public final class SkillRuntime {
         }
     }
 
+    /** Точка действия для шага: своя, впереди по взгляду или пришедшая извне. */
+    private CastContext withStepOrigin(CastContext context, Step step, BalanceTable table) {
+        return switch (step.origin().kind()) {
+            case INHERIT -> context;
+            case SELF -> world.positionOf(context.caster())
+                    .map(context::withOrigin).orElse(context);
+            case FORWARD -> world.forwardOf(context.caster(),
+                            step.origin().distance().resolve(table, context.level(),
+                                    context.counters()))
+                    .map(context::withOrigin).orElse(context);
+        };
+    }
+
+    /**
+     * Цели шага.
+     *
+     * <p>Зонные цели собираются здесь, а не в порту мира: порт не знает про
+     * зоны, и знать ему незачем. Ограничение {@code limit} применяется
+     * последним — после выборки, но до условий, и это важно: в старом стеке
+     * {@code limit=1} отрезал список ДО фильтра, поэтому ближайшая неподходящая
+     * цель вытесняла подходящую, и навык молча не срабатывал.
+     */
+    private List<UUID> resolveTargets(CastContext context, Step step,
+                                      double radius, double angle) {
+        TargetSpec spec = step.target();
+        List<UUID> found;
+        if (spec.type() == TargetSpec.Type.ENEMIES_NEAR_ZONE) {
+            java.util.LinkedHashSet<UUID> unique = new java.util.LinkedHashSet<>();
+            for (Zone zone : zones.ofOwner(context.caster(), spec.tag())) {
+                unique.addAll(world.resolveTargets(context.withOrigin(zone.center()),
+                        TargetSpec.Type.ENEMIES_NEAR_ORIGIN, radius, angle));
+            }
+            found = new ArrayList<>(unique);
+        } else {
+            found = world.resolveTargets(context, spec.type(), radius, angle);
+        }
+        if (spec.limit() > 0 && found.size() > spec.limit()) {
+            found = nearestFirst(context, found).subList(0, spec.limit());
+        }
+        return found;
+    }
+
+    private List<UUID> nearestFirst(CastContext context, List<UUID> targets) {
+        Position from = context.origin() != null
+                ? context.origin()
+                : world.positionOf(context.caster()).orElse(null);
+        List<UUID> sorted = new ArrayList<>(targets);
+        if (from == null) {
+            return sorted;
+        }
+        sorted.sort(java.util.Comparator.comparingDouble(target ->
+                world.positionOf(target).map(from::distanceTo).orElse(Double.MAX_VALUE)));
+        return sorted;
+    }
+
     // ------------------------------------------------------------------ условия
 
     private boolean matches(Condition condition, UUID subject, CastContext context) {
@@ -131,6 +206,12 @@ public final class SkillRuntime {
                         .map(p -> zones.at(p, parts[0]).stream()
                                 .anyMatch(z -> !ownOnly || z.ownedBy(context.caster())))
                         .orElse(false);
+            }
+            case HAS_MINION -> !minions.ofOwner(subject, condition.value()).isEmpty();
+            case COUNTER -> {
+                String[] parts = condition.value().split(":", 2);
+                double needed = parts.length > 1 ? Double.parseDouble(parts[1]) : 1;
+                yield context.counter(parts[0]) >= needed;
             }
             case ZONE_COUNT -> {
                 String[] parts = condition.value().split(":", 2);
@@ -162,7 +243,15 @@ public final class SkillRuntime {
                             resolve(a.amount(), table, context, 0),
                             "skill:" + skill.id())));
 
-            case Action.RemoveStatus a -> forEach(targets, t -> statuses.remove(t, a.statusId()));
+            case Action.RemoveStatus a -> forEach(targets, t -> {
+                if (a.stacks() > 0) {
+                    for (int i = 0; i < a.stacks(); i++) {
+                        statuses.removeStack(t, a.statusId());
+                    }
+                } else {
+                    statuses.remove(t, a.statusId());
+                }
+            });
 
             case Action.ModifyStat a -> {
                 double value = a.value().resolve(table, level, context.counters());
@@ -179,6 +268,8 @@ public final class SkillRuntime {
                     }
                 });
             }
+
+            case Action.ClearPotion a -> forEach(targets, t -> world.clearPotion(t, a.effect()));
 
             case Action.Potion a -> forEach(targets, t -> world.potion(t, a.effect(),
                     (int) resolve(a.duration(), table, context, 0), a.amplifier()));
@@ -244,16 +335,51 @@ public final class SkillRuntime {
 
             case Action.Message a -> forEach(targets, t -> world.message(t, a.text()));
 
+            case Action.Dash a -> world.dash(context.caster(),
+                    a.strength().resolve(table, level, context.counters()),
+                    resolve(a.lift(), table, context, 0.2));
+
+            case Action.Approach a -> {
+                // Сближение идёт к первой цели шага. С limit: 1 это ближайшая,
+                // и так его и пишут: иначе «за спину» означало бы «за спину
+                // кому-то из толпы».
+                if (!targets.isEmpty()) {
+                    world.offsetOf(targets.get(0),
+                                    resolve(a.distance(), table, context, 1.2), a.behind())
+                            .ifPresent(to -> world.teleport(context.caster(), to));
+                }
+            }
+
+            case Action.Restore a -> {
+                double amount = a.amount().resolve(table, level, context.counters());
+                forEach(targets, t -> resources.accept(context.caster(), amount));
+            }
+
+            case Action.Count a -> {
+                if (a.statusId() == null) {
+                    context.count(a.counter(), targets.size());
+                } else {
+                    int stacks = statuses.all(context.caster()).stream()
+                            .filter(status -> status.id().equals(a.statusId()))
+                            .mapToInt(status -> status.stacks())
+                            .findFirst().orElse(0);
+                    context.count(a.counter(), stacks);
+                }
+            }
+
             case Action.PlaceZone a -> {
                 double radius = resolve(a.radius(), table, context, 1);
                 int ticks = (int) resolve(a.duration(), table, context, 20);
+                double gap = resolve(a.minGap(), table, context, 0);
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(p -> zones.place(a.tag(), context.caster(),
-                            p, radius, ticks, a.particle()));
+                            p, radius, ticks, a.particle(), gap, a.onEnter(), a.onTick(),
+                            a.tickInterval()));
                 } else {
                     forEach(targets, t -> world.positionOf(t).ifPresent(
                             p -> zones.place(a.tag(), context.caster(), p, radius, ticks,
-                                    a.particle())));
+                                    a.particle(), gap, a.onEnter(), a.onTick(),
+                                    a.tickInterval())));
                 }
             }
 
@@ -340,10 +466,13 @@ public final class SkillRuntime {
                         resolve(a.hitRadius(), table, context, 1.2),
                         resolve(a.gravity(), table, context, 0),
                         a.pierce(), a.hitPlayers(), a.hitMobs(), a.stopAtBlock(),
-                        a.particle());
+                        a.particle(), a.yawOffset());
                 world.launchProjectile(context.caster(), spec, new SkillWorld.ProjectileHandler() {
                     @Override
                     public void hit(Position point, UUID target) {
+                        if (a.onHit() == null) {
+                            return;
+                        }
                         skills.find(a.onHit()).ifPresent(sub -> cast(
                                 context.withOrigin(point).withTrigger(target),
                                 sub, depth + 1));

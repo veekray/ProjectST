@@ -1,0 +1,64 @@
+# 5. Зов зверя — волк-спутник на минуту.
+#
+# Требует полный счётчик, и какой именно — решает, каким будет зверь: три
+# Увядания дают ярость (рвёт врагов), три Роста — опеку (держится у хозяина и
+# лечит его). Режим выбирается при призыве и дальше не меняется: в прежней
+# версии он читался из счётчика каждый раз, поэтому зверь менял поведение
+# посреди боя, стоило счётчику дотикать.
+#
+# Старый зверь получал урон и лечение от площадных навыков собственного
+# хозяина, потому что «свой» определялся типом моба — все волки на карте были
+# своими для любого друида. Теперь владелец записан у призванного, и правило
+# «свой призванный не попадает под свои площадные навыки» одно на все навыки.
+
+id: druid_beast_call
+display: "Зов зверя"
+class: druid
+tier: 4
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  # Прежний зверь уходит: двух сразу не бывает, и это сказано здесь, а не
+  # поиском мобов в радиусе сорока блоков.
+  - target: { type: self }
+    do:
+      - { action: dismiss, tag: beast_fury }
+      - { action: dismiss, tag: beast_ward }
+
+  # Ярость: три Увядания.
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "wither:3" }
+    do:
+      - action: summon
+        mob: wolf
+        tag: beast_fury
+        duration: $duration
+        health: $health
+        attacks-enemies: true
+      - { action: remove-status, id: wither }
+      - { action: sound, sound: entity_wolf_growl, pitch: 0.8 }
+      - { action: particles, particle: sculk_soul, shape: sphere, count: 40, size: 1 }
+
+  # Опека: три Роста.
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "growth:3" }
+    do:
+      - action: summon
+        mob: wolf
+        tag: beast_ward
+        duration: $duration
+        health: $ward_health
+        attacks-enemies: false
+      - { action: remove-status, id: growth }
+      - { action: sound, sound: entity_wolf_howl, pitch: 1.2 }
+      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1 }
+
+  # Зверь копит Рост, как и любой поддерживающий навык.
+  - target: { type: self }
+    do:
+      - { action: status, id: growth, duration: $counter_duration }

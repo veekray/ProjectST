@@ -1,0 +1,47 @@
+# 6. Метка смерти — финишер. Метка копит нанесённые по цели удары и взрывается.
+#
+# Удары считает служебный навык rogue_mark_tally. Число стаков уходит в счётчик
+# ДО взрыва — иначе множитель обнулился бы снятием метки, как это и случалось,
+# когда порядок был обратным.
+
+id: rogue_mark_of_death
+display: "Метка смерти"
+class: rogue
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+steps:
+
+  # Счёт начинается с нуля: стаки от прошлой метки не наследуются.
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: mark_stacks }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: status, id: death_mark, duration: $duration }
+      - { action: particles, particle: witch, shape: sphere, count: 20, size: 0.5 }
+      - { action: sound, sound: block_respawn_anchor_charge, pitch: 0.5 }
+
+  # Взрыв, когда метка дотикала.
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: count, counter: hits, status: mark_stacks }
+
+  - target: { type: enemies_in_radius, radius: $blast_range }
+    delay: $duration
+    if:
+      - { target: has-status, value: death_mark }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: damage, amount: $damage_per_hit * @hits, school: magic }
+      - { action: particles, particle: witch, shape: sphere, count: 50, size: 1 }
+      - { action: sound, sound: entity_generic_explode, pitch: 1.5 }
+
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: remove-status, id: mark_stacks }

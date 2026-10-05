@@ -1,0 +1,24 @@
+# 2. Шаг призрака — невидимость, скорость и один критический удар.
+#
+# Удар выдаёт служебный навык rogue_ghost_strike: он срабатывает на нанесении
+# урона, пока держится метка. Так «следующая атака» перестала быть особым
+# случаем внутри ауры и стала обычным триггером, у которого те же проверки, что
+# у всех остальных навыков.
+
+id: rogue_ghost_step
+display: "Шаг призрака"
+class: rogue
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: ambush, duration: $duration }
+      - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
+      - { action: potion, effect: speed, duration: $duration, amplifier: 1 }
+      - { action: sound, sound: entity_illusioner_prepare_mirror, pitch: 1.5 }
+      - { action: particles, particle: smoke, shape: sphere, count: 20, size: 0.5 }

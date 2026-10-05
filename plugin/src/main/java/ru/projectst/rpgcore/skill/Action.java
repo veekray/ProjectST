@@ -60,8 +60,18 @@ public sealed interface Action {
         }
     }
 
-    /** Снятие статуса с целей шага. */
-    record RemoveStatus(String statusId) implements Action {
+    /**
+     * Снятие статуса с целей шага.
+     *
+     * @param stacks сколько стаков снять; ноль — статус целиком. Нужно там, где
+     *               стаки это заряды, и каждый ответ тратит ровно один
+     */
+    record RemoveStatus(String statusId, int stacks) implements Action {
+
+        public RemoveStatus(String statusId) {
+            this(statusId, 0);
+        }
+
         @Override
         public String name() {
             return "remove-status";
@@ -103,6 +113,20 @@ public sealed interface Action {
         }
     }
 
+    /** Снять эффект зелья с целей шага. */
+    record ClearPotion(String effect) implements Action {
+        public ClearPotion {
+            if (effect == null || effect.isBlank()) {
+                throw new IllegalArgumentException("effect обязателен");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "clear-potion";
+        }
+    }
+
     // ------------------------------------------------------------------ движение
 
     /**
@@ -132,6 +156,34 @@ public sealed interface Action {
         @Override
         public String name() {
             return "pull";
+        }
+    }
+
+    /**
+     * Рывок кастера по собственному взгляду.
+     *
+     * <p>Отдельно от {@link Push}: тот отбрасывает чужих от точки, а этот
+     * двигает самого кастера туда, куда он смотрит. Разные вещи с разными
+     * именами — в старом стеке и то и другое делалось механикой «velocity», и
+     * чтобы понять, кого именно она двигает, надо было смотреть таргетер.
+     */
+    record Dash(NumberRef strength, NumberRef lift) implements Action {
+        @Override
+        public String name() {
+            return "dash";
+        }
+    }
+
+    /**
+     * Сближение: кастер оказывается рядом с целью шага.
+     *
+     * @param distance на сколько блоков отступить от цели
+     * @param behind   true — за спину цели, false — перед ней
+     */
+    record Approach(NumberRef distance, boolean behind) implements Action {
+        @Override
+        public String name() {
+            return "approach";
         }
     }
 
@@ -189,10 +241,22 @@ public sealed interface Action {
      */
     record Projectile(NumberRef speed, NumberRef range, NumberRef hitRadius, NumberRef gravity,
                       int pierce, boolean hitPlayers, boolean hitMobs, boolean stopAtBlock,
-                      String particle, String onHit, String onEnd) implements Action {
+                      String particle, String onHit, String onEnd, double yawOffset)
+            implements Action {
+
+        public Projectile(NumberRef speed, NumberRef range, NumberRef hitRadius,
+                          NumberRef gravity, int pierce, boolean hitPlayers, boolean hitMobs,
+                          boolean stopAtBlock, String particle, String onHit, String onEnd) {
+            this(speed, range, hitRadius, gravity, pierce, hitPlayers, hitMobs, stopAtBlock,
+                    particle, onHit, onEnd, 0);
+        }
+
         public Projectile {
-            if (onHit == null || onHit.isBlank()) {
-                throw new IllegalArgumentException("снаряд без onHit ничего не делает");
+            // Хотя бы один из двух: иначе снаряд летит и ничего не делает.
+            // Снаряд только с onEnd — законный случай: так ставят метку там,
+            // куда он упал, никого не задевая.
+            if ((onHit == null || onHit.isBlank()) && (onEnd == null || onEnd.isBlank())) {
+                throw new IllegalArgumentException("снаряду нужен on-hit или on-end");
             }
         }
 
@@ -259,12 +323,29 @@ public sealed interface Action {
      * @param tag      тип зоны, по которому её потом ищут
      * @param atOrigin ставить в точке действия, а не на целях шага
      * @param particle чем рисуется; пусто — невидимая
+     * @param minGap   не ставить, если своя зона с этим тегом уже ближе этого
+     *                 расстояния. Без такой проверки повторные касты на месте
+     *                 складывали бы печати в одну точку, и финишер, который
+     *                 считает печати, получал бы их пачкой за бесплатно
+     * @param onEnter  навык, который выполняется, когда в зону кто-то вошёл;
+     *                 вошедший становится его trigger
+     * @param onTick   навык, который зона выполняет сама через tickInterval
+     * @param tickInterval промежуток между тиками зоны
      */
     record PlaceZone(String tag, NumberRef radius, NumberRef duration, boolean atOrigin,
-                     String particle) implements Action {
+                     String particle, NumberRef minGap, String onEnter, String onTick,
+                     int tickInterval) implements Action {
+
+        public PlaceZone(String tag, NumberRef radius, NumberRef duration, boolean atOrigin,
+                         String particle) {
+            this(tag, radius, duration, atOrigin, particle, null, null, null, 0);
+        }
         public PlaceZone {
             if (tag == null || tag.isBlank()) {
                 throw new IllegalArgumentException("у зоны обязателен тег");
+            }
+            if (onTick != null && tickInterval < 1) {
+                throw new IllegalArgumentException("тикающей зоне нужен промежуток");
             }
         }
 
@@ -297,6 +378,48 @@ public sealed interface Action {
         @Override
         public String name() {
             return "consume-zones";
+        }
+    }
+
+    // ------------------------------------------------------------------ ресурс и счёт
+
+    /**
+     * Вернуть кастеру его ресурс: ману магу, выносливость плуту.
+     *
+     * <p>Действие применяется по разу на каждую цель шага, поэтому «за каждое
+     * попадание» пишется само собой и не требует отдельного ключа.
+     */
+    record Restore(NumberRef amount) implements Action {
+        @Override
+        public String name() {
+            return "restore";
+        }
+    }
+
+    /**
+     * Записать число в счётчик каста: сколько целей у шага, а с ключом status —
+     * сколько стаков этого статуса на кастере.
+     *
+     * <p>Единственный способ узнать, сколько целей нашлось, — и он явный. В
+     * старом стеке счёт целей приходилось изображать аурой со стаками, которую
+     * накручивал {@code sudoskill}, потому что тело метаскилла выполнялось один
+     * раз на весь список.
+     */
+    record Count(String counter, String statusId) implements Action {
+
+        public Count(String counter) {
+            this(counter, null);
+        }
+
+        public Count {
+            if (counter == null || counter.isBlank()) {
+                throw new IllegalArgumentException("нужно имя счётчика");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "count";
         }
     }
 

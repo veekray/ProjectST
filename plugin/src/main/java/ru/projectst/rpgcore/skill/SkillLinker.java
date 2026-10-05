@@ -56,6 +56,9 @@ public final class SkillLinker {
                     if (action instanceof Action.ConsumeZones c) {
                         writtenCounters.add(c.counter());
                     }
+                    if (action instanceof Action.Count c) {
+                        writtenCounters.add(c.counter());
+                    }
                 }
             }
         }
@@ -75,6 +78,9 @@ public final class SkillLinker {
                 Step step = skill.steps().get(s);
                 String stepPath = "steps[" + s + "]";
 
+                checkBalance(skill, where, table, stepPath + ".delay", step.delay(), errors);
+                checkBalance(skill, where, table, stepPath + ".origin",
+                        step.origin().distance(), errors);
                 checkBalance(skill, where, table, stepPath + ".target.radius",
                         step.target().radius(), errors);
                 checkBalance(skill, where, table, stepPath + ".target.angle",
@@ -113,8 +119,13 @@ public final class SkillLinker {
                         return true;
                     }
                     if (action instanceof Action.Projectile p
-                            && (p.onHit().equals(skill.id())
+                            && (skill.id().equals(p.onHit())
                                 || skill.id().equals(p.onEnd()))) {
+                        return true;
+                    }
+                    if (action instanceof Action.PlaceZone z
+                            && (skill.id().equals(z.onEnter())
+                                || skill.id().equals(z.onTick()))) {
                         return true;
                     }
                     if (action instanceof Action.Cast c && c.skillId().equals(skill.id())) {
@@ -148,6 +159,7 @@ public final class SkillLinker {
             case Action.ApplyStatus a -> refs(a.duration(), a.amount());
             case Action.ModifyStat a -> refs(a.value(), a.duration());
             case Action.Potion a -> refs(a.duration());
+            case Action.ClearPotion ignored -> List.of();
             case Action.Push a -> refs(a.strength(), a.lift());
             case Action.Pull a -> refs(a.strength());
             case Action.Teleport a -> refs(a.forward());
@@ -157,7 +169,11 @@ public final class SkillLinker {
                     refs(a.speed(), a.range(), a.hitRadius(), a.gravity());
             case Action.Summon a -> refs(a.count(), a.duration(), a.health());
             case Action.Dismiss ignored -> List.of();
-            case Action.PlaceZone a -> refs(a.radius(), a.duration());
+            case Action.Dash a -> refs(a.strength(), a.lift());
+            case Action.Approach a -> refs(a.distance());
+            case Action.Restore a -> refs(a.amount());
+            case Action.Count ignored -> List.of();
+            case Action.PlaceZone a -> refs(a.radius(), a.duration(), a.minGap());
             case Action.ConsumeZones a -> refs(a.radius());
             case Action.RemoveStatus ignored -> List.of();
             case Action.Sound ignored -> List.of();
@@ -202,6 +218,9 @@ public final class SkillLinker {
             }
             case Action.Potion p ->
                     checkBalance(skill, where, table, path + ".duration", p.duration(), errors);
+            case Action.ClearPotion ignored -> {
+                // ссылок не содержит
+            }
             case Action.Push p -> {
                 checkBalance(skill, where, table, path + ".strength", p.strength(), errors);
                 checkBalance(skill, where, table, path + ".lift", p.lift(), errors);
@@ -235,7 +254,7 @@ public final class SkillLinker {
                 checkBalance(skill, where, table, path + ".range", p.range(), errors);
                 checkBalance(skill, where, table, path + ".hit-radius", p.hitRadius(), errors);
                 checkBalance(skill, where, table, path + ".gravity", p.gravity(), errors);
-                if (!skillIds.contains(p.onHit())) {
+                if (p.onHit() != null && !skillIds.contains(p.onHit())) {
                     errors.add(where, path + ".on-hit",
                             "ссылка на несуществующий навык \"" + p.onHit() + "\"");
                 }
@@ -252,9 +271,31 @@ public final class SkillLinker {
             case Action.Dismiss ignored -> {
                 // ссылок не содержит: тег проверить нечем, своих мобов пока нет
             }
+            case Action.Dash d -> {
+                checkBalance(skill, where, table, path + ".strength", d.strength(), errors);
+                checkBalance(skill, where, table, path + ".lift", d.lift(), errors);
+            }
+            case Action.Approach a ->
+                    checkBalance(skill, where, table, path + ".distance", a.distance(), errors);
+            case Action.Restore r ->
+                    checkBalance(skill, where, table, path + ".amount", r.amount(), errors);
+            case Action.Count c -> {
+                if (c.statusId() != null) {
+                    checkStatus(statuses, c.statusId(), where, path + ".status", errors);
+                }
+            }
             case Action.PlaceZone z -> {
                 checkBalance(skill, where, table, path + ".radius", z.radius(), errors);
                 checkBalance(skill, where, table, path + ".duration", z.duration(), errors);
+                checkBalance(skill, where, table, path + ".min-gap", z.minGap(), errors);
+                if (z.onEnter() != null && !skillIds.contains(z.onEnter())) {
+                    errors.add(where, path + ".on-enter",
+                            "ссылка на несуществующий навык \"" + z.onEnter() + "\"");
+                }
+                if (z.onTick() != null && !skillIds.contains(z.onTick())) {
+                    errors.add(where, path + ".on-tick",
+                            "ссылка на несуществующий навык \"" + z.onTick() + "\"");
+                }
             }
             case Action.ConsumeZones z ->
                     checkBalance(skill, where, table, path + ".radius", z.radius(), errors);

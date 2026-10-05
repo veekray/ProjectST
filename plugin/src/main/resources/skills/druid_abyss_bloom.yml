@@ -1,0 +1,36 @@
+# 6. Цвет бездны — поле, которое каждую секунду меняет сторону.
+#
+# Зона живёт сама: у неё свой промежуток и свой навык тика, поэтому поле бьёт
+# тех, кто в нём стоит, а не тех, кто рядом с друидом, и ни одного условия в
+# самом навыке для этого не нужно.
+#
+# Тратит оба счётчика целиком: это финишер, и платить за него должны обе роли.
+
+id: druid_abyss_bloom
+display: "Цвет бездны"
+class: druid
+tier: 5
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    origin: self
+    do:
+      - { action: sound, sound: block_sculk_spread, pitch: 0.6 }
+      - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true }
+      - action: zone
+        tag: bloom
+        radius: $radius
+        duration: $duration
+        particle: composter
+        at-origin: true
+        on-tick: druid_bloom_tick
+        tick-interval: 20
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: growth }
+      - { action: remove-status, id: wither }

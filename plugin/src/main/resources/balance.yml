@@ -14,83 +14,417 @@
 #
 # Ссылки на ключи проверяются при загрузке: /rpg validate назовёт отсутствующий
 # ключ с номером строки навыка, который на него ссылается.
+#
+# Урон здесь не растёт с уровнем навыка, и это перенесено как было: уровень
+# навыка правит стоимость и перезарядку, а силу удара — статы силы навыков и
+# школы урона. Так числа в этом файле остаются сравнимыми между собой.
 
 balance:
 
-  mage_mana_bolt:
-    mana: 8
-    range: 24
-    # Блоков за тик. Полтора — это примерно скорость стрелы: снаряд видно, и
-    # от него можно отойти, иначе он ничем не отличался бы от мгновенного луча.
-    speed: 1.5
-    cooldown:
-      base: 4.0
-      per-level: -0.1
-      min: 2.0
+  # ================================================================ МАГ
+  # Ядро на печатях: стоя на своей печати, маг съедает её и получает усиление
+  # на один каст.
 
-  # Попадание — отдельный навык, поэтому и числа у него свои. Иначе радиус
-  # взрыва пришлось бы искать в таблице выстрела, где его никто не ждёт.
-  mage_mana_bolt_impact:
-    radius: 3.5
-    mark_duration: 160
-    # Печать живёт десять секунд: достаточно, чтобы успеть встать в неё, и
-    # мало, чтобы заранее застелить ими площадку.
-    seal_radius: 2.5
-    seal_duration: 200
-    damage:
-      base: 6
-      per-level: 0.8
-      max: 40
+  mage_seal_core:
+    # Радиус поедания больше радиуса самой печати: встать ровно в центр
+    # невозможно, а «почти стою» должно считаться.
+    eat_radius: 4
+    duration: 20
 
-  mage_flux_loop:
-    mana: 14
-    radius: 5
-    push: 1.1
-    lift: 0.35
-    empowered_push: 0.8
-    empowered_damage:
-      base: 6
+  mage_seal_drop:
+    radius: 2.5
+    duration: 200
+    # Не ближе этого расстояния к своей же печати: иначе касты на месте
+    # складывали бы их в одну точку, а Коллапс платит уроном за каждую.
+    min_gap: 2.5
+
+  mage_flow_loop:
+    mana:
+      base: 14.0
       per-level: 0.5
-      max: 24
     cooldown:
       base: 9.0
       per-level: -0.2
-      min: 6.0
-    damage:
-      base: 8
-      per-level: 0.6
-      max: 36
+      min: 3.6
+    radius: 5
+    push: 0.6
+    empowered_radius: 7
+    empowered_push: 1.0
+    empowered_damage: 7
+
+  mage_mana_bolt:
+    mana:
+      base: 8.0
+      per-level: 0.5
+    cooldown:
+      base: 4.0
+      per-level: -0.2
+      min: 1.6
+    # Блоков за тик. Перенесено из старого v=55 при шаге 20 тиков в секунду.
+    speed: 2.75
+    range: 28
+    empowered_speed: 3.5
+    empowered_range: 32
+
+  mage_bolt_hit:
+    radius: 1.5
+    damage: 6
+
+  mage_bolt_hit_strong:
+    radius: 1.8
+    damage: 12
+
+  mage_void_step:
+    mana:
+      base: 12.0
+      per-level: 0.5
+    cooldown:
+      base: 11.0
+      per-level: -0.2
+      min: 4.4
+    distance: 6
+    empowered_distance: 12
+    wave_radius: 5
+    wave_damage: 6
+    wave_push: 0.8
+
+  mage_herd:
+    mana:
+      base: 16.0
+      per-level: 0.5
+    cooldown:
+      base: 13.0
+      per-level: -0.2
+      min: 5.2
+    # Точка сбора всегда впереди на это расстояние, а не там, где печать.
+    gather_distance: 9
+    radius: 14
+    angle: 60
+    pull: 0.6
+    empowered_radius: 16
+    empowered_angle: 80
+    empowered_pull: 0.8
+    root_duration: 30
+
+  mage_scatter:
+    mana:
+      base: 20.0
+      per-level: 0.5
+    cooldown:
+      base: 18.0
+      per-level: -0.2
+      min: 7.2
+    speed: 2.0
+    range: 16
+    empowered_range: 18
 
   mage_collapse:
-    mana: 22
-    radius: 8
-    angle: 60
-    slow_duration: 60
-    gather_radius: 12
+    mana:
+      base: 42.0
+      per-level: 0.5
+    cooldown:
+      base: 34.0
+      per-level: -0.2
+      min: 13.6
+    gather_distance: 10
+
+  mage_collapse_do:
+    # Кого стянет печать: радиус вокруг каждой своей печати.
+    seal_reach: 6
+    # Насколько далеко собираются сами печати.
+    field_radius: 30
+    pull: 0.7
+    hit_radius: 5
+    damage: 10
+    damage_per_seal: 8
+  # ================================================================ ДРУИД
+  # Два счётчика: Рост копится поддержкой, Увядание — атакой. Усиливает всегда
+  # противоположный, поэтому награда идёт за смену роли, а не за одну кнопку.
+
+  druid_poison_ivy:
+    mana:
+      base: 10.0
+      per-level: 0.5
+    cooldown:
+      base: 5.0
+      per-level: -0.2
+      min: 2.0
+    radius: 5
+    empowered_radius: 7
+    damage: 7
+    stun_duration: 20
+    poison_duration: 80
+    slow_duration: 80
+    counter_duration: 300
+
+  druid_life_spores:
+    mana:
+      base: 14.0
+      per-level: 0.5
+    cooldown:
+      base: 8.0
+      per-level: -0.2
+      min: 3.2
+    radius: 6
+    heal: 6
+    burn_damage: 9
+    counter_duration: 300
+
+  druid_bark_guard:
+    mana:
+      base: 18.0
+      per-level: 0.5
     cooldown:
       base: 14.0
-      per-level: -0.3
-      min: 9.0
-    damage:
-      base: 10
-      per-level: 0.9
-      max: 50
-    # Надбавка за каждую снятую печать, а не полный урон: коллапс наносит
-    # damage плюс damage_per_seal за печать.
-    damage_per_seal:
-      base: 7
-      per-level: 0.8
-      max: 40
+      per-level: -0.2
+      min: 5.6
+    duration: 200
+    shield: 14
+    empowered_shield: 28
+    counter_duration: 300
 
-  mage_mana_ward:
-    mana: 6
-    push: 0.9
-    duration: 100
+  druid_bark_react:
+    stun_duration: 20
+
+  druid_grasping_roots:
+    mana:
+      base: 16.0
+      per-level: 0.5
     cooldown:
       base: 12.0
-      per-level: -0.5
+      per-level: -0.2
+      min: 4.8
+    radius: 6
+    damage: 4
+    # Полторы секунды и две с половиной — ровно как было.
+    root_duration: 30
+    empowered_root_duration: 50
+    counter_duration: 300
+
+  druid_beast_call:
+    mana:
+      base: 26.0
+      per-level: 0.5
+    cooldown:
+      base: 25.0
+      per-level: -0.2
+      min: 10.0
+    # Минута жизни зверя.
+    duration: 1200
+    health: 40
+    ward_health: 60
+    counter_duration: 300
+
+  druid_beast_ward_tick:
+    heal: 3
+
+  druid_abyss_bloom:
+    mana:
+      base: 40.0
+      per-level: 0.5
+    cooldown:
+      base: 32.0
+      per-level: -0.2
+      min: 12.8
+    radius: 6
+    # Шесть секунд поля; переключение раз в секунду задано в самом навыке:
+    # промежуток тика — это структура, а не число для балансировки.
+    duration: 120
+
+  druid_bloom_tick:
+    radius: 6
+    heal_big: 8
+    heal_small: 4
+    harm_small: 4
+    harm_big: 8
+    # Чуть дольше промежутка, иначе метка фазы истекала бы между тиками и поле
+    # застревало бы в одной стороне.
+    phase_duration: 30
+  # ================================================================ КОЛДУН
+  # Души — расходный счётчик: их даёт отработавшее проклятие, а тратят
+  # Переливание и Кокон.
+
+  warlock_soul_gain:
+    duration: 600
+
+  warlock_cursed_bolt:
+    mana:
+      base: 10.0
+      per-level: 0.5
+    cooldown:
+      base: 6.0
+      per-level: -0.2
+      min: 2.4
+    speed: 1.4
+    range: 24
+
+  warlock_bolt_hit:
+    damage: 5
+    curse_duration: 100
+    # Проценты: было -20 к атакующему урону, стало -20% к физическому.
+    weaken: -20
+
+  warlock_curse_tick:
+    radius: 30
+    damage: 2
+
+  warlock_reap_mark:
+    mana:
+      base: 8.0
+      per-level: 0.5
+    cooldown:
+      base: 10.0
+      per-level: -0.2
+      min: 4.0
+    range: 20
+    duration: 300
+
+  warlock_dark_veil:
+    mana:
+      base: 16.0
+      per-level: 0.5
+    cooldown:
+      base: 16.0
+      per-level: -0.2
+      min: 6.4
+    distance: 16
+    radius: 5
+    # Пять секунд: ровно столько, чтобы проклятия дотикали.
+    duration: 100
+
+  warlock_veil_tick:
+    radius: 5
+    blind_duration: 60
+    weaken: -15
+
+  warlock_despair_chains:
+    mana:
+      base: 14.0
+      per-level: 0.5
+    cooldown:
+      base: 13.0
+      per-level: -0.2
+      min: 5.2
+    range: 16
+    duration: 160
+
+  warlock_chains_tick:
+    radius: 16
+    near_radius: 8
+    pull: 0.4
+    slow_duration: 20
+
+  warlock_transfusion:
+    mana:
+      base: 20.0
+      per-level: 0.5
+    cooldown:
+      base: 18.0
+      per-level: -0.2
+      min: 7.2
+    radius: 12
+    shield_duration: 200
+    shield: 6
+    heal: 4
+    shield_per: 5
+    heal_per: 3
+
+  warlock_agony_cocoon:
+    mana:
+      base: 38.0
+      per-level: 0.5
+    cooldown:
+      base: 36.0
+      per-level: -0.2
+      min: 14.4
+    range: 15
+    damage: 14
+    damage_per_soul: 6
+    # Четыре секунды базового изъятия плюс по 12 тиков за душу.
+    duration: 80
+    duration_per_soul: 12
+  # ================================================================ ПЛУТ
+  # Плут платит выносливостью, а не маной: это тот же механизм с другими
+  # статами, и объявлено это один раз в его классе.
+
+  rogue_dash:
+    stamina: 10
+    cooldown:
+      base: 6.0
+      per-level: -0.1
+      min: 3.0
+    strength: 1.4
+    lift: 0.3
+
+  rogue_ghost_step:
+    stamina: 14
+    cooldown:
+      base: 14.0
+      per-level: -0.1
+      min: 8.0
+    # Три секунды невидимости — как было.
+    duration: 60
+
+  rogue_ghost_strike:
+    damage: 5
+
+  rogue_shadow_strike:
+    stamina: 16
+    cooldown:
+      base: 12.0
+      per-level: -0.1
       min: 7.0
-    shield:
-      base: 12
-      per-level: 3
-      max: 60
+    range: 15
+    behind_distance: 1.2
+    damage: 5
+    stun_duration: 40
+
+  rogue_fan_of_knives:
+    stamina: 18
+    cooldown:
+      base: 10.0
+      per-level: -0.1
+      min: 5.0
+    radius: 5
+    damage: 5
+    slow_duration: 60
+    restore: 5
+
+  rogue_mirror_image:
+    stamina: 22
+    cooldown:
+      base: 20.0
+      per-level: -0.2
+      min: 12.0
+    duration: 200
+    trigger_radius: 3
+    vanish_duration: 20
+    # Назад, а не вперёд: плут уходит от двойника. Рывок направлен по взгляду,
+    # поэтому отрицательное значение здесь было бы неверно — вместо этого
+    # двойник остаётся на месте старта, а плут прыгает вперёд и разрывает
+    # дистанцию. Расхождение с прежним прыжком назад названо честно.
+    leap_back: 0.9
+
+  rogue_mirror_burst:
+    radius: 5
+    duration: 40
+    # Снижение защиты: было +15 к получаемому урону, стало -15 к снижению урона.
+    vulnerability: -15
+
+  rogue_mark_of_death:
+    stamina: 26
+    cooldown:
+      base: 24.0
+      per-level: -0.5
+      min: 12.0
+    range: 20
+    blast_range: 20
+    # Пять секунд до взрыва.
+    duration: 100
+    damage: 5
+    # Было умножение на единицу плюс десять процентов за стак, то есть ровно
+    # половина базы за каждый удар.
+    damage_per_hit: 0.5
+
+  rogue_mark_stack:
+    duration: 200

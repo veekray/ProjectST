@@ -1,0 +1,24 @@
+# Иссушение тикает уроном.
+#
+# Служебный навык класса с собственным промежутком: раз в секунду он находит
+# своих проклятых и снимает с них по чуть-чуть. Радиус ограничен сознательно —
+# проклятый, ушедший за тридцать блоков, перестаёт тикать, и это честнее, чем
+# урон из ниоткуда через полкарты.
+
+id: warlock_curse_tick
+display: "Иссушение"
+class: warlock
+tier: 2
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: curse }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: particles, particle: squid_ink, shape: point, count: 5 }

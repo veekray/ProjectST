@@ -1,0 +1,27 @@
+# Опека зверя: пока рядом живёт зверь-хранитель, он понемногу лечит хозяина.
+#
+# Служебный навык класса с собственным промежутком. Промежуток держит сам навык
+# через перезарядку, поэтому частота не зависит от того, как часто его зовёт
+# слушатель.
+#
+# Удержание агро не перенесено: угрозой в новом ядре пока никто не управляет.
+# Зверь-хранитель вместо этого просто не нападает сам, и это написано в его
+# призыве ключом attacks-enemies: false.
+
+id: druid_beast_ward_tick
+display: "Опека зверя"
+class: druid
+tier: 4
+internal: true
+
+on: interval
+every: 40
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-minion, value: beast_ward }
+    do:
+      - { action: heal, amount: $heal }
+      - { action: particles, particle: composter, shape: sphere, count: 6, size: 0.6 }

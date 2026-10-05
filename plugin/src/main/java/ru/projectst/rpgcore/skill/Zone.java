@@ -21,9 +21,18 @@ import java.util.UUID;
  * @param particle  чем рисуется; {@code null} — невидимая. Единственная
  *                  presentation-деталь в модели, и осознанно: зона, которую
  *                  игрок не видит, — это ловушка, а не механика
+ * @param onEnter   навык, который выполняется на вошедшего; {@code null} — нет
+ * @param onTick    навык, который зона выполняет сама; {@code null} — нет
+ * @param tickInterval промежуток между тиками зоны
  */
 public record Zone(UUID id, String tag, UUID owner, Position center, double radius,
-                   long expiresAtTick, String particle) {
+                   long expiresAtTick, String particle, String onEnter, String onTick,
+                   int tickInterval) {
+
+    public Zone(UUID id, String tag, UUID owner, Position center, double radius,
+                long expiresAtTick, String particle) {
+        this(id, tag, owner, center, radius, expiresAtTick, particle, null, null, 0);
+    }
 
     public Zone {
         if (tag == null || tag.isBlank()) {

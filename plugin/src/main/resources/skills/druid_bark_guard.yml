@@ -1,0 +1,40 @@
+# 3. Кора — поглощает удар и оглушает ударившего.
+#
+# Ответ живёт в отдельном служебном навыке druid_bark_react: он срабатывает по
+# получению урона, пока держится кора. Так ответ видно как ответ, а не как
+# побочный эффект щита, и порядок проверок у него общий со всеми навыками.
+#
+# Расхождение с прежней версией названо честно: там удар отменялся целиком
+# (onDamaged с cancelevent), здесь его поглощает щит на объявленную величину.
+# Полная отмена N ударов — это заряды неуязвимости, которых в конвейере урона
+# пока нет; появятся — вернём отмену.
+
+id: druid_bark_guard
+display: "Кора"
+class: druid
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: block_wood_place, pitch: 0.7 }
+      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1.4 }
+      - { action: status, id: shield, duration: $duration, amount: $shield }
+      - { action: status, id: bark_guard, duration: $duration }
+
+  # Усиленная держит два ответа вместо одного. Тратит Увядание.
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "wither:3" }
+    do:
+      - { action: status, id: bark_guard, duration: $duration }
+      - { action: status, id: shield, duration: $duration, amount: $empowered_shield }
+      - { action: remove-status, id: wither }
+
+  - target: { type: self }
+    do:
+      - { action: status, id: growth, duration: $counter_duration }

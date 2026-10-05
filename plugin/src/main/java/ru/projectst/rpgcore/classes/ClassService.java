@@ -185,6 +185,10 @@ public final class ClassService {
         if (skill.isEmpty()) {
             return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.UNKNOWN_SKILL, skillId);
         }
+        if (skill.get().internal()) {
+            return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.WRONG_CLASS,
+                    "служебный навык класса, его не изучают");
+        }
         if (!skill.get().classId().equals(def.get().id())) {
             return new ClassOutcome.Unlock(ClassOutcome.Unlock.Kind.WRONG_CLASS,
                     "навык принадлежит классу " + skill.get().classId());
@@ -271,6 +275,10 @@ public final class ClassService {
         // Пассивный навык в слоте — классическое «неправильное использование,
         // неотличимое от правильного»: слот занят, кнопка не делает ничего.
         Optional<SkillDef> bound = skills.find(skillId);
+        if (bound.isPresent() && bound.get().internal()) {
+            return new ClassOutcome.Bind(ClassOutcome.Bind.Kind.PASSIVE_SKILL,
+                    "служебный навык класса");
+        }
         if (bound.isPresent() && bound.get().passive()) {
             return new ClassOutcome.Bind(ClassOutcome.Bind.Kind.PASSIVE_SKILL,
                     "навык срабатывает сам: " + bound.get().trigger().name().toLowerCase(

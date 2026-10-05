@@ -1,0 +1,34 @@
+# Ядро мага: печати.
+#
+# Шапка, с которой начинается каждый навык мага. Стоя на своей печати, маг
+# съедает её и получает усиление на один каст.
+#
+# internal: true — игрок этот навык не изучает и не видит. В старом стеке такие
+# шапки были обычными метаскиллами и попадали в меню наравне с настоящими
+# навыками, а отличить одно от другого можно было только по имени.
+#
+# Флаг усиления снимается первым шагом: иначе он дожил бы до следующего каста,
+# и второй навык подряд оказывался бы усиленным бесплатно. Ровно так и было,
+# пока в старом стеке шапка не начала делать auraRemove первой строкой.
+
+id: mage_seal_core
+display: "Печать"
+class: mage
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: empowered }
+
+  - target: { type: self }
+    if:
+      - { caster: in-zone, value: "seal:own" }
+    do:
+      - { action: consume-zones, tag: seal, radius: $eat_radius, counter: eaten }
+      - { action: status, id: empowered, duration: $duration }
+      - { action: particles, particle: witch, shape: ring, count: 24, size: 1.5, at-origin: true }
+      - { action: particles, particle: enchant, shape: sphere, count: 30, size: 0.5, at-origin: true }
+      - { action: sound, sound: block_enchantment_table_use, pitch: 1.4 }

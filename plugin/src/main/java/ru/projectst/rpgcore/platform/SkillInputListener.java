@@ -72,9 +72,10 @@ public final class SkillInputListener implements Listener {
         event.setCancelled(true);
 
         var id = player.getUniqueId();
-        Component line = Component.text("Мана ", NamedTextColor.GRAY)
-                .append(Component.text(Math.round(Math.floor(casts.mana().current(id)))
-                        + "/" + Math.round(casts.mana().max(id)), NamedTextColor.AQUA));
+        Component line = Component.text(casts.resource().displayName(id) + " ",
+                        NamedTextColor.GRAY)
+                .append(Component.text(Math.round(Math.floor(casts.resource().current(id)))
+                        + "/" + Math.round(casts.resource().max(id)), NamedTextColor.AQUA));
 
         var blocker = casts.blockingStatus(id);
         if (blocker.isPresent()) {
@@ -105,7 +106,7 @@ public final class SkillInputListener implements Listener {
         String detail = outcome.detail() == null ? "" : ": " + outcome.detail();
         return switch (outcome.kind()) {
             case ON_COOLDOWN -> "Перезарядка" + detail;
-            case NOT_ENOUGH_MANA -> "Не хватает маны" + detail;
+            case NOT_ENOUGH_RESOURCE -> "Не хватает: " + (outcome.detail() == null ? "" : outcome.detail());
             case BLOCKED -> "Нельзя колдовать" + detail;
             case NOT_UNLOCKED -> "Навык не изучен";
             case WRONG_CLASS -> "Навык другого класса";

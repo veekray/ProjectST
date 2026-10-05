@@ -1,0 +1,38 @@
+# Друид — подкласс мага, который лечит и держит поле.
+#
+# Ступени перенесены из старого класса: навыки открывались на уровнях 1, 3, 6,
+# 9, 13 и 18.
+
+id: druid
+display: "&2Друид"
+slots: 6
+max-level: 60
+points-per-level: 1
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 1
+  3: 6
+  4: 13
+  5: 18
+
+stats:
+  max_health:
+    base: 20
+    per-level: 2
+  max_mana:
+    base: 55
+    per-level: 5
+  mana_regen:
+    base: 2.2
+    per-level: 0.1
+  magic_damage:
+    base: 0
+    per-level: 0.5
+  defense:
+    base: 3
+    per-level: 0.2

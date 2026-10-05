@@ -1,0 +1,20 @@
+# 4. Оковы отчаяния — не дают разорвать дистанцию и сорвать жатву.
+#
+# Цепь вешается на ближайшего, а тянет её служебный навык: каждые полсекунды он
+# подтягивает закованных к колдуну и замедляет тех, кто и так рядом.
+
+id: warlock_despair_chains
+display: "Оковы отчаяния"
+class: warlock
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: status, id: chains, duration: $duration }
+      - { action: particles, particle: crit, shape: point, count: 12 }
+      - { action: sound, sound: block_chain_place, pitch: 0.6 }

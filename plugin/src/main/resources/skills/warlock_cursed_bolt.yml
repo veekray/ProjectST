@@ -1,0 +1,27 @@
+# 1. Проклятый снаряд — вешает Иссушение: урон по времени и ослабление цели.
+#
+# Отработав срок, проклятие отдаёт колдуну душу. Срок считается отложенным
+# шагом от момента попадания, поэтому душа приходит тогда же, когда прежде
+# приходила по onEnd ауры.
+#
+# С помеченной цели урожай двойной — это и есть смысл Метки жатвы.
+
+id: warlock_cursed_bolt
+display: "Проклятый снаряд"
+class: warlock
+tier: 2
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_wither_shoot, volume: 0.8, pitch: 1.5 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: squid_ink
+        on-hit: warlock_bolt_hit

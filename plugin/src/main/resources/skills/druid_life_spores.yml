@@ -1,0 +1,45 @@
+# 2. Споры жизни — облако спор лечит друида и союзников.
+#
+# Лечение себя стоит отдельным шагом, и это не украшение: цель «союзники вокруг»
+# кастера не включает — в старом стеке из-за этого споры не лечили хозяина
+# вообще, потому что проверка «можно ли воздействовать» первой же строкой
+# отбрасывала самого кастующего.
+
+id: druid_life_spores
+display: "Споры жизни"
+class: druid
+tier: 2
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: block_azalea_place, pitch: 1.3 }
+      - { action: particles, particle: composter, shape: sphere, count: 70, size: $radius }
+      - { action: heal, amount: $heal }
+
+  - target: { type: allies_in_radius, radius: $radius }
+    do:
+      - { action: heal, amount: $heal }
+      - { action: particles, particle: composter, shape: sphere, count: 12, size: 0.4 }
+
+  # Усиленные споры начинают разъедать врагов. Тратит Увядание.
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: status-stacks, value: "wither:3" }
+    do:
+      - { action: damage, amount: $burn_damage, school: magic }
+      - { action: particles, particle: composter, shape: point, count: 14 }
+
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "wither:3" }
+    do:
+      - { action: remove-status, id: wither }
+
+  - target: { type: self }
+    do:
+      - { action: status, id: growth, duration: $counter_duration }

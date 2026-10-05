@@ -1,0 +1,43 @@
+# Попадание проклятого снаряда.
+#
+# Ослабление цели перенесено как временная надбавка к стату: было -20 к
+# атакующему урону на срок проклятия, стало -20% к физическому урону. Названо
+# честно, потому что стат другой: прежний attack_damage в новом ядре не
+# объявлен, а молча подставлять похожий — то самое расхождение, из-за которого
+# числа в старом стеке не сходились с боем.
+
+id: warlock_bolt_hit
+display: "Проклятый снаряд — попадание"
+class: warlock
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: status, id: curse, duration: $curse_duration }
+      - action: modify-stat
+        stat: physical_damage
+        op: percent
+        value: $weaken
+        duration: $curse_duration
+      - { action: particles, particle: squid_ink, shape: point, count: 10 }
+      - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.6 }
+
+  # Проклятие отработало срок — колдун получает душу.
+  - target: { type: self }
+    delay: $curse_duration
+    do:
+      - { action: cast, skill: warlock_soul_gain, at-targets: true }
+
+  # С помеченной цели — вторая душа, и метка тратится.
+  - target: { type: trigger }
+    delay: $curse_duration
+    if:
+      - { target: has-status, value: reaper_mark }
+    do:
+      - { action: remove-status, id: reaper_mark }
+      - { action: cast, skill: warlock_soul_gain, at-targets: false }
+      - { action: sound, sound: entity_wither_hurt, volume: 0.6, pitch: 1.7 }
