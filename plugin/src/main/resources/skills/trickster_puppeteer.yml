@@ -1,0 +1,46 @@
+# 9. Кукловод — существа вокруг бьют друг друга.
+#
+# По игрокам это не работает и работать не должно: отнять у игрока управление —
+# это контроль, а контроль в этом ядре делается статусами, которые видно на
+# экране и у которых объявлены конфликты. Игрокам достаётся слепота и упавший
+# урон — честный дебафф вместо подделки под очарование.
+
+id: trickster_puppeteer
+display: "Кукловод"
+class: trickster
+icon: LEAD
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Существа вокруг набрасываются"
+  - "друг на друга. Игроки слепнут"
+  - "и бьют заметно слабее."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_evoker_prepare_summon, volume: 1.0, pitch: 1.2 }
+      - { action: particles, particle: portal, shape: ring, count: 40, size: 6.0 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: is-player, not: true }
+    do:
+      - { action: confuse, radius: $confuse_radius }
+      - { action: particles, particle: portal, shape: point, count: 12, size: 0.3 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: is-player }
+    do:
+      - { action: potion, effect: blindness, duration: $duration, amplifier: 0 }
+      - action: modify-stat
+        stat: physical_damage
+        op: percent
+        value: $weaken
+        duration: $duration
+      - { action: particles, particle: portal, shape: point, count: 15, size: 0.3 }

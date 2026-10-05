@@ -1,0 +1,46 @@
+# 5. Карманник — снимает с врага усиление и забирает его себе.
+#
+# Снимается по метке, а не по имени: какое именно усиление висит на цели,
+# заранее не знает никто, а перечислять их все в файле навыка значило бы забыть
+# новое в тот же день, когда его добавят.
+
+id: trickster_pickpocket
+display: "Карманник"
+class: trickster
+icon: TRIPWIRE_HOOK
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Снимает с врага одно усиление"
+  - "и забирает себе его урон и защиту."
+  - "Обворованный бьёт слабее."
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: remove-status, tag: buff }
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $stolen_damage_loss
+        duration: $duration
+      - { action: particles, particle: totem, shape: point, count: 25, size: 0.3 }
+      - { action: sound, sound: entity_item_pickup, volume: 1.0, pitch: 0.8 }
+
+  - target: { type: self }
+    do:
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $stolen_damage
+        duration: $duration
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $stolen_defense
+        duration: $duration
+      - { action: message, text: "&dКарманник &7— обчистил" }

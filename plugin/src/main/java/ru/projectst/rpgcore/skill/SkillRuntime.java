@@ -178,6 +178,15 @@ public final class SkillRuntime {
                         TargetSpec.Type.ENEMIES_NEAR_ORIGIN, radius, angle));
             }
             found = new ArrayList<>(unique);
+        } else if (spec.type() == TargetSpec.Type.OWN_MINIONS) {
+            // Своих призванных знает реестр, а не мир: искать их по типу
+            // существа в радиусе и отсеивать чужих сравнением имени хозяина
+            // приходилось в старом стеке, потому что владельца там никто не
+            // помнил. Здесь помнит.
+            found = new ArrayList<>();
+            for (Minion minion : minions.ofOwner(context.caster(), spec.tag())) {
+                found.add(minion.entityId());
+            }
         } else {
             found = world.resolveTargets(context, spec.type(), radius, angle);
         }
@@ -222,6 +231,13 @@ public final class SkillRuntime {
                         .orElse(false);
             }
             case HAS_MINION -> !minions.ofOwner(subject, condition.value()).isEmpty();
+            // Проверяется всегда кастер относительно subject: «со спины» имеет
+            // смысл только как «я зашёл ему за спину», и писать это наоборот
+            // было бы той же ловушкой, из-за которой условия старого стека
+            // выглядели так, будто проверяют цель.
+            case BEHIND -> !subject.equals(context.caster())
+                    && world.isBehind(context.caster(), subject,
+                    Double.parseDouble(condition.value()));
             case COUNTER -> {
                 String[] parts = condition.value().split(":", 2);
                 double needed = parts.length > 1 ? Double.parseDouble(parts[1]) : 1;
@@ -279,12 +295,22 @@ public final class SkillRuntime {
             }
 
             case Action.RemoveStatus a -> forEach(targets, t -> {
+                // Снятие по метке: берём первый подходящий статус, а не все
+                // сразу. «Украсть усиление» — это одно усиление; снять их все
+                // одним действием было бы совсем другим навыком.
+                String id = a.tag() == null ? a.statusId() : statuses.all(t).stream()
+                        .filter(s -> s.def().tags().contains(a.tag()))
+                        .map(s -> s.def().id())
+                        .findFirst().orElse(null);
+                if (id == null) {
+                    return;
+                }
                 if (a.stacks() > 0) {
                     for (int i = 0; i < a.stacks(); i++) {
-                        statuses.removeStack(t, a.statusId());
+                        statuses.removeStack(t, id);
                     }
                 } else {
-                    statuses.remove(t, a.statusId());
+                    statuses.remove(t, id);
                 }
             });
 
@@ -441,6 +467,11 @@ public final class SkillRuntime {
             }
 
             case Action.Swap ignored -> forEach(targets, t -> world.swap(context.caster(), t));
+
+            case Action.Confuse a -> {
+                double radius = a.radius().resolve(table, level, context.counters());
+                forEach(targets, t -> world.confuse(t, radius));
+            }
 
             case Action.Scatter a -> {
                 double radius = a.radius().resolve(table, level, context.counters());

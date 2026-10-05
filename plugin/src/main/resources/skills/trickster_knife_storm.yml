@@ -1,0 +1,35 @@
+# 3. Ножевой Шквал — веер бросает и сам трикстер, и каждый двойник.
+#
+# Копии бьют вполовину слабее: у них нет оружия, и урон им считает хозяин.
+# Своих они не задевают — иначе веер выкашивал бы всех двойников разом, и со
+# стороны это выглядело как «навык не работает на иллюзиях».
+
+id: trickster_knife_storm
+display: "Ножевой Шквал"
+class: trickster
+icon: FLINT
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Веер ножей от трикстера и от каждого"
+  - "двойника со своего места."
+  - "Чем больше копий, тем гуще."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: crit, shape: ring, count: 20, size: 2.0 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3 }
+
+  - target: { type: own_minions, tag: double }
+    do:
+      - { action: cast, skill: trickster_knife_fan, at-targets: false }

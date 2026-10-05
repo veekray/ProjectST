@@ -1,0 +1,29 @@
+# 10. Карнавал — копий шесть, и враги теряют трикстера из виду.
+#
+# Сам Карнавал ничего не призывает: он вешает статус и зовёт Раскол, который
+# уже знает, что под Карнавалом копий шесть. Два места, где написано «шесть»,
+# рано или поздно разошлись бы.
+
+id: trickster_carnival
+display: "Карнавал"
+class: trickster
+icon: FIREWORK_ROCKET
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Теперь нас шестеро."
+  - "Пока карнавал идёт, враги"
+  - "то и дело теряют трикстера из виду."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: carnival, duration: $duration }
+      - { action: cast, skill: trickster_split, at-targets: true }
+      - { action: sound, sound: entity_illusioner_cast_spell, volume: 1.4, pitch: 0.7 }
+      - { action: particles, particle: portal, shape: ring, count: 48, size: 5.0 }
+      - { action: message, text: "&dКарнавал &7— теперь нас шестеро" }

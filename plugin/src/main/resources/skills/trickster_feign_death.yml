@@ -1,0 +1,40 @@
+# 7. Ложная Смерть — враги теряют цель, трикстер неуязвим и невидим.
+#
+# Неуязвимость сделана статусом, а не запретом урона в обход конвейера: все
+# отказы в этом ядре объяснимы, и «урон не прошёл» должно иметь причину,
+# которую видно.
+
+id: trickster_feign_death
+display: "Ложная Смерть"
+class: trickster
+icon: BONE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Падает замертво: враги забывают"
+  - "о трикстере, а он пару секунд"
+  - "неуязвим, невидим и быстр."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: clear-threat, radius: $radius }
+      - { action: status, id: feigned, duration: $duration }
+      - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - action: summon
+        mob: trickster_corpse
+        count: 1
+        duration: $corpse_life
+        tag: corpse
+        attacks-enemies: false
+      - { action: sound, sound: entity_player_death, volume: 1.0, pitch: 1.0 }
+      - { action: particles, particle: cloud, shape: sphere, count: 40, size: 0.5 }

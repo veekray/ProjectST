@@ -1,0 +1,20 @@
+# Взрыв одной копии: гремит там, где она стоит.
+
+id: trickster_double_blast
+display: "Нестабильные Копии — взрыв"
+class: trickster
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: push, strength: $push, lift: 0.4 }
+      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5 }
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: explosion, shape: point, count: 5, size: 0.5, at-origin: true }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.5, at-origin: true }

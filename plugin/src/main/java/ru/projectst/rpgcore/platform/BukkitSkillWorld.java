@@ -427,6 +427,63 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
+    /**
+     * Зашёл ли наблюдатель цели за спину.
+     *
+     * <p>Скалярное произведение двух горизонтальных векторов: куда цель
+     * повёрнута и в какую сторону от неё стоит наблюдатель. Высота отброшена —
+     * иначе удар сверху считался бы ударом сбоку, хотя со спины он или нет,
+     * решает направление по земле.
+     *
+     * <p>Поворот берётся у тела ({@code getLocation}), а не у головы
+     * ({@code getEyeLocation} с собственным yaw): голова у игрока крутится
+     * мгновенно и на полный круг, и «со спины» превратилось бы в «пока он
+     * отвернулся». Тело разворачивается медленно, и зайти за него — действие, а
+     * не удача.
+     */
+    /**
+     * Сбить цель с толку: моб выбирает себе другую жертву рядом.
+     *
+     * <p>Берётся ближайшее живое существо, кроме самого моба и кроме игроков:
+     * кукловод стравливает чужих между собой, а не натравливает их на своих.
+     */
+    @Override
+    public void confuse(UUID targetId, double radius) {
+        if (!(Bukkit.getEntity(targetId) instanceof Mob puppet) || radius <= 0) {
+            return;
+        }
+        LivingEntity victim = null;
+        double best = Double.MAX_VALUE;
+        for (Entity nearby : puppet.getNearbyEntities(radius, radius, radius)) {
+            if (!(nearby instanceof LivingEntity living) || living.isDead()
+                    || living instanceof Player || living.equals(puppet)) {
+                continue;
+            }
+            double distance = puppet.getLocation().distanceSquared(living.getLocation());
+            if (distance < best) {
+                best = distance;
+                victim = living;
+            }
+        }
+        if (victim != null) {
+            puppet.setTarget(victim);
+        }
+    }
+
+    @Override
+    public boolean isBehind(UUID observerId, UUID subjectId, double arcDegrees) {
+        Entity observer = Bukkit.getEntity(observerId);
+        Entity subject = Bukkit.getEntity(subjectId);
+        if (observer == null || subject == null
+                || !observer.getWorld().equals(subject.getWorld())) {
+            return false;
+        }
+        var at = subject.getLocation();
+        var from = observer.getLocation();
+        return ru.projectst.rpgcore.skill.Facing.isBehind(at.getYaw(),
+                from.getX() - at.getX(), from.getZ() - at.getZ(), arcDegrees);
+    }
+
     @Override
     public double maxHealthOf(UUID entity) {
         if (!(Bukkit.getEntity(entity) instanceof LivingEntity living)) {

@@ -60,6 +60,16 @@ class CastServiceTest {
 
     /** Мир, который только считает нанесённый урон. */
     private static final class FakeWorld implements SkillWorld {
+
+        @Override
+        public void confuse(UUID target, double radius) {
+        }
+
+        @Override
+        public boolean isBehind(UUID observer, UUID subject, double arcDegrees) {
+            return false;
+        }
+
         @Override
         public double maxHealthOf(UUID entity) {
             return 20;

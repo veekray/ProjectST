@@ -1,0 +1,40 @@
+# 2. Подмена — обмен местами с ближайшим двойником.
+#
+# Копий нет — меняемся с врагом перед собой. Запасная ветка гейтится наличием
+# самих копий, а не отдельной аурой: в старом стеке её срок и жизнь копий
+# разъезжались, и в окне «копии есть, аура кончилась» срабатывали оба обмена
+# подряд, возвращая игрока на место.
+
+id: trickster_sleight
+display: "Подмена"
+class: trickster
+icon: ENDER_EYE
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Меняется местами с ближайшим двойником."
+  - "Если двойников нет — с врагом"
+  - "перед собой."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.5 }
+
+  - target: { type: own_minions, tag: double, limit: 1 }
+    do:
+      - { action: swap }
+      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 1.3 }
+      - { action: particles, particle: portal, shape: point, count: 25, size: 0.4 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50, limit: 1 }
+    if:
+      - { caster: has-minion, value: double, not: true }
+    do:
+      - { action: swap }
+      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: portal, shape: point, count: 35, size: 0.5 }

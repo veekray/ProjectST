@@ -94,10 +94,35 @@ public sealed interface Action {
      * @param stacks сколько стаков снять; ноль — статус целиком. Нужно там, где
      *               стаки это заряды, и каждый ответ тратит ровно один
      */
-    record RemoveStatus(String statusId, int stacks) implements Action {
+    /**
+     * Снятие статуса: по имени или по метке.
+     *
+     * <p>По метке нужно там, где снимают «что-нибудь полезное», не зная заранее
+     * что: Карманник крадёт у цели усиление, а какое именно — зависит от того,
+     * что на ней висит. Перечислять все усиления в файле навыка значило бы
+     * забыть новое в тот же день, когда его добавят.
+     *
+     * @param statusId имя статуса; пусто, если снимают по метке
+     * @param tag      метка; пусто, если снимают по имени
+     * @param stacks   сколько стаков; ноль — весь статус целиком
+     */
+    record RemoveStatus(String statusId, String tag, int stacks) implements Action {
 
         public RemoveStatus(String statusId) {
-            this(statusId, 0);
+            this(statusId, null, 0);
+        }
+
+        public RemoveStatus(String statusId, int stacks) {
+            this(statusId, null, stacks);
+        }
+
+        public RemoveStatus {
+            boolean byId = statusId != null && !statusId.isBlank();
+            boolean byTag = tag != null && !tag.isBlank();
+            if (byId == byTag) {
+                throw new IllegalArgumentException(
+                        "снятие статуса задаётся либо именем, либо меткой, но не обоими");
+            }
         }
 
         @Override
@@ -459,6 +484,20 @@ public sealed interface Action {
      * куда уже перенесли кастера, и один из двоих застревал бы в блоке. Обмен
      * считается от обеих позиций сразу.
      */
+    /**
+     * Сбить цель: существо выбирает себе другую жертву рядом.
+     *
+     * <p>Работает по мобам. Отнимать управление у игрока таким способом нельзя:
+     * это контроль, а контроль в этом ядре делается статусами, которые видно на
+     * экране и у которых объявлены конфликты.
+     */
+    record Confuse(NumberRef radius) implements Action {
+        @Override
+        public String name() {
+            return "confuse";
+        }
+    }
+
     record Swap() implements Action {
         @Override
         public String name() {

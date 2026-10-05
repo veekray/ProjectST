@@ -478,6 +478,11 @@ balance:
     shadow_duration: 6000
     vuln_cooldown: 60
 
+  assassin_vuln_check:
+    # Ширина тыльного сектора целиком: 120 градусов это треть круга позади
+    # цели, по 60 в каждую сторону от точки прямо за спиной.
+    back_arc: 120
+
   assassin_nowhere_blade:
     stamina: 12
     cooldown:
@@ -539,6 +544,7 @@ balance:
     damage: 0.025
 
   assassin_garrote:
+    back_arc: 120
     stamina: 18
     cooldown:
       base: 20.0
@@ -629,3 +635,130 @@ balance:
 
   assassin_execute_reset:
     lock_duration: 20
+
+  # ================================================================ трикстер
+
+  trickster_split:
+    stamina: 16
+    cooldown:
+      base: 16.0
+      per-level: -0.1
+      min: 10.0
+    count: 2
+    count_carnival: 6
+    life: 600
+    dodge: 24
+    damage_bonus: 30
+
+  trickster_sleight:
+    stamina: 8
+    cooldown:
+      base: 8.0
+      per-level: -0.05
+      min: 4.0
+    range: 15
+
+  trickster_knife_storm:
+    stamina: 18
+    cooldown:
+      base: 12.0
+      per-level: -0.1
+      min: 7.0
+    radius: 6
+    damage:
+      base: 7
+      per-level: 0.9
+
+  trickster_knife_fan:
+    radius: 6
+    # Копия бьёт вполовину: своего оружия у неё нет, урон ей считает хозяин.
+    damage:
+      base: 3.5
+      per-level: 0.45
+
+  trickster_blinding_dust:
+    stamina: 16
+    cooldown:
+      base: 18.0
+      per-level: -0.1
+      min: 12.0
+    radius: 6
+    duration: 80
+    dodge: 40
+    weaken: -25
+
+  trickster_pickpocket:
+    stamina: 20
+    cooldown:
+      base: 25.0
+      per-level: -0.15
+      min: 16.0
+    range: 8
+    duration: 160
+    stolen_damage: 15
+    stolen_damage_loss: -15
+    stolen_defense: 10
+
+  trickster_unstable_doubles:
+    stamina: 22
+    cooldown:
+      base: 20.0
+      per-level: -0.1
+      min: 13.0
+
+  trickster_double_blast:
+    radius: 5
+    damage:
+      base: 14
+      per-level: 1.5
+    push: 1.2
+
+  trickster_feign_death:
+    stamina: 24
+    cooldown:
+      base: 40.0
+      per-level: -0.2
+      min: 26.0
+    radius: 20
+    duration: 40
+    corpse_life: 120
+    speed: 30
+
+  trickster_shuffle:
+    stamina: 22
+    cooldown:
+      base: 26.0
+      per-level: -0.15
+      min: 17.0
+    radius: 8
+    throw: 6
+
+  trickster_puppeteer:
+    stamina: 26
+    cooldown:
+      base: 45.0
+      per-level: -0.2
+      min: 30.0
+    radius: 10
+    confuse_radius: 8
+    duration: 60
+    weaken: -40
+
+  trickster_carnival:
+    stamina: 40
+    cooldown:
+      base: 140.0
+      per-level: -0.5
+      min: 95.0
+    duration: 200
+
+  trickster_carnival_tick:
+    radius: 20
+
+  trickster_corpse_blast:
+    radius: 4
+    damage:
+      base: 10
+      per-level: 1.0
+    blind: 40
+    push: 1.0

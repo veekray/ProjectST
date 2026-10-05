@@ -1,0 +1,21 @@
+# Веер одной копии: гремит в её точке, а не в точке хозяина.
+#
+# Точка действия — место копии, поэтому цели ищутся вокруг неё. Урон считает
+# хозяин: у копии своего оружия нет, и брать его неоткуда.
+
+id: trickster_knife_fan
+display: "Ножевой Шквал — копия"
+class: trickster
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3 }
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: crit, shape: ring, count: 16, size: 2.0, at-origin: true }

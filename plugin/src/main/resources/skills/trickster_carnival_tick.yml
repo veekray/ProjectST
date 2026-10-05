@@ -1,0 +1,23 @@
+# Пока идёт Карнавал и жива хотя бы одна копия, враги теряют трикстера.
+#
+# Условие по копиям, а не по одному лишь Карнавалу: ульта без копий — это
+# просто невидимость, и давать её даром не за что.
+
+id: trickster_carnival_tick
+display: "Карнавал"
+class: trickster
+tier: 5
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: carnival }
+      - { caster: has-minion, value: double }
+    do:
+      - { action: clear-threat, radius: $radius }
+      - { action: particles, particle: portal, shape: point, count: 6, size: 0.5 }

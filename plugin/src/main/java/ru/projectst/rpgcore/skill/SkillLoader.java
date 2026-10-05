@@ -235,12 +235,12 @@ public final class SkillLoader {
         }
         if (type.needsTag() && tag.isBlank()) {
             errors.add(t.at(), path + ".target.tag",
-                    "для цели " + type.name().toLowerCase(Locale.ROOT) + " нужен tag зоны");
+                    "для цели " + type.name().toLowerCase(Locale.ROOT) + " нужен tag");
             return Optional.empty();
         }
         if (!type.needsTag() && !tag.isBlank()) {
             errors.add(t.at(), path + ".target.tag",
-                    "tag имеет смысл только у цели enemies_near_zone");
+                    "tag имеет смысл только у целей enemies_near_zone и own_minions");
             return Optional.empty();
         }
         return Optional.of(new TargetSpec(type, radius, angle,
@@ -293,6 +293,7 @@ public final class SkillLoader {
             case "in-zone" -> Condition.Check.IN_ZONE;
             case "counter" -> Condition.Check.COUNTER;
             case "has-minion" -> Condition.Check.HAS_MINION;
+            case "behind" -> Condition.Check.BEHIND;
             case "zone-count" -> Condition.Check.ZONE_COUNT;
             default -> null;
         };
@@ -349,14 +350,20 @@ public final class SkillLoader {
                 yield Optional.of(new Action.ApplyStatus(statusId, duration, amount));
             }
 
+            case "confuse" -> require(b, path, errors, "radius", Action.Confuse::new);
+
             case "remove-status" -> {
                 String statusId = b.str("id", "");
+                String tag = b.str("tag", "");
                 int stacks = b.integer("stacks", 1, 99, 0);
-                if (statusId.isBlank()) {
-                    errors.add(b.at(), path + ".id", "обязательный ключ id отсутствует");
+                if (statusId.isBlank() == tag.isBlank()) {
+                    errors.add(b.at(), path,
+                            "нужен ровно один ключ: id или tag");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.RemoveStatus(statusId, stacks));
+                yield Optional.of(statusId.isBlank()
+                        ? new Action.RemoveStatus(null, tag, stacks)
+                        : new Action.RemoveStatus(statusId, null, stacks));
             }
 
             case "modify-stat" -> {

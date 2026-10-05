@@ -41,6 +41,21 @@ class SkillRuntimeTest {
 
     /** Подставной мир: пишет, что от него просили. */
     private static final class FakeWorld implements SkillWorld {
+        final java.util.List<String> confused = new java.util.ArrayList<>();
+
+        @Override
+        public void confuse(UUID target, double radius) {
+            confused.add(target + "@" + radius);
+        }
+
+        /** Кто за чьей спиной: ставится тестом, геометрию проверяет FacingTest. */
+        final java.util.Set<String> behind = new java.util.HashSet<>();
+
+        @Override
+        public boolean isBehind(UUID observer, UUID subject, double arcDegrees) {
+            return behind.contains(observer + ">" + subject);
+        }
+
         // Новые примитивы: подкласс плута без них не выражается.
         final java.util.List<String> swaps = new java.util.ArrayList<>();
         final java.util.List<String> scattered = new java.util.ArrayList<>();
@@ -306,6 +321,33 @@ class SkillRuntimeTest {
     }
 
     // ------------------------------------------------------------------ шаг
+
+    @Test
+    @DisplayName("условие спины проверяет кастера относительно цели, а не наоборот")
+    void behindChecksCasterAgainstTarget() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    if:
+                      - { target: behind, value: "120" }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        // Кастер зашёл за спину только одному из двоих.
+        f.world.behind.add(CASTER + ">" + A);
+        // Обратное отношение не должно считаться: оно тут ни при чём.
+        f.world.behind.add(B + ">" + CASTER);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("resolve ENEMIES_IN_RADIUS r=6.0", "damage A 5.0 MAGIC"),
+                f.world.calls,
+                "в старом стеке условие выглядело как проверка цели, а проверяло "
+                        + "кастера — на этом терялись часы");
+    }
 
     @Test
     @DisplayName("лечение режется получаемым лечением цели, а не кастера")

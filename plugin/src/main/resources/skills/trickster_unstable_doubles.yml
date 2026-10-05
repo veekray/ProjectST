@@ -1,0 +1,32 @@
+# 6. Нестабильные Копии — подрыв всех двойников разом.
+#
+# Множителя от числа копий нет: суммарный урон и так растёт от того, что
+# взрывов больше. Второй множитель поверх этого превращал бы Карнавал в
+# единственную рабочую связку.
+
+id: trickster_unstable_doubles
+display: "Нестабильные Копии"
+class: trickster
+icon: FIRE_CHARGE
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Подрывает всех двойников."
+  - "Каждый взрыв бьёт и отбрасывает"
+  - "тех, кто стоял рядом."
+
+steps:
+
+  - target: { type: own_minions, tag: double }
+    do:
+      - { action: cast, skill: trickster_double_blast, at-targets: false }
+
+  - target: { type: self }
+    delay: 2
+    do:
+      - { action: dismiss, tag: double }
+      - { action: remove-status, id: doubles }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.2 }

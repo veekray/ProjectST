@@ -31,6 +31,7 @@ public final class SkillIcons {
             "warlock", 0xFF7F3A6B,
             "rogue", 0xFF5B5B6B,
             "assassin", 0xFF4A3A5B,
+            "trickster", 0xFF7A4FD1,
             "item", 0xFFC9A227);
 
     private SkillIcons() {
@@ -423,6 +424,128 @@ public final class SkillIcons {
                         "b.ccccc.b",
                         ".b.....b.",
                         "..bbbbb.."}));
+
+        // ------------------------------------------------------------ трикстер
+        // раскол: три силуэта
+        ICONS.put("trickster_split", new Icon(0xFF2A1A4A, 0xFF7A4FD1, 0xFFD8C0FF,
+                new String[] {
+                        ".b..c..b.",
+                        ".b..c..b.",
+                        "bbb.c.bbb",
+                        "bbbcccbbb",
+                        "bbbcccbbb",
+                        ".b.ccc.b.",
+                        ".b.ccc.b.",
+                        ".b..c..b.",
+                        "....c...."}));
+        // подмена: две стрелки навстречу
+        ICONS.put("trickster_sleight", new Icon(0xFF2A1A4A, 0xFF7A4FD1, 0xFFD8C0FF,
+                new String[] {
+                        "..c...b..",
+                        ".ccc.bbb.",
+                        "ccccc.b..",
+                        "..c...b..",
+                        ".........",
+                        "..c...b..",
+                        "..c.bbbbb",
+                        ".ccc.bbb.",
+                        "..c...b.."}));
+        // ножевой шквал: ножи во все стороны
+        ICONS.put("trickster_knife_storm", new Icon(0xFF2A2A3A, 0xFF9A9AB0, 0xFFF0F0F8,
+                new String[] {
+                        "c...c...c",
+                        ".c..b..c.",
+                        "..c.b.c..",
+                        "...cbc...",
+                        "cbbbcbbbc",
+                        "...cbc...",
+                        "..c.b.c..",
+                        ".c..b..c.",
+                        "c...c...c"}));
+        // пыль в глаза: облако и зажмуренный глаз
+        ICONS.put("trickster_blinding_dust", new Icon(0xFF3A3028, 0xFF8A7A62, 0xFFE0D0B0,
+                new String[] {
+                        "..bb.bb..",
+                        ".bbbbbbb.",
+                        "bbbbbbbbb",
+                        "bbcccccbb",
+                        "bc.ccc.cb",
+                        "bbcccccbb",
+                        "bbbbbbbbb",
+                        ".bbbbbbb.",
+                        "..bb.bb.."}));
+        // карманник: кошель с рукой
+        ICONS.put("trickster_pickpocket", new Icon(0xFF3A2A14, 0xFF8A6A2E, 0xFFE8C86A,
+                new String[] {
+                        "..c...c..",
+                        "..c.c.c..",
+                        "..ccccc..",
+                        "...bbb...",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        ".bbcccbb.",
+                        ".bbbbbbb.",
+                        "..bbbbb.."}));
+        // нестабильные копии: силуэт во вспышке
+        ICONS.put("trickster_unstable_doubles", new Icon(0xFF4A1A0A, 0xFFC94A2A, 0xFFF0D070,
+                new String[] {
+                        "b...c...b",
+                        ".b.ccc.b.",
+                        "..ccccc..",
+                        ".ccbbbcc.",
+                        "cccbbbccc",
+                        ".ccbbbcc.",
+                        "..ccccc..",
+                        ".b.ccc.b.",
+                        "b...c...b"}));
+        // ложная смерть: череп с подмигиванием
+        ICONS.put("trickster_feign_death", new Icon(0xFF2A2A2A, 0xFF8A8A8A, 0xFFF0F0E8,
+                new String[] {
+                        "..ccccc..",
+                        ".ccccccc.",
+                        "cc.ccc.cc",
+                        "ca.ccc.ac",
+                        "ccccccccc",
+                        "cc.c.c.cc",
+                        ".ccccccc.",
+                        "..c.c.c..",
+                        "...ccc..."}));
+        // перетасовка: фигуры, разлетающиеся по углам
+        ICONS.put("trickster_shuffle", new Icon(0xFF2A1A4A, 0xFF7A4FD1, 0xFFD8C0FF,
+                new String[] {
+                        "bb.....bb",
+                        "bb..c..bb",
+                        "...ccc...",
+                        "..ccccc..",
+                        ".ccc.ccc.",
+                        "..ccccc..",
+                        "...ccc...",
+                        "bb..c..bb",
+                        "bb.....bb"}));
+        // кукловод: крестовина с нитями
+        ICONS.put("trickster_puppeteer", new Icon(0xFF2A1A4A, 0xFF7A4FD1, 0xFFD8C0FF,
+                new String[] {
+                        "ccccccccc",
+                        "..c...c..",
+                        "..c...c..",
+                        "..c...c..",
+                        ".bbb.bbb.",
+                        "bbbbbbbbb",
+                        ".bbb.bbb.",
+                        "..b...b..",
+                        ".bb...bb."}));
+        // карнавал: маска
+        ICONS.put("trickster_carnival", new Icon(0xFF3A1A4A, 0xFFB04FD1, 0xFFF0D070,
+                new String[] {
+                        "c.......c",
+                        ".cbbbbbc.",
+                        "cbbbbbbbc",
+                        "bb.bbb.bb",
+                        "b.c.b.c.b",
+                        "bb.bbb.bb",
+                        ".bbbbbbb.",
+                        "..bbbbb..",
+                        "...ccc..."}));
     }
 
     /**

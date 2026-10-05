@@ -83,6 +83,14 @@ public interface SkillWorld {
     /** Указывает существу, кого бить. */
     void setAttackTarget(UUID mob, UUID target);
 
+    /**
+     * Стоит ли наблюдатель у цели за спиной.
+     *
+     * @param arcDegrees ширина тыльного сектора в градусах: 120 означает, что
+     *                   спиной считается треть круга позади цели
+     */
+    boolean isBehind(UUID observer, UUID subject, double arcDegrees);
+
     /** Предел здоровья цели: от него считается урон долей. */
     double maxHealthOf(UUID entity);
 
@@ -96,6 +104,14 @@ public interface SkillWorld {
      * в точке, куда уже перенесли первого, и один из них застрял бы в блоке.
      */
     void swap(UUID first, UUID second);
+
+    /**
+     * Сбивает цель: существо выбирает себе другую жертву рядом.
+     *
+     * <p>По игрокам не работает: отнимать управление — это контроль, и он
+     * делается статусами, которые видно на экране.
+     */
+    void confuse(UUID target, double radius);
 
     /** Переносит цель в случайную точку в радиусе от её нынешнего места. */
     void scatter(UUID target, double radius);

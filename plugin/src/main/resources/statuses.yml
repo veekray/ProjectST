@@ -305,3 +305,31 @@ statuses:
     category: mark
     duration: 60
     tags: [mark]
+
+  # ---------------------------------------------------------------- трикстер
+  # Маркер «копии живы». Он же счётчик ядра на экране: сколько именно копий
+  # ходит рядом, игрок видит глазами, а вот идёт ли сейчас усиление за них —
+  # нет, и об этом говорит статус.
+  doubles:
+    display: "Двойники"
+    color: LIGHT_PURPLE
+    category: buff
+    duration: 600
+    tags: [counter]
+
+  carnival:
+    display: "Карнавал"
+    color: LIGHT_PURPLE
+    category: buff
+    duration: 200
+    tags: [soft]
+
+  # Ложная смерть: неуязвимость статусом, а не запретом урона мимо конвейера.
+  # Все отказы в этом ядре объяснимы, и «урон не прошёл» обязан иметь причину,
+  # которую видно в отладке.
+  feigned:
+    display: "Ложная смерть"
+    color: DARK_GRAY
+    category: immunity
+    duration: 40
+    tags: [soft, immunity]

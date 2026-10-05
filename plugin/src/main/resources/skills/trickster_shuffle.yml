@@ -1,0 +1,32 @@
+# 8. Перетасовка — врагов раскидывает по случайным точкам.
+#
+# Точка берётся заново для каждого, иначе строй не рассыпается, а переезжает
+# целиком. В старом стеке прыжок приходилось перекладывать на самого врага
+# через sudoskill, и по ванильным мобам он не срабатывал вовсе.
+
+id: trickster_shuffle
+display: "Перетасовка"
+class: trickster
+icon: ENDER_PEARL
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Раскидывает врагов вокруг по случайным"
+  - "местам: строй разваливается,"
+  - "а кто-то оказывается один."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 1.0, pitch: 0.9 }
+      - { action: particles, particle: portal, shape: ring, count: 48, size: 8.0 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: scatter, radius: $throw }
+      - { action: particles, particle: portal, shape: point, count: 25, size: 0.5 }
+      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.5 }

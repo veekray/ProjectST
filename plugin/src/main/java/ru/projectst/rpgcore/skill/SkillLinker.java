@@ -182,6 +182,7 @@ public final class SkillLinker {
             case Action.Message ignored -> List.of();
             case Action.Cast ignored -> List.of();
             case Action.Swap ignored -> List.of();
+            case Action.Confuse a -> refs(a.radius());
             case Action.Scatter a -> refs(a.radius());
             case Action.ClearThreat a -> refs(a.radius());
             case Action.ResetCooldown ignored -> List.of();
@@ -212,8 +213,14 @@ public final class SkillLinker {
                 checkBalance(skill, where, table, path + ".amount", s.amount(), errors);
                 checkStatus(statuses, s.statusId(), where, path + ".id", errors);
             }
-            case Action.RemoveStatus r ->
+            case Action.RemoveStatus r -> {
+                // По метке проверять нечего: метки объявляются свободным
+                // списком в статусах, и требовать от навыка знать их наперёд
+                // значило бы завести второй реестр.
+                if (r.statusId() != null) {
                     checkStatus(statuses, r.statusId(), where, path + ".id", errors);
+                }
+            }
             case Action.ModifyStat m -> {
                 checkBalance(skill, where, table, path + ".value", m.value(), errors);
                 checkBalance(skill, where, table, path + ".duration", m.duration(), errors);
@@ -251,6 +258,8 @@ public final class SkillLinker {
             case Action.Swap ignored -> {
                 // ссылок не содержит
             }
+            case Action.Confuse cf ->
+                    checkBalance(skill, where, table, path + ".radius", cf.radius(), errors);
             case Action.Scatter sc ->
                     checkBalance(skill, where, table, path + ".radius", sc.radius(), errors);
             case Action.ClearThreat ct ->

@@ -58,7 +58,18 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String ta
          * магом: Коллапс тянет тех, кого накрыли печати, и именно поэтому
          * расстановка печатей что-то решает.
          */
-        ENEMIES_NEAR_ZONE(true, false);
+        ENEMIES_NEAR_ZONE(true, false),
+
+        /**
+         * Свои призванные с заданной меткой.
+         *
+         * <p>Нужен там, где действует не сам игрок, а его копии: веер ножей
+         * бросает каждая со своего места, подрыв гремит там, где она стоит.
+         * В старом стеке их искали по типу существа и отсеивали чужих
+         * сравнением имени хозяина в переменной — здесь владелец и так известен
+         * реестру призванных.
+         */
+        OWN_MINIONS(false, false);
 
         private final boolean needsRadius;
         private final boolean needsAngle;
@@ -89,7 +100,7 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String ta
 
         /** Нужен ли этому типу тег зоны. */
         public boolean needsTag() {
-            return this == ENEMIES_NEAR_ZONE;
+            return this == ENEMIES_NEAR_ZONE || this == OWN_MINIONS;
         }
     }
 

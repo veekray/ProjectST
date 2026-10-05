@@ -1,0 +1,67 @@
+# 1. Раскол — старые копии исчезают, появляются новые.
+#
+# Счётчика копий нет и не нужно: Раскол сначала распускает всех своих, потом
+# призывает ровно столько, сколько положено. Больше предела не бывает по
+# построению. В старом стеке счётчик жил в переменной кастера, которая у
+# игрока не резолвилась вовсе, поэтому предел не работал и Раскол плодил
+# иллюзии без ограничения.
+#
+# Под Карнавалом копий шесть вместо двух — это единственное, что меняет ульта.
+
+id: trickster_split
+display: "Раскол"
+class: trickster
+icon: PRISMARINE_SHARD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Распускает прежних двойников"
+  - "и призывает новых. Пока они живы,"
+  - "трикстер бьёт сильнее и чаще уклоняется."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dismiss, tag: double }
+      - { action: sound, sound: entity_illusioner_cast_spell, volume: 1.0, pitch: 1.1 }
+      - { action: particles, particle: portal, shape: ring, count: 24, size: 2.0 }
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: carnival, not: true }
+    do:
+      - action: summon
+        mob: trickster_double
+        count: $count
+        duration: $life
+        tag: double
+        attacks-enemies: false
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: carnival }
+    do:
+      - action: summon
+        mob: trickster_double
+        count: $count_carnival
+        duration: $life
+        tag: double
+        attacks-enemies: false
+
+  - target: { type: self }
+    do:
+      - { action: status, id: doubles, duration: $life }
+      - action: modify-stat
+        stat: dodge_rating
+        op: flat
+        value: $dodge
+        duration: $life
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $damage_bonus
+        duration: $life

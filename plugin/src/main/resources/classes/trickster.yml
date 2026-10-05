@@ -1,0 +1,57 @@
+# Трикстер — второй подкласс плута, перенесённый отдельным классом.
+#
+# Почему классом, а не надстройкой — по той же причине, что и ассасин: его
+# Подмена и Ложная Смерть делают то же, что плутовские Рывок и Шаг призрака.
+# Подробнее — в assassin.yml.
+#
+# Платит выносливостью и почти не имеет защиты: всё, что у него есть вместо
+# неё, — уклонение и то, что бьют не его.
+
+id: trickster
+display: "&dТрикстер"
+slots: 6
+icon: ENDER_EYE
+max-level: 60
+points-per-level: 1
+
+resource:
+  name: "Выносливость"
+  max: max_stamina
+  regen: stamina_regen
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 3
+  3: 5
+  4: 7
+  5: 10
+
+stats:
+  max_health:
+    base: 18
+    per-level: 2
+  max_stamina:
+    base: 100
+    per-level: 4
+  stamina_regen:
+    base: 4
+    per-level: 0.1
+  physical_damage:
+    base: 0
+    per-level: 0.5
+  magic_damage:
+    base: 0
+    per-level: 0.4
+  critical_strike_chance:
+    base: 5
+    per-level: 0.15
+  dodge_rating:
+    base: 6
+    per-level: 0.2
+  defense:
+    base: 0
+    per-level: 0.05
