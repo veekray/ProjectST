@@ -7,6 +7,7 @@
 id: druid_poison_ivy
 display: "Отравленный плющ"
 class: druid
+icon: VINE
 tier: 2
 
 mana: $mana

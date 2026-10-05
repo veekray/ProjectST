@@ -11,6 +11,7 @@
 id: rogue_mirror_image
 display: "Отражение"
 class: rogue
+icon: GLASS_PANE
 tier: 4
 
 mana: $stamina

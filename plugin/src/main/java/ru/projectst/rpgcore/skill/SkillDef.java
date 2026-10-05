@@ -19,6 +19,9 @@ import java.util.Locale;
  * @param steps       тело навыка
  * @param trigger     что его запускает
  * @param intervalTicks для {@link SkillTrigger#ON_INTERVAL} — как часто
+ * @param icon        чем навык выглядит в интерфейсе; имя ванильного
+     *                    предмета. Лежит в контенте, а не в таблице внутри кода:
+     *                    иначе добавить навык было бы нельзя без правки Java
  * @param internal    служебный навык: игрок его не изучает и не видит, он
  *                    работает у всего класса. Нужен для отдач и тиков, которые
  *                    в старом стеке висели безымянными метаскиллами и из-за
@@ -26,13 +29,23 @@ import java.util.Locale;
  */
 public record SkillDef(String id, String display, String classId, int tier,
                        NumberRef manaCost, NumberRef cooldown, List<Step> steps,
-                       SkillTrigger trigger, int intervalTicks, boolean internal) {
+                       SkillTrigger trigger, int intervalTicks, boolean internal, String icon) {
+
+    /** Чем выглядит навык, у которого иконка не указана. */
+    public static final String DEFAULT_ICON = "PAPER";
 
     public SkillDef(String id, String display, String classId, int tier,
                     NumberRef manaCost, NumberRef cooldown, List<Step> steps,
                     SkillTrigger trigger, int intervalTicks) {
         this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
-                false);
+                false, DEFAULT_ICON);
+    }
+
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    SkillTrigger trigger, int intervalTicks, boolean internal) {
+        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+                internal, DEFAULT_ICON);
     }
 
     /** Навык, который применяют вручную: самый частый случай. */
@@ -50,6 +63,7 @@ public record SkillDef(String id, String display, String classId, int tier,
         }
         steps = steps == null ? List.of() : List.copyOf(steps);
         trigger = trigger == null ? SkillTrigger.MANUAL : trigger;
+        icon = icon == null || icon.isBlank() ? DEFAULT_ICON : icon.toUpperCase(Locale.ROOT);
         if (trigger == SkillTrigger.ON_INTERVAL && intervalTicks < 1) {
             throw new IllegalArgumentException(
                     "периодическому навыку нужен промежуток: " + id);

@@ -293,6 +293,13 @@ public final class ClassService {
                 : new ClassOutcome.Bind(ClassOutcome.Bind.Kind.REPLACED, previous);
     }
 
+    /** Освобождает слот. Отдельный метод, потому что это тоже запись на диск. */
+    public void unbind(UUID player, int slot) {
+        PlayerData d = data.load(player);
+        d.unbind(slot);
+        data.saveLater(d);
+    }
+
     public Optional<SkillDef> skillInSlot(UUID player, int slot) {
         String id = data.load(player).slotBindings().get(slot);
         return id == null ? Optional.empty() : skills.find(id);

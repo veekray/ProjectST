@@ -11,6 +11,7 @@
 id: mage_flow_loop
 display: "Петля потоков"
 class: mage
+icon: HEART_OF_THE_SEA
 tier: 2
 
 mana: $mana

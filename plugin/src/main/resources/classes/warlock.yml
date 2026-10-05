@@ -3,6 +3,7 @@
 id: warlock
 display: "&5Колдун"
 slots: 6
+icon: SOUL_LANTERN
 max-level: 60
 points-per-level: 1
 

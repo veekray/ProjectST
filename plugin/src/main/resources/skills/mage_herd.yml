@@ -13,6 +13,7 @@
 id: mage_herd
 display: "Сгон"
 class: mage
+icon: LEAD
 tier: 3
 
 mana: $mana

@@ -7,6 +7,7 @@
 id: warlock_reap_mark
 display: "Метка жатвы"
 class: warlock
+icon: SOUL_LANTERN
 tier: 2
 
 mana: $mana

@@ -14,6 +14,7 @@
 id: druid_beast_call
 display: "Зов зверя"
 class: druid
+icon: BONE
 tier: 4
 
 mana: $mana

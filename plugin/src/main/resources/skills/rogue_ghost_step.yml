@@ -8,6 +8,7 @@
 id: rogue_ghost_step
 display: "Шаг призрака"
 class: rogue
+icon: FEATHER
 tier: 2
 
 mana: $stamina

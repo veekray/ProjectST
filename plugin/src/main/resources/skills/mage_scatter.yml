@@ -12,6 +12,7 @@
 id: mage_scatter
 display: "Россыпь"
 class: mage
+icon: AMETHYST_CLUSTER
 tier: 4
 
 mana: $mana

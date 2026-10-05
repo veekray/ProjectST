@@ -6,6 +6,7 @@
 id: mage_mana_bolt
 display: "Мановый разряд"
 class: mage
+icon: AMETHYST_SHARD
 tier: 2
 
 mana: $mana

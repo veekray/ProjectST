@@ -2,6 +2,7 @@ package ru.projectst.rpgcore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -207,6 +208,27 @@ class ShippedContentTest {
                         "класс " + def.id() + " даёт базу стату " + statId
                                 + ", которого нет в stats.yml");
             }
+        }
+    }
+
+    @Test
+    @DisplayName("у каждого перенесённого навыка и класса своя иконка")
+    void everythingHasAnIcon() throws IOException {
+        Content content = load();
+
+        for (SkillDef skill : content.skills()) {
+            if (!skill.selectable()) {
+                continue;
+            }
+            assertNotEquals(SkillDef.DEFAULT_ICON, skill.icon(),
+                    "навык " + skill.id() + " остался с иконкой по умолчанию: в интерфейсе"
+                            + " шесть одинаковых бумажек не отличить друг от друга");
+            assertTrue(skill.icon().matches("[A-Z0-9_]+"),
+                    "иконка должна быть именем предмета: " + skill.icon());
+        }
+        for (ClassDef def : content.classes()) {
+            assertNotEquals(ClassDef.DEFAULT_ICON, def.icon(),
+                    "класс " + def.id() + " остался с иконкой по умолчанию");
         }
     }
 }

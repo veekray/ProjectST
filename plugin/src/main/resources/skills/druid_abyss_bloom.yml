@@ -9,6 +9,7 @@
 id: druid_abyss_bloom
 display: "Цвет бездны"
 class: druid
+icon: WITHER_ROSE
 tier: 5
 
 mana: $mana

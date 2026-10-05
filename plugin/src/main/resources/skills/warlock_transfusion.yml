@@ -10,6 +10,7 @@
 id: warlock_transfusion
 display: "Переливание душ"
 class: warlock
+icon: GHAST_TEAR
 tier: 4
 
 mana: $mana

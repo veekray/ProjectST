@@ -7,6 +7,7 @@
 id: warlock_dark_veil
 display: "Тёмная пелена"
 class: warlock
+icon: INK_SAC
 tier: 3
 
 mana: $mana

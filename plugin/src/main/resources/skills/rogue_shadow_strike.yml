@@ -10,6 +10,7 @@
 id: rogue_shadow_strike
 display: "Удар из тени"
 class: rogue
+icon: IRON_SWORD
 tier: 3
 
 mana: $stamina

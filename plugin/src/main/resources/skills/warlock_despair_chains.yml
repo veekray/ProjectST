@@ -6,6 +6,7 @@
 id: warlock_despair_chains
 display: "Оковы отчаяния"
 class: warlock
+icon: CHAIN
 tier: 3
 
 mana: $mana

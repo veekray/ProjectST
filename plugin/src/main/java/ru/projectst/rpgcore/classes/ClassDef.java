@@ -23,12 +23,23 @@ import ru.projectst.rpgcore.balance.BalanceValue;
  * @param xpCurve    сколько опыта нужно, чтобы уйти с уровня N на N+1
  * @param pointsPerLevel сколько очков навыков даёт уровень
  * @param resource   чем класс платит за навыки
+ * @param icon       чем класс выглядит в интерфейсе
  */
 public record ClassDef(String id, String display, int slots,
                        Map<Integer, Integer> tierLevels,
                        Map<String, BalanceValue> statCurves,
                        int maxLevel, BalanceValue xpCurve, int pointsPerLevel,
-                       ResourceSpec resource) {
+                       ResourceSpec resource, String icon) {
+
+    /** Чем выглядит класс, у которого иконка не указана. */
+    public static final String DEFAULT_ICON = "BOOK";
+
+    public ClassDef(String id, String display, int slots, Map<Integer, Integer> tierLevels,
+                    Map<String, BalanceValue> statCurves, int maxLevel, BalanceValue xpCurve,
+                    int pointsPerLevel, ResourceSpec resource) {
+        this(id, display, slots, tierLevels, statCurves, maxLevel, xpCurve, pointsPerLevel,
+                resource, DEFAULT_ICON);
+    }
 
     public ClassDef(String id, String display, int slots, Map<Integer, Integer> tierLevels,
                     Map<String, BalanceValue> statCurves, int maxLevel, BalanceValue xpCurve,
@@ -51,6 +62,7 @@ public record ClassDef(String id, String display, int slots,
             throw new IllegalArgumentException("кривая опыта обязательна: " + id);
         }
         resource = resource == null ? ResourceSpec.MANA : resource;
+        icon = icon == null || icon.isBlank() ? DEFAULT_ICON : icon.toUpperCase(Locale.ROOT);
         tierLevels = Collections.unmodifiableMap(new LinkedHashMap<>(
                 tierLevels == null ? Map.of() : tierLevels));
         statCurves = Collections.unmodifiableMap(new LinkedHashMap<>(

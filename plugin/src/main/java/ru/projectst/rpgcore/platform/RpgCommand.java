@@ -29,7 +29,7 @@ import ru.projectst.rpgcore.status.StatusService;
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
-            "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
+            "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
             "progress", "xp");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
@@ -44,21 +44,30 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final ru.projectst.rpgcore.skill.SkillRuntime runtime;
     private final ru.projectst.rpgcore.classes.ClassService playerClasses;
     private final ru.projectst.rpgcore.cast.CastService casts;
+    private final ru.projectst.rpgcore.platform.gui.MenuContext menus;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
                       ru.projectst.rpgcore.classes.ClassService playerClasses,
-                      ru.projectst.rpgcore.cast.CastService casts) {
+                      ru.projectst.rpgcore.cast.CastService casts,
+                      ru.projectst.rpgcore.platform.gui.MenuContext menus) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
         this.runtime = runtime;
         this.playerClasses = playerClasses;
         this.casts = casts;
+        this.menus = menus;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // Пустая команда открывает интерфейс игроку и печатает список консоли:
+        // игроку нужен экран, администратору — строки, которые можно скопировать.
+        if (args.length == 0 && sender instanceof Player player) {
+            new ru.projectst.rpgcore.platform.gui.MainMenu(menus, player).open(player);
+            return true;
+        }
         if (args.length > 0 && ADMIN_ONLY.contains(args[0].toLowerCase(Locale.ROOT))
                 && !sender.hasPermission(PERMISSION_ADMIN)) {
             sender.sendMessage("§cЭта подкоманда только для администраторов");
@@ -73,6 +82,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg cast <навык> raw [ур] §7— в обход маны и перезарядки");
             sender.sendMessage("§e/rpg slot <номер> §7— применить навык из слота");
             sender.sendMessage("§e/rpg mana §7— запас маны и перезарядки");
+            sender.sendMessage("§e/rpg §7— открыть интерфейс (или §f/rpg menu§7)");
             sender.sendMessage("§e/rpg skills §7— навыки своего класса");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
@@ -91,6 +101,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "cast" -> cast(sender, args);
             case "slot" -> castSlot(sender, args);
             case "mana" -> mana(sender);
+            case "menu" -> openMenu(sender);
             case "skills" -> listSkills(sender);
             case "progress" -> progress(sender);
             case "xp" -> giveXp(sender, args);
@@ -286,6 +297,16 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         if (!any) {
             sender.sendMessage("§7перезарядок нет");
         }
+        return true;
+    }
+
+    /** Интерфейс. Те же правила, что у команд: экран спрашивает те же сервисы. */
+    private boolean openMenu(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cИнтерфейс открывает игрок");
+            return true;
+        }
+        new ru.projectst.rpgcore.platform.gui.MainMenu(menus, player).open(player);
         return true;
     }
 

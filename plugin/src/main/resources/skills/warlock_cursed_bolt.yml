@@ -9,6 +9,7 @@
 id: warlock_cursed_bolt
 display: "Проклятый снаряд"
 class: warlock
+icon: COAL
 tier: 2
 
 mana: $mana

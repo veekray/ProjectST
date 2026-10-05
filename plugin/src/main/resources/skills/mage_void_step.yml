@@ -7,6 +7,7 @@
 id: mage_void_step
 display: "Шаг в пустоту"
 class: mage
+icon: ENDER_PEARL
 tier: 3
 
 mana: $mana

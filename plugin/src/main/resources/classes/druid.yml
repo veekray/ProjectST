@@ -6,6 +6,7 @@
 id: druid
 display: "&2Друид"
 slots: 6
+icon: OAK_SAPLING
 max-level: 60
 points-per-level: 1
 

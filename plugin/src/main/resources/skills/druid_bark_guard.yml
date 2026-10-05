@@ -12,6 +12,7 @@
 id: druid_bark_guard
 display: "Кора"
 class: druid
+icon: OAK_LOG
 tier: 3
 
 mana: $mana

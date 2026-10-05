@@ -8,6 +8,7 @@
 id: druid_life_spores
 display: "Споры жизни"
 class: druid
+icon: GLOW_BERRIES
 tier: 2
 
 mana: $mana

@@ -12,6 +12,7 @@
 id: mage
 display: "&bМаг"
 slots: 6
+icon: BLAZE_POWDER
 max-level: 60
 
 # Очков за уровень. Ровно одно: очко — это заметное решение, куда его вложить,

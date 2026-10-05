@@ -104,16 +104,26 @@ class DependencyDirectionTest {
     }
 
     /** Имя модуля по пути файла: .../rpgcore/<модуль>/Файл.java, иначе пустая строка. */
+    /**
+     * Модуль файла — первый пакет после {@code rpgcore}.
+     *
+     * <p>Поиск идёт вверх по дереву, а не на один уровень: вложенный пакет вроде
+     * {@code platform/gui} иначе не относился бы ни к какому модулю, то есть
+     * выпадал бы из обеих проверок. Дыра в правиле, которое караулит дыры, —
+     * последнее, что здесь нужно.
+     */
     private static String moduleOf(Path file) {
         Path dir = file.getParent();
-        if (dir == null) {
-            return "";
+        String module = "";
+        while (dir != null && dir.getFileName() != null) {
+            Path parent = dir.getParent();
+            if (parent != null && parent.getFileName() != null
+                    && parent.getFileName().toString().equals("rpgcore")) {
+                return dir.getFileName().toString();
+            }
+            module = dir.getFileName().toString();
+            dir = parent;
         }
-        Path parent = dir.getFileName();
-        Path grand = dir.getParent() == null ? null : dir.getParent().getFileName();
-        if (parent == null || grand == null) {
-            return "";
-        }
-        return grand.toString().equals("rpgcore") ? parent.toString() : "";
+        return module.equals("rpgcore") ? "" : "";
     }
 }

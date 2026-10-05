@@ -25,6 +25,8 @@ import ru.projectst.rpgcore.platform.MinionListener;
 import ru.projectst.rpgcore.platform.SkillInputListener;
 import ru.projectst.rpgcore.platform.TriggerListener;
 import ru.projectst.rpgcore.platform.VitalsSync;
+import ru.projectst.rpgcore.platform.gui.MenuContext;
+import ru.projectst.rpgcore.platform.gui.MenuListener;
 import ru.projectst.rpgcore.platform.ZoneTicker;
 import ru.projectst.rpgcore.skill.SkillRuntime;
 import ru.projectst.rpgcore.skill.MinionService;
@@ -94,10 +96,13 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // выносливость, и знать ему незачем.
         runtime.useResources(resources::restore);
 
+        MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
+                content.stats(), classService, casts, stats, statuses);
+
         var command = getCommand("rpg");
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
-                    classService, casts);
+                    classService, casts, menus);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -109,6 +114,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new ExperienceListener(classService), this);
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
+        Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
 
         // Снятие истёкших статусов. Раз в секунду достаточно: чтение статусов
         // и так убирает истёкшие лениво, этот таймер нужен только чтобы память

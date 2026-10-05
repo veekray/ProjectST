@@ -60,6 +60,7 @@ public final class ClassDefLoader {
         int pointsPerLevel = root.integer("points-per-level", 0, 10, 1);
         BalanceValue xp = readXp(root, errors);
         ResourceSpec resource = readResource(root, errors);
+        String icon = root.str("icon", ClassDef.DEFAULT_ICON);
         Map<Integer, Integer> tiers = readTiers(root, errors);
         Map<String, BalanceValue> stats = readStats(root, errors);
 
@@ -77,7 +78,7 @@ public final class ClassDefLoader {
             return Optional.empty();
         }
         return Optional.of(new ClassDef(id, display, slots, tiers, stats,
-                maxLevel, xp, pointsPerLevel, resource));
+                maxLevel, xp, pointsPerLevel, resource, icon));
     }
 
     /**

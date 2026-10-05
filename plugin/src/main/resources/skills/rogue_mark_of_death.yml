@@ -7,6 +7,7 @@
 id: rogue_mark_of_death
 display: "Метка смерти"
 class: rogue
+icon: WITHER_SKELETON_SKULL
 tier: 5
 
 mana: $stamina

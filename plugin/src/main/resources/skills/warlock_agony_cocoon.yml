@@ -12,6 +12,7 @@
 id: warlock_agony_cocoon
 display: "Кокон мучений"
 class: warlock
+icon: WITHER_ROSE
 tier: 5
 
 mana: $mana

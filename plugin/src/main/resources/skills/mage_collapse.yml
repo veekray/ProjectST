@@ -11,6 +11,7 @@
 id: mage_collapse
 display: "Коллапс"
 class: mage
+icon: NETHER_STAR
 tier: 5
 
 mana: $mana

@@ -6,6 +6,7 @@
 id: druid_grasping_roots
 display: "Хватающие корни"
 class: druid
+icon: ROOTED_DIRT
 tier: 3
 
 mana: $mana

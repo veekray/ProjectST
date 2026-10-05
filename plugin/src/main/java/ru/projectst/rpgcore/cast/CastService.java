@@ -247,6 +247,17 @@ public final class CastService {
         return classes.skillInSlot(player, slot);
     }
 
+    /**
+     * Таблица баланса навыка.
+     *
+     * <p>Нужна интерфейсу, чтобы показать стоимость и перезарядку <b>теми же</b>
+     * числами, которыми их считает бой. Отдельный расчёт для показа — это два
+     * источника правды, и однажды они разошлись бы.
+     */
+    public ru.projectst.rpgcore.balance.BalanceTable balanceOf(String skillId) {
+        return balance.table(skillId);
+    }
+
     public ResourcePool resource() {
         return resource;
     }

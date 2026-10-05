@@ -7,6 +7,7 @@
 id: rogue_dash
 display: "Рывок"
 class: rogue
+icon: SUGAR
 tier: 1
 
 mana: $stamina

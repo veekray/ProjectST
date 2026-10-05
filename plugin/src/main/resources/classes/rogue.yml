@@ -8,6 +8,7 @@
 id: rogue
 display: "&8Плут"
 slots: 6
+icon: LEATHER_BOOTS
 max-level: 60
 points-per-level: 1
 
