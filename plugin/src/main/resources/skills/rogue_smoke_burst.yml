@@ -1,0 +1,28 @@
+# Облако дыма в точке падения гранаты.
+
+id: rogue_smoke_burst
+display: "Дымовая Завеса — облако"
+class: rogue
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: potion, effect: darkness, duration: $duration, amplifier: 1 }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $slow
+        duration: $duration
+      - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4 }
+
+  - target: { type: self }
+    do:
+      - { action: clear-threat, radius: $radius, }
+      - { action: particles, particle: smoke, shape: sphere, count: 60, size: $radius,
+          at-origin: true }
+      - { action: sound, sound: entity_generic_explode, volume: 0.6, pitch: 1.6,
+          at-origin: true }

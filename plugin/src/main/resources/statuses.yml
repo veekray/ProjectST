@@ -385,3 +385,18 @@ statuses:
     category: buff
     duration: 200
     tags: [soft, buff]
+
+  # ---------------------------------------------------------------- плут
+  eagle_eye:
+    display: "Орлиное Зрение"
+    color: AQUA
+    category: buff
+    duration: 200
+    tags: [soft, buff]
+
+  thrill:
+    display: "Кураж"
+    color: YELLOW
+    category: buff
+    duration: 200
+    tags: [soft, buff]

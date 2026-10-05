@@ -942,3 +942,63 @@ balance:
     duration: 200
     damage_bonus: 50
     speed: 25
+
+  # ---------------------------------------------------------------- плут: добор
+  # Четыре навыка, которых не было в списке класса, хотя сами они были
+  # написаны. Числа подобраны по соседям того же плута, а не выдуманы: у
+  # старых файлов урон брался из модификатора MMOCore, которого здесь нет.
+
+  rogue_piercing_blow:
+    stamina: 12
+    cooldown:
+      base: 9.0
+      per-level: -0.08
+      min: 5.0
+    leap: 1.5
+    range: 6
+    damage:
+      base: 7
+      per-level: 0.9
+    push: 0.5
+
+  rogue_smoke_screen:
+    stamina: 16
+    cooldown:
+      base: 16.0
+      per-level: -0.1
+      min: 10.0
+    speed: 1.6
+    range: 30
+
+  rogue_smoke_burst:
+    radius: 5
+    damage:
+      base: 5
+      per-level: 0.5
+    duration: 60
+    slow: -40
+
+  rogue_eagle_eye:
+    stamina: 14
+    cooldown:
+      base: 30.0
+      per-level: -0.15
+      min: 20.0
+    duration: 200
+    crit: 15
+
+  rogue_eagle_eye_tick:
+    radius: 20
+    glow: 45
+
+  rogue_thrill:
+    stamina: 18
+    cooldown:
+      base: 35.0
+      per-level: -0.2
+      min: 22.0
+    duration: 200
+    speed: 15
+
+  rogue_thrill_hit:
+    stamina_back: 2

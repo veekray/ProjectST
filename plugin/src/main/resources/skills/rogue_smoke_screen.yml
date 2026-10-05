@@ -1,0 +1,32 @@
+# Дымовая Завеса — граната, после которой в облаке никто ничего не видит.
+#
+# Из старого набора плута (Smoke_Screen). Слепота там была наложена двумя
+# зельями сразу — замедлением и тьмой; здесь тьма осталась зельем, а
+# замедление стало надбавкой к скорости, потому что в этом ядре скорость —
+# объявленный стат, и два разных способа её менять однажды разошлись бы.
+
+id: rogue_smoke_screen
+display: "Дымовая Завеса"
+class: rogue
+icon: GUNPOWDER
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Граната с дымом: в облаке враги"
+  - "слепнут и вязнут,"
+  - "а плут уходит незамеченным."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.8 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: smoke
+        on-hit: rogue_smoke_burst

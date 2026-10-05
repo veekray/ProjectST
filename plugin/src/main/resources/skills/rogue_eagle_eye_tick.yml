@@ -1,0 +1,18 @@
+# Тик Орлиного Зрения: подсвечивает всё живое вокруг.
+
+id: rogue_eagle_eye_tick
+display: "Орлиное Зрение"
+class: rogue
+tier: 4
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: eagle_eye }
+    do:
+      - { action: glow, duration: $glow }

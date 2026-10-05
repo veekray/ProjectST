@@ -1,0 +1,19 @@
+# Удар в кураже возвращает выносливость.
+
+id: rogue_thrill_hit
+display: "Кураж"
+class: rogue
+tier: 5
+internal: true
+
+on: deal-damage
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: thrill }
+    do:
+      - { action: restore, amount: $stamina_back }
+      - { action: particles, particle: happy_villager, shape: point, count: 5, size: 0.3 }
+      - { action: sound, sound: entity_experience_orb_pickup, volume: 0.4, pitch: 2.0 }

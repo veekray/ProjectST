@@ -1,0 +1,37 @@
+# Кураж — попадания возвращают дыхание.
+#
+# Это Hunters_Thrill из старого файла плута, который тоже не был подключён.
+# Переименован: у охотника свой Азарт, и два навыка с одинаковым именем в
+# соседних классах — это вопрос «а который из них у меня», который игрок
+# задаёт себе в бою.
+#
+# Прибавка к скорости не складывается сама с собой: в старом стеке она
+# навешивалась каждым попаданием и за десяток ударов разгоняла игрока до
+# нелепости. Здесь она одна на всё время куража.
+
+id: rogue_thrill
+display: "Кураж"
+class: rogue
+icon: RABBIT_FOOT
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Пока кураж держится, каждый удар"
+  - "возвращает немного выносливости,"
+  - "а ноги несут быстрее."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: thrill, duration: $duration }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - { action: sound, sound: entity_player_breath, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: happy_villager, shape: sphere, count: 15, size: 0.5 }

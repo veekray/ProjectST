@@ -1,0 +1,40 @@
+# Пронзающий Удар — рывок вперёд, который задевает всех на пути.
+#
+# Из старого набора плута (Piercing_Blow). Там он был рывком с «тотемом»,
+# который дважды собирал задетых по дороге; здесь — рывок и один конус сразу
+# после него. Разница в том, что задетые считаются один раз, а не дважды с
+# перекрытием: прежняя версия на коротком отрезке била одну цель обоими
+# сборами, и урон удваивался от того, как далеко игрок стоял.
+#
+# Все наряды и эффекты от ModelEngine не перенесены: это другой мод, и
+# подменять его чем-то похожим — значит обещать не своё.
+
+id: rogue_piercing_blow
+display: "Пронзающий Удар"
+class: rogue
+icon: IRON_SWORD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рывок вперёд, который задевает"
+  - "всех на пути. Чем плотнее строй,"
+  - "тем больше достанется."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $leap, lift: 0.1 }
+      - { action: sound, sound: entity_breeze_wind_burst, volume: 0.8, pitch: 0.7 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 60, limit: 5 }
+    delay: 3
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: $push, lift: 0.2 }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3 }
+      - { action: sound, sound: entity_player_attack_sweep, volume: 0.7, pitch: 1.2 }

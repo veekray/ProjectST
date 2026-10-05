@@ -657,6 +657,56 @@ public final class SkillIcons {
                         "..b.b.b..",
                         "..bbbbb..",
                         "...bbb..."}));
+
+        // ------------------------------------------------------------ плут: добор
+        // пронзающий удар: клинок сквозь строй
+        ICONS.put("rogue_piercing_blow", new Icon(0xFF4A1A14, 0xFFB03A2A, 0xFFF0C0A0,
+                new String[] {
+                        ".........",
+                        "b.......b",
+                        ".b.....b.",
+                        "..cccccc.",
+                        "ccccccc..",
+                        "..cccccc.",
+                        ".b.....b.",
+                        "b.......b",
+                        "........."}));
+        // дымовая завеса: граната в облаке
+        ICONS.put("rogue_smoke_screen", new Icon(0xFF2A2A2A, 0xFF6A6A6A, 0xFFC0C0C0,
+                new String[] {
+                        "..c...c..",
+                        ".ccc.ccc.",
+                        "ccccccccc",
+                        ".cc...cc.",
+                        "...bbb...",
+                        "..bbbbb..",
+                        "..bbbbb..",
+                        "...bbb...",
+                        "..c...c.."}));
+        // орлиное зрение: глаз в кольце
+        ICONS.put("rogue_eagle_eye", new Icon(0xFF0A2A3A, 0xFF2E7F9F, 0xFFD8F0F8,
+                new String[] {
+                        "...bbb...",
+                        ".bb...bb.",
+                        "b.......b",
+                        "b..ccc..b",
+                        "b.cc.cc.b",
+                        "b..ccc..b",
+                        "b.......b",
+                        ".bb...bb.",
+                        "...bbb..."}));
+        // кураж: крыло и искры
+        ICONS.put("rogue_thrill", new Icon(0xFF4A3A0A, 0xFFC9A227, 0xFFF0E8B0,
+                new String[] {
+                        "......c..",
+                        ".....cc..",
+                        "....ccc..",
+                        "...cccc..",
+                        "..ccccc..",
+                        ".bbbbbb..",
+                        "..bbbb...",
+                        "...bb..c.",
+                        "..c....c."}));
     }
 
     /**

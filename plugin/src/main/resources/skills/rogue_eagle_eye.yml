@@ -1,0 +1,35 @@
+# Орлиное Зрение — всё живое вокруг видно, и рука твёрже.
+#
+# Навык был написан для плута (Eagle_Eye) и остался неподключённым: в списке
+# класса его не было, хотя сам он доделан. Ровно такие дыры этот перенос и
+# должен закрывать — файл есть, кнопки нет, и никто об этом не знал.
+#
+# Подсветка держится короткими отрезками и обновляется тиком: ушедший из
+# радиуса гаснет через пару секунд сам, и отдельно снимать её не нужно.
+
+id: rogue_eagle_eye
+display: "Орлиное Зрение"
+class: rogue
+icon: SPYGLASS
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Видно всё живое вокруг,"
+  - "даже за стенами,"
+  - "и бить становится точнее."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: eagle_eye, duration: $duration }
+      - action: modify-stat
+        stat: critical_strike_chance
+        op: flat
+        value: $crit
+        duration: $duration
+      - { action: sound, sound: entity_parrot_imitate_ender_dragon, volume: 1.0, pitch: 1.2 }
+      - { action: particles, particle: glow, shape: sphere, count: 30, size: 0.5 }
