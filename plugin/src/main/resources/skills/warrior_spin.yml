@@ -1,0 +1,30 @@
+# 5. Круговой Удар — выход из окружения.
+#
+# Бьёт и расталкивает всех вокруг. У берсерка это вырастет в Вихрь Смерти,
+# который крутится несколько оборотов и жжёт за это собственную кровь.
+
+id: warrior_spin
+display: "Круговой Удар"
+class: warrior
+icon: NETHERITE_SWORD
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Оборот с оружием:"
+  - "всех вокруг бьёт"
+  - "и расталкивает."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.7 }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 16, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: $push, lift: 0.3 }

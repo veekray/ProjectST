@@ -1,0 +1,52 @@
+# Воин — ствол, из которого растут рыцарь, берсерк и страйкер.
+#
+# Ядра у него нет, как и у плута: десять самостоятельных навыков, ничего не
+# копится и не тратится. Но три из десяти дают попробовать то, что у подклассов
+# станет ядром — Вызов на бой, Ярость и Связка. Воин на старших уровнях уже
+# знает, куда хочет расти, и выбирает не по описанию в меню.
+
+id: warrior
+display: "&cВоин"
+slots: 6
+icon: IRON_SWORD
+max-level: 60
+points-per-level: 1
+
+resource:
+  name: "Выносливость"
+  max: max_stamina
+  regen: stamina_regen
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 3
+  3: 5
+  4: 7
+  5: 10
+
+stats:
+  max_health:
+    base: 24
+    per-level: 2.5
+  max_stamina:
+    base: 100
+    per-level: 4
+  stamina_regen:
+    base: 5
+    per-level: 0.12
+  physical_damage:
+    base: 0
+    per-level: 0.7
+  defense:
+    base: 4
+    per-level: 0.25
+  damage_reduction:
+    base: 2
+    per-level: 0.12
+  critical_strike_chance:
+    base: 5
+    per-level: 0.15

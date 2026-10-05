@@ -1,0 +1,18 @@
+# Каждый удар в Стойке считается.
+
+id: warrior_stance_count
+display: "Стойка"
+class: warrior
+tier: 5
+internal: true
+
+on: damaged
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: warrior_stance }
+    do:
+      - { action: status, id: stance_taken, duration: $duration }
+      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4 }

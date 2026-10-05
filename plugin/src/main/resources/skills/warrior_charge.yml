@@ -1,0 +1,35 @@
+# 1. Натиск — рывок и удар с разбега.
+#
+# Базовый воин — класс без ядра, как и плут. Ничего не копится, ничего не
+# тратится: десять самостоятельных навыков, из которых три дают попробовать то,
+# что у подклассов станет ядром. Натиск — один из простых: он просто сокращает
+# расстояние и бьёт.
+
+id: warrior_charge
+display: "Натиск"
+class: warrior
+icon: IRON_BOOTS
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рывок вперёд с разбега."
+  - "Тот, в кого врезался,"
+  - "получает удар и летит в сторону."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $leap, lift: 0.2 }
+      - { action: sound, sound: entity_shulker_shoot, volume: 0.8, pitch: 0.7 }
+      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50, limit: 3 }
+    delay: 3
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: $push, lift: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 12, size: 0.3 }

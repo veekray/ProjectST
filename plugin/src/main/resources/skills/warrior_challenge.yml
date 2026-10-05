@@ -1,0 +1,33 @@
+# 6. Вызов на бой — уменьшенная Присяга рыцаря.
+#
+# Механика ровно та же, что у рыцаря, и статус тот же самый: вызванный бьёт
+# всех, кроме вызвавшего, слабее. Отличий три — четверть вместо половины, один
+# враг вместо всех и втрое короче.
+#
+# Это сделано нарочно: воин должен попробовать то, что у рыцаря станет ядром, и
+# понять, хочет ли он расти туда. Рыцарь потом получает ту же механику в полную
+# силу и шесть инструментов, чтобы её удерживать, — а у воина она одна и
+# короткая.
+
+id: warrior_challenge
+display: "Вызов на бой"
+class: warrior
+icon: IRON_HELMET
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Воин вызывает одного врага."
+  - "Пока вызов держится, тот бьёт"
+  - "всех, кроме воина, заметно слабее."
+
+steps:
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 60, limit: 1 }
+    do:
+      - { action: status, id: challenge, duration: $duration, amount: $weaken }
+      - { action: glow, duration: $duration }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 0.8, pitch: 1.6 }
+      - { action: particles, particle: angry_villager, shape: point, count: 12, size: 0.3 }

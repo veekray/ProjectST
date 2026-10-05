@@ -1,0 +1,31 @@
+# 2. Рассекающий Удар — основа боя.
+#
+# Самый обычный конус, и это сознательно: у класса должен быть навык, который
+# нажимают, не думая, иначе каждое нажатие становится задачей. У рыцаря он
+# вырастет в Ударную Волну, которая ещё и держит ядро.
+
+id: warrior_cleave
+display: "Рассекающий Удар"
+class: warrior
+icon: IRON_SWORD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Широкий удар перед собой."
+  - "Простой, дешёвый"
+  - "и всегда под рукой."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.9 }
+      - { action: particles, particle: sweep_attack, shape: point, count: 5, size: 0.6 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 80 }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3 }

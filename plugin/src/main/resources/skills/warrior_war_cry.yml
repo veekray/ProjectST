@@ -1,0 +1,42 @@
+# 10. Боевой Клич — ульта на всю группу.
+#
+# Единственный навык воина, который работает не только на него. Намеренно: три
+# подкласса расходятся в стороны — рыцарь в защиту чужих, берсерк в себя,
+# страйкер в темп, — а у ствола остаётся то, что годится всем.
+
+id: warrior_war_cry
+display: "Боевой Клич"
+class: warrior
+icon: GOAT_HORN
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Клич поднимает всех рядом:"
+  - "бьют тяжелее, идут быстрее"
+  - "и не падают от оглушения."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.2, pitch: 0.8 }
+      - { action: particles, particle: angry_villager, shape: ring, count: 36, size: $radius }
+      - { action: message, text: "&6Боевой Клич" }
+
+  - target: { type: allies_in_radius, radius: $radius }
+    do:
+      - { action: status, id: unshakable, duration: $duration }
+      - action: modify-stat
+        stat: physical_damage
+        op: flat
+        value: $damage_bonus
+        duration: $duration
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - { action: particles, particle: end_rod, shape: point, count: 10, size: 0.4 }

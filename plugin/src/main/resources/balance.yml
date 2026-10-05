@@ -1452,3 +1452,136 @@ balance:
   knight_fortress_tick:
     radius: 12
     duration: 60
+
+  # ================================================================ воин
+  # Три «предвестника» нарочно слабее своих взрослых версий: Вызов на бой даёт
+  # четверть вместо половины рыцарской Присяги, Ярость платит кровью один раз
+  # вместо берсеркского ритма, Связка держит последовательность внутри одного
+  # навыка вместо всего набора страйкера.
+
+  warrior_charge:
+    stamina: 10
+    cooldown:
+      base: 8.0
+      per-level: -0.05
+      min: 5.0
+    leap: 1.5
+    range: 4
+    damage:
+      base: 7
+      per-level: 1.0
+    push: 1.0
+
+  warrior_cleave:
+    stamina: 8
+    cooldown:
+      base: 4.0
+      per-level: -0.03
+      min: 2.5
+    range: 4
+    damage:
+      base: 6
+      per-level: 0.9
+
+  warrior_shield_up:
+    stamina: 12
+    cooldown:
+      base: 14.0
+      per-level: -0.08
+      min: 9.0
+    duration: 40
+    reduction: 55
+    root: -60
+
+  warrior_shield_charge:
+    stamina: 14
+    cooldown:
+      base: 12.0
+      per-level: -0.08
+      min: 7.0
+    leap: 1.6
+    range: 4
+    damage:
+      base: 8
+      per-level: 1.1
+    stun: 30
+    push: 1.2
+
+  warrior_spin:
+    stamina: 14
+    cooldown:
+      base: 10.0
+      per-level: -0.06
+      min: 6.0
+    radius: 4
+    damage:
+      base: 7
+      per-level: 1.0
+    push: 1.1
+
+  warrior_challenge:
+    stamina: 10
+    cooldown:
+      base: 14.0
+      per-level: -0.08
+      min: 9.0
+    range: 15
+    # Четверть против рыцарской половины и восемьдесят тиков против двухсот
+    # сорока: это проба механики, а не сама механика.
+    duration: 80
+    weaken: 25
+
+  warrior_rage:
+    stamina: 12
+    cooldown:
+      base: 20.0
+      per-level: -0.1
+      min: 13.0
+    cost: 0.08
+    duration: 100
+    damage_bonus: 35
+
+  warrior_combo:
+    stamina: 14
+    cooldown:
+      base: 9.0
+      per-level: -0.06
+      min: 5.0
+    range: 4
+    damage:
+      base: 5
+      per-level: 0.7
+    damage_full:
+      base: 10
+      per-level: 1.4
+    push: 0.8
+
+  warrior_combo_mark:
+    duration: 40
+
+  warrior_stance:
+    stamina: 18
+    cooldown:
+      base: 24.0
+      per-level: -0.12
+      min: 15.0
+    duration: 40
+    reduction: 50
+    radius: 5
+    damage_each:
+      base: 4
+      per-level: 0.6
+
+  warrior_stance_count:
+    duration: 100
+
+  warrior_war_cry:
+    stamina: 30
+    cooldown:
+      base: 100.0
+      per-level: -0.4
+      min: 65.0
+    radius: 10
+    duration: 160
+    damage_bonus: 25
+    speed: 20

@@ -1,0 +1,55 @@
+# 9. Стойка — принять удары и вернуть их разом.
+#
+# Две секунды урон по воину режется, и каждый пропущенный удар считается. Когда
+# стойка кончается, он бьёт вокруг тем сильнее, чем больше принял.
+#
+# Считаются удары, а не их сумма, и это честно сказано в описании: «чем больше
+# ударов», а не «чем сильнее били». В старом стеке так вышло от нехватки места
+# для суммы; здесь это выбор — удар молота и десять щелчков должны отличаться,
+# но не настолько, чтобы стойка окупалась одним попаданием.
+
+id: warrior_stance
+display: "Стойка"
+class: warrior
+icon: NETHERITE_CHESTPLATE
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Пара секунд под щитом: удары режутся"
+  - "и считаются. В конце воин бьёт вокруг"
+  - "тем сильнее, чем больше принял."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: stance_taken }
+      - { action: status, id: warrior_stance, duration: $duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $reduction
+        duration: $duration
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: ash, shape: ring, count: 20, size: 2.0 }
+
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: count, counter: taken, status: stance_taken }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: explosion, shape: ring, count: 20, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    delay: $duration
+    do:
+      - { action: damage, amount: "$damage_each * @taken", school: physical }
+      - { action: push, strength: 0.8, lift: 0.3 }
+
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: remove-status, id: stance_taken }

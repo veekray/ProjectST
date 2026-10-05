@@ -1,0 +1,37 @@
+# 7. Ярость — уменьшенная сделка берсерка.
+#
+# Платит здоровьем за силу, как берсерк, но однократно и без накопления: заплатил
+# — получил надбавку на несколько секунд, и всё. Берсерк потом превращает ту же
+# сделку в ритм — платит постоянно и живёт на Жаре, который остывает.
+#
+# Плата идёт тем же действием, что у берсерка, и по той же причине не считается
+# полученным уроном: иначе собственная цена навыка будила бы всё, что
+# срабатывает «когда по мне попали», — начиная со Стойки ниже.
+
+id: warrior_rage
+display: "Ярость"
+class: warrior
+icon: REDSTONE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Воин платит кровью за силу:"
+  - "несколько секунд он бьёт"
+  - "заметно тяжелее."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sacrifice, percent: $cost }
+      - { action: status, id: rage, duration: $duration }
+      - action: modify-stat
+        stat: physical_damage
+        op: flat
+        value: $damage_bonus
+        duration: $duration
+      - { action: sound, sound: entity_ravager_roar, volume: 1.0, pitch: 1.1 }
+      - { action: particles, particle: damage_indicator, shape: sphere, count: 20, size: 0.5 }

@@ -40,6 +40,7 @@ public final class SkillIcons {
             Map.entry("berserker", 0xFF8A2A1E),
             Map.entry("striker", 0xFFC9A227),
             Map.entry("knight", 0xFFB0B0C0),
+            Map.entry("warrior", 0xFFC9544A),
             Map.entry("item", 0xFFC9A227));
 
     private SkillIcons() {
@@ -1050,6 +1051,118 @@ public final class SkillIcons {
                         "cbbbbbbbc",
                         "ccccccccc",
                         "c.c.c.c.c"}));
+
+        // ------------------------------------------------------------ воин
+        ICONS.put("warrior_charge", new Icon(0xFF3A2A1A, 0xFF9A7A4A, 0xFFF0D8A0,
+                new String[] {
+                        ".........",
+                        "c........",
+                        ".c....bb.",
+                        "..c..bbbb",
+                        "ccccbbbbb",
+                        "..c..bbbb",
+                        ".c....bb.",
+                        "c........",
+                        "........."}));
+        ICONS.put("warrior_cleave", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFF0F0F8,
+                new String[] {
+                        "......ccc",
+                        "....ccc..",
+                        "..ccc....",
+                        ".cc......",
+                        "cc.......",
+                        ".cc......",
+                        "..ccc....",
+                        "....ccc..",
+                        "......ccc"}));
+        ICONS.put("warrior_shield_up", new Icon(0xFF2A2A3A, 0xFF7A7A9A, 0xFFE0E0F0,
+                new String[] {
+                        "...ccc...",
+                        "..ccccc..",
+                        "bbbbbbbbb",
+                        "bbbbbbbbb",
+                        ".bbbbbbb.",
+                        ".bbbbbbb.",
+                        "..bbbbb..",
+                        "...bbb...",
+                        "....b...."}));
+        ICONS.put("warrior_shield_charge", new Icon(0xFF2A2A3A, 0xFF7A7A9A, 0xFFF0D070,
+                new String[] {
+                        "c........",
+                        ".c..bbbbb",
+                        "..c.bbbbb",
+                        "ccc.bbbbb",
+                        "..c..bbbb",
+                        "ccc.bbbbb",
+                        "..c.bbbbb",
+                        ".c..bbbbb",
+                        "c........"}));
+        ICONS.put("warrior_spin", new Icon(0xFF2A2A2A, 0xFF9A9AA8, 0xFFF0F0F8,
+                new String[] {
+                        "..ccccc..",
+                        ".c.....c.",
+                        "c...b...c",
+                        "c..bbb..c",
+                        "c.bbbbb.c",
+                        "c..bbb..c",
+                        "c...b...c",
+                        ".c.....c.",
+                        "..ccccc.."}));
+        ICONS.put("warrior_challenge", new Icon(0xFF3A1A1A, 0xFF9A3A32, 0xFFF0D8B0,
+                new String[] {
+                        "....c....",
+                        "...ccc...",
+                        "..cc.cc..",
+                        ".cc...cc.",
+                        "..bbbbb..",
+                        ".bb...bb.",
+                        "..bb.bb..",
+                        "...bbb...",
+                        "....b...."}));
+        ICONS.put("warrior_rage", new Icon(0xFF4A0A0A, 0xFFC94A3D, 0xFFF0A890,
+                new String[] {
+                        "..b...b..",
+                        ".bb...bb.",
+                        "..bb.bb..",
+                        "...ccc...",
+                        "..ccccc..",
+                        "..ccccc..",
+                        "...ccc...",
+                        "..bb.bb..",
+                        ".b.....b."}));
+        ICONS.put("warrior_combo", new Icon(0xFF3A3A1A, 0xFFC9C92A, 0xFFF8F8C0,
+                new String[] {
+                        "b........",
+                        ".b.......",
+                        "..b......",
+                        "c........",
+                        ".c.......",
+                        "..c......",
+                        "cc.......",
+                        ".cc......",
+                        "..ccc...."}));
+        ICONS.put("warrior_stance", new Icon(0xFF2A2A2A, 0xFF6A6A7A, 0xFFE0E0E8,
+                new String[] {
+                        "c.......c",
+                        ".c.bbb.c.",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        "cbbbbbbbc",
+                        ".bbbbbbb.",
+                        "..bbbbb..",
+                        ".c.bbb.c.",
+                        "c.......c"}));
+        ICONS.put("warrior_war_cry", new Icon(0xFF3A2A0A, 0xFFC9892A, 0xFFF0E0A0,
+                new String[] {
+                        "c.......c",
+                        ".c.....c.",
+                        "..bbbbb..",
+                        "c.bb.bb.c",
+                        ".bbbbbbb.",
+                        "c.bb.bb.c",
+                        "..bbbbb..",
+                        ".c.....c.",
+                        "c.......c"}));
     }
 
     /**

@@ -563,3 +563,49 @@ statuses:
     category: buff
     duration: 160
     tags: [soft, buff]
+
+  # ---------------------------------------------------------------- воин
+  # Ядра у воина нет, и эти статусы его не образуют: каждый принадлежит своему
+  # навыку и живёт ровно столько, сколько тот работает.
+  shield_up:
+    display: "Щит поднят"
+    color: GRAY
+    category: buff
+    duration: 40
+    tags: [soft, buff]
+
+  rage:
+    display: "Ярость"
+    color: RED
+    category: buff
+    duration: 100
+    tags: [soft, buff]
+
+  # Отметки попавших ударов связки: два — и третий бьёт вдвое.
+  combo:
+    display: "Связка"
+    color: GOLD
+    category: buff
+    duration: 40
+    stacking: stacks
+    max-stacks: 2
+    tags: [counter]
+
+  warrior_stance:
+    display: "Стойка"
+    color: GRAY
+    category: buff
+    duration: 40
+    tags: [soft, buff]
+
+  # Счёт принятых в Стойке ударов. Считаются удары, а не их сумма: удар молота и
+  # щелчок должны отличаться, но не настолько, чтобы стойка окупалась одним
+  # попаданием.
+  stance_taken:
+    display: "Принято ударов"
+    color: DARK_GRAY
+    category: buff
+    duration: 100
+    stacking: stacks
+    max-stacks: 20
+    tags: [counter]

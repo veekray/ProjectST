@@ -1,0 +1,69 @@
+# 8. Связка — уменьшенные следы страйкера.
+#
+# Три удара подряд, и третий бьёт вдвое, если первые два попали. Награда за
+# доведённую последовательность, но внутри одного навыка.
+#
+# Страйкер потом разворачивает ровно эту идею на весь набор: у него
+# последовательность идёт между навыками, а не внутри одного, и выбор есть на
+# каждом нажатии.
+#
+# Попадание отмечается тем, что шаг вообще нашёл цели: подчинённый навык
+# вызывается из шага с целями, и если целей не было, он не выполнится.
+
+id: warrior_combo
+display: "Связка"
+class: warrior
+icon: GOLDEN_SWORD
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Три удара подряд."
+  - "Если первые два попали,"
+  - "третий бьёт вдвое."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: combo }
+      - { action: sound, sound: item_trident_return, volume: 0.8, pitch: 1.2 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: cast, skill: warrior_combo_mark, at-targets: false }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 5
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: cast, skill: warrior_combo_mark, at-targets: false }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
+
+  # Третий — обычный, если связка не сложилась.
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 10
+    if:
+      - { caster: status-stacks, value: "combo:2", not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  # Третий — двойной, если оба предыдущих нашли цель.
+  - target: { type: enemies_in_cone, radius: $range, angle: 50 }
+    delay: 10
+    if:
+      - { caster: status-stacks, value: "combo:2" }
+    do:
+      - { action: damage, amount: $damage_full, school: physical }
+      - { action: push, strength: $push, lift: 0.3 }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5 }
+
+  - target: { type: self }
+    delay: 11
+    do:
+      - { action: remove-status, id: combo }

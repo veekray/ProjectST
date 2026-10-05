@@ -1,0 +1,35 @@
+# 4. Таран Щитом — рывок, который сбивает с ног.
+#
+# Берёт одного: это не площадь, а точка. У рыцаря он вырастет в Карающий Щит,
+# который работает только по вызванному и подтверждает вызов, — то есть
+# становится частью ядра, а не просто контролем.
+
+id: warrior_shield_charge
+display: "Таран Щитом"
+class: warrior
+icon: IRON_DOOR
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Разбег и удар щитом."
+  - "Первый встречный оглушён"
+  - "и отброшен."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $leap, lift: 0.15 }
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.7 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
+    delay: 3
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: status, id: stun, duration: $stun }
+      - { action: push, strength: $push, lift: 0.4 }
+      - { action: sound, sound: block_anvil_land, volume: 0.8, pitch: 1.2 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4 }

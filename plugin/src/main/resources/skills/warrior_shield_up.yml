@@ -1,0 +1,36 @@
+# 3. Поднять Щит — пара секунд, когда почти не пробивают.
+#
+# Цена — неподвижность: пока щит поднят, воин почти не идёт. Это не «кнопка не
+# умирать», а размен темпа на выживание, и именно поэтому у рыцаря он вырастает
+# в Глухую Оборону, которая тем крепче, чем больше на тебе висит врагов.
+
+id: warrior_shield_up
+display: "Поднять Щит"
+class: warrior
+icon: SHIELD
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Щит вверх: удары почти не проходят,"
+  - "но и шагу толком не сделать."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: shield_up, duration: $duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $reduction
+        duration: $duration
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $root
+        duration: $duration
+      - { action: sound, sound: item_shield_block, volume: 0.8, pitch: 0.5 }
+      - { action: particles, particle: end_rod, shape: ring, count: 16, size: 1.2 }

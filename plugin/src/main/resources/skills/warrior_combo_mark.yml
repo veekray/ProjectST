@@ -1,0 +1,13 @@
+# Отметка попавшего удара связки.
+
+id: warrior_combo_mark
+display: "Связка"
+class: warrior
+tier: 4
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: combo, duration: $duration }
