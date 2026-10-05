@@ -235,6 +235,18 @@ public final class SkillRuntime {
             // смысл только как «я зашёл ему за спину», и писать это наоборот
             // было бы той же ловушкой, из-за которой условия старого стека
             // выглядели так, будто проверяют цель.
+            case DISTANCE -> {
+                String[] parts = condition.value().split(":", 2);
+                double from = Double.parseDouble(parts[0]);
+                double to = parts.length > 1 ? Double.parseDouble(parts[1]) : Double.MAX_VALUE;
+                Position here = world.positionOf(context.caster()).orElse(null);
+                Position there = world.positionOf(subject).orElse(null);
+                if (here == null || there == null) {
+                    yield false;
+                }
+                double distance = here.distanceTo(there);
+                yield distance >= from && distance < to;
+            }
             case BEHIND -> !subject.equals(context.caster())
                     && world.isBehind(context.caster(), subject,
                     Double.parseDouble(condition.value()));
@@ -467,6 +479,18 @@ public final class SkillRuntime {
             }
 
             case Action.Swap ignored -> forEach(targets, t -> world.swap(context.caster(), t));
+
+            case Action.Glow a -> {
+                int ticks = (int) Math.round(a.duration().resolve(table, level,
+                        context.counters()) * durationScale(context.caster()));
+                forEach(targets, t -> world.glow(t, ticks));
+            }
+
+            case Action.DisableShield a -> {
+                int ticks = (int) Math.round(a.duration().resolve(table, level,
+                        context.counters()));
+                forEach(targets, t -> world.disableShield(t, ticks));
+            }
 
             case Action.Confuse a -> {
                 double radius = a.radius().resolve(table, level, context.counters());

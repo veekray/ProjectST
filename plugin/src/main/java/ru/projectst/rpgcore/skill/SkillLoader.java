@@ -294,6 +294,7 @@ public final class SkillLoader {
             case "counter" -> Condition.Check.COUNTER;
             case "has-minion" -> Condition.Check.HAS_MINION;
             case "behind" -> Condition.Check.BEHIND;
+            case "distance" -> Condition.Check.DISTANCE;
             case "zone-count" -> Condition.Check.ZONE_COUNT;
             default -> null;
         };
@@ -351,6 +352,11 @@ public final class SkillLoader {
             }
 
             case "confuse" -> require(b, path, errors, "radius", Action.Confuse::new);
+
+            case "glow" -> require(b, path, errors, "duration", Action.Glow::new);
+
+            case "disable-shield" ->
+                    require(b, path, errors, "duration", Action.DisableShield::new);
 
             case "remove-status" -> {
                 String statusId = b.str("id", "");

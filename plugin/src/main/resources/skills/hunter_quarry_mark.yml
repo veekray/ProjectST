@@ -1,0 +1,42 @@
+# 1. Клеймо Добычи — метка, ради которой охотник держит дистанцию.
+#
+# Добыча всегда одна: прежнюю метку снимаем со всех вокруг, а не ищем, кому
+# она досталась. В старом стеке адрес добычи хранился аурой на самой цели
+# именно потому, что переменную кастера было негде держать; здесь это тоже
+# статус на цели, но уже по выбору, а не по нужде.
+#
+# Подсветка контуром — командная: добычу видит вся группа, в том числе сквозь
+# стены. Это подсказка глазам и ничего больше: в бою она ничего не меняет.
+
+id: hunter_quarry_mark
+display: "Клеймо Добычи"
+class: hunter
+icon: TARGET
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Метит одного врага добычей."
+  - "Добыча светится для всей группы,"
+  - "и по ней дистанция решает всё."
+
+steps:
+
+  # Добыча одна. Снимаем прежнюю метку со всех, а не ищем, у кого она.
+  - target: { type: enemies_in_radius, radius: $sweep }
+    do:
+      - { action: remove-status, id: quarry }
+
+  - target: { type: enemies_in_radius, radius: $range, limit: 1 }
+    do:
+      - { action: status, id: quarry, duration: $duration }
+      - { action: glow, duration: $duration }
+      - { action: sound, sound: item_crossbow_quick_charge_1, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: crit, shape: sphere, count: 25, size: 0.5 }
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_arrow_hit_player, volume: 1.0, pitch: 0.7 }
+      - { action: message, text: "&6Охота &7— добыча помечена" }

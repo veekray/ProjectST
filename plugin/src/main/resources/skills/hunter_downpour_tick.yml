@@ -1,0 +1,24 @@
+# Тик ливня: урон и вязкость всем, кто внутри круга.
+
+id: hunter_downpour_tick
+display: "Ливень Стрел"
+class: hunter
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $slow
+        duration: $slow_duration
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: crit, shape: ring, count: 40, size: $radius,
+          at-origin: true }

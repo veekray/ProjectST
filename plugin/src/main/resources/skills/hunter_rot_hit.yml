@@ -1,0 +1,26 @@
+# Попадание гнилой стрелы.
+
+id: hunter_rot_hit
+display: "Гнилая Стрела — попадание"
+class: hunter
+tier: 4
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: status, id: rot, duration: $duration }
+      - { action: disable-shield, duration: $shield_lock }
+      - action: modify-stat
+        stat: incoming_healing
+        op: flat
+        value: $heal_cut
+        duration: $duration
+      - { action: sound, sound: entity_arrow_hit, volume: 1.0, pitch: 0.6 }
+      - { action: particles, particle: squid_ink, shape: point, count: 15, size: 0.3 }
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: hunter_rush_gain, at-targets: true }

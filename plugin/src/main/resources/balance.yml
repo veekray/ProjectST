@@ -762,3 +762,183 @@ balance:
       per-level: 1.0
     blind: 40
     push: 1.0
+
+  # ================================================================ охотник
+  # Ступени дистанции одни на весь класс: ближе восьми — хуже, дальше
+  # восемнадцати — вдвое. Числа те же, что были у подкласса.
+
+  hunter_quarry_mark:
+    stamina: 10
+    cooldown:
+      base: 10.0
+      per-level: -0.05
+      min: 6.0
+    range: 40
+    sweep: 45
+    duration: 400
+
+  hunter_repel_shot:
+    stamina: 12
+    cooldown:
+      base: 5.0
+      per-level: -0.05
+      min: 3.0
+    speed: 2.0
+    range: 40
+
+  hunter_repel_hit:
+    damage:
+      base: 9
+      per-level: 1.1
+    damage_near:
+      base: 6.3
+      per-level: 0.77
+    damage_mid:
+      base: 11.7
+      per-level: 1.43
+    damage_far:
+      base: 18
+      per-level: 2.2
+    push: 0.9
+    push_far: 0.7
+    slow: -30
+    slow_duration: 40
+    stun_duration: 20
+
+  hunter_disengage:
+    stamina: 14
+    cooldown:
+      base: 12.0
+      per-level: -0.1
+      min: 8.0
+    trap_life: 300
+    leap: -1.3
+
+  hunter_trap_snap:
+    radius: 1.6
+    hold: 50
+    damage:
+      base: 6
+      per-level: 0.5
+
+  hunter_flare_shot:
+    stamina: 14
+    cooldown:
+      base: 14.0
+      per-level: -0.1
+      min: 9.0
+    speed: 2.0
+    range: 40
+
+  hunter_flare_burst:
+    radius: 5
+    damage:
+      base: 6
+      per-level: 0.7
+    glow: 120
+    blind: 60
+    defense_down: -20
+
+  hunter_arrow_downpour:
+    stamina: 22
+    cooldown:
+      base: 22.0
+      per-level: -0.15
+      min: 14.0
+    aim: 30
+
+  hunter_downpour_place:
+    radius: 5
+    duration: 120
+
+  hunter_downpour_tick:
+    radius: 5
+    damage:
+      base: 5
+      per-level: 0.6
+    slow: -35
+    slow_duration: 30
+
+  hunter_rush_gain:
+    # Ссылок на числа нет: все пороги стоят в условиях шагов, где их видно
+    # рядом с тем, что они включают.
+    unused: 0
+
+  hunter_rush_add:
+    duration: 300
+    damage_bonus: 45
+    attack_speed: 45
+    speed: 25
+
+  hunter_rot_arrow:
+    stamina: 16
+    cooldown:
+      base: 15.0
+      per-level: -0.1
+      min: 10.0
+    speed: 2.0
+    range: 40
+
+  hunter_rot_hit:
+    damage:
+      base: 7
+      per-level: 0.8
+    duration: 120
+    shield_lock: 60
+    heal_cut: -50
+
+  hunter_rot_tick:
+    radius: 30
+    damage:
+      base: 4
+      per-level: 0.25
+
+  hunter_sense:
+    stamina: 18
+    cooldown:
+      base: 45.0
+      per-level: -0.2
+      min: 30.0
+    duration: 160
+
+  hunter_sense_tick:
+    radius: 40
+    glow: 45
+    defense_down: -20
+
+  hunter_sense_renew:
+    duration: 160
+
+  hunter_killshot:
+    stamina: 24
+    cooldown:
+      base: 28.0
+      per-level: -0.15
+      min: 18.0
+    aim_time: 20
+    speed: 2.0
+    range: 40
+
+  hunter_killshot_hit:
+    damage:
+      base: 14
+      per-level: 1.8
+    damage_near:
+      base: 9.8
+      per-level: 1.26
+    damage_mid:
+      base: 18.2
+      per-level: 2.34
+    damage_far:
+      base: 28
+      per-level: 3.6
+
+  hunter_deadly_hunt:
+    stamina: 40
+    cooldown:
+      base: 130.0
+      per-level: -0.5
+      min: 90.0
+    duration: 200
+    damage_bonus: 50
+    speed: 25

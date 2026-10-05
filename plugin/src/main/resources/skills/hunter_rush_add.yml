@@ -1,0 +1,40 @@
+# Заряд азарта и, на пятом, сам разгон.
+
+id: hunter_rush_add
+display: "Азарт — заряд"
+class: hunter
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: rush, duration: $duration }
+      - { action: sound, sound: block_note_block_pling, volume: 0.5, pitch: 1.4 }
+      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3 }
+
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "rush:5" }
+      - { caster: has-status, value: rush_full, not: true }
+    do:
+      - { action: status, id: rush_full, duration: $duration }
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $damage_bonus
+        duration: $duration
+      - action: modify-stat
+        stat: attack_speed
+        op: flat
+        value: $attack_speed
+        duration: $duration
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - { action: sound, sound: entity_ender_dragon_flap, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: flame, shape: ring, count: 24, size: 2.0 }
+      - { action: message, text: "&6Азарт &7— полный разгон" }

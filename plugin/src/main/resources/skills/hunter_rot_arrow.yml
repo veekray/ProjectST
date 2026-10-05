@@ -1,0 +1,30 @@
+# 7. Гнилая Стрела — отнимает лечение и щит.
+#
+# Против того, кто пережидает выстрелы за щитом и подлечивается: щит уходит в
+# перезарядку, лечение режется вдвое, а рана тикает всё время действия.
+
+id: hunter_rot_arrow
+display: "Гнилая Стрела"
+class: hunter
+icon: TIPPED_ARROW
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Гниющая рана: лечение цели режется,"
+  - "щит уходит в перезарядку,"
+  - "а рана точит её всё это время."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_witch_throw, volume: 1.0, pitch: 0.8 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: squid_ink
+        on-hit: hunter_rot_hit

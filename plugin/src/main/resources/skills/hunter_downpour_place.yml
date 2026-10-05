@@ -1,0 +1,19 @@
+# Ставит зону ливня туда, куда смотрел охотник.
+
+id: hunter_downpour_place
+display: "Ливень Стрел — зона"
+class: hunter
+tier: 3
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - action: zone
+        tag: downpour
+        radius: $radius
+        duration: $duration
+        at-origin: true
+        tick-interval: 20
+        on-tick: hunter_downpour_tick

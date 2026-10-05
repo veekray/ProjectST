@@ -59,6 +59,9 @@ public final class StatIds {
     /** Скорость передвижения в процентах сверх обычной. */
     public static final String MOVEMENT_SPEED = "movement_speed";
 
+    /** Скорость атаки в процентах сверх обычной. */
+    public static final String ATTACK_SPEED = "attack_speed";
+
     private StatIds() {
     }
 }

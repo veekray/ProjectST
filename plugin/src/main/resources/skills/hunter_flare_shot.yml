@@ -1,0 +1,36 @@
+# 4. Сигнальный Выстрел — подсвечивает всех, кого задело.
+#
+# В списке подкласса он стоял четвёртым, но собственного описания у него не
+# было: в старом файле навыков его не оказалось вовсе, остался только пункт в
+# классе. Сделан по той же идее, что и остальной охотник, — он про видимость и
+# про дистанцию, а не про урон.
+
+id: hunter_flare_shot
+display: "Сигнальный Выстрел"
+class: hunter
+icon: FIREWORK_STAR
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Вспышка в точке попадания:"
+  - "все вокруг неё светятся и слепнут,"
+  - "а их защита проседает."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_firework_rocket_launch, volume: 1.0, pitch: 1.2 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: end_rod
+        on-hit: hunter_flare_burst
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: hunter_rush_gain, at-targets: true }

@@ -1,0 +1,57 @@
+# Охотник — третий перенесённый подкласс, тоже отдельным классом.
+#
+# Причина та же, что у ассасина и трикстера: его Отход Егеря делает то же, что
+# плутовский Рывок, а Выстрел на Поражение — то же, что Метка смерти. Подробнее
+# — в assassin.yml.
+#
+# Весь класс стоит на одной идее: бить издали. Поэтому у него есть дистанция в
+# условиях навыков, а не отдельный множитель в коде, и ступени видно глазами.
+
+id: hunter
+display: "&6Охотник"
+slots: 6
+icon: BOW
+max-level: 60
+points-per-level: 1
+
+resource:
+  name: "Выносливость"
+  max: max_stamina
+  regen: stamina_regen
+
+xp:
+  base: 120
+  per-level: 60
+
+tiers:
+  1: 1
+  2: 3
+  3: 5
+  4: 7
+  5: 10
+
+stats:
+  max_health:
+    base: 18
+    per-level: 2
+  max_stamina:
+    base: 100
+    per-level: 4
+  stamina_regen:
+    base: 4
+    per-level: 0.1
+  physical_damage:
+    base: 0
+    per-level: 0.7
+  critical_strike_chance:
+    base: 6
+    per-level: 0.2
+  attack_speed:
+    base: 0
+    per-level: 0.2
+  dodge_rating:
+    base: 2
+    per-level: 0.1
+  defense:
+    base: 1
+    per-level: 0.1

@@ -9,7 +9,8 @@ import ru.projectst.rpgcore.stat.StatService;
 /**
  * Переносит статы, у которых есть ванильный двойник, в сам мир.
  *
- * <p>Здоровье и скорость. Стат, который нигде не виден, — хуже отсутствия
+ * <p>Здоровье, скорость бега и скорость атаки. Стат, который нигде не виден,
+ * — хуже отсутствия
  * стата: в старом стеке такие числа существовали, расходились с тем, что
  * происходило в бою, и спорить с ними было нечем.
  *
@@ -28,6 +29,29 @@ public final class VitalsSync {
     public void apply(Player player) {
         applyHealth(player);
         applySpeed(player);
+        applyAttackSpeed(player);
+    }
+
+    /**
+     * Скорость атаки.
+     *
+     * <p>Ванильная база — 4 удара в секунду, и от неё считается процент. Как и
+     * у ходьбы, правится базовое значение: модификаторов на игроке может висеть
+     * сколько угодно чужих, и складывать с ними своё число значило бы начать
+     * войну за один атрибут с каждым соседним плагином.
+     */
+    private void applyAttackSpeed(Player player) {
+        double percent = stats.snapshot(player.getUniqueId())
+                .getOrZero(StatIds.ATTACK_SPEED);
+        AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
+        if (attribute == null) {
+            return;
+        }
+        double wanted = 4.0 * Math.max(0.2, 1 + percent / 100.0);
+        if (Math.abs(attribute.getBaseValue() - wanted) < 0.0001) {
+            return;
+        }
+        attribute.setBaseValue(wanted);
     }
 
     /**

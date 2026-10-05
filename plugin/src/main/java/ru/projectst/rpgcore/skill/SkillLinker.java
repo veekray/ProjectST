@@ -183,6 +183,8 @@ public final class SkillLinker {
             case Action.Cast ignored -> List.of();
             case Action.Swap ignored -> List.of();
             case Action.Confuse a -> refs(a.radius());
+            case Action.Glow a -> refs(a.duration());
+            case Action.DisableShield a -> refs(a.duration());
             case Action.Scatter a -> refs(a.radius());
             case Action.ClearThreat a -> refs(a.radius());
             case Action.ResetCooldown ignored -> List.of();
@@ -260,6 +262,10 @@ public final class SkillLinker {
             }
             case Action.Confuse cf ->
                     checkBalance(skill, where, table, path + ".radius", cf.radius(), errors);
+            case Action.Glow g ->
+                    checkBalance(skill, where, table, path + ".duration", g.duration(), errors);
+            case Action.DisableShield d ->
+                    checkBalance(skill, where, table, path + ".duration", d.duration(), errors);
             case Action.Scatter sc ->
                     checkBalance(skill, where, table, path + ".radius", sc.radius(), errors);
             case Action.ClearThreat ct ->

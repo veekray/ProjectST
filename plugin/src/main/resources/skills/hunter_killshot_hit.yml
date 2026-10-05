@@ -1,0 +1,47 @@
+# Попадание финишера. Ступени те же, что у Отбойного Выстрела: класс обязан
+# вести себя одинаково, иначе дистанцию пришлось бы держать в голове отдельно
+# для каждого навыка.
+
+id: hunter_killshot_hit
+display: "Выстрел на Поражение — попадание"
+class: hunter
+tier: 5
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "0:8" }
+    do:
+      - { action: damage, amount: $damage_near, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "8:18" }
+    do:
+      - { action: damage, amount: $damage_mid, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "18:200" }
+    do:
+      - { action: damage, amount: $damage_far, school: physical }
+
+  - target: { type: trigger }
+    do:
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5 }
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: hunter_rush_gain, at-targets: true }

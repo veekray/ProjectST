@@ -105,6 +105,12 @@ public interface SkillWorld {
      */
     void swap(UUID first, UUID second);
 
+    /** Подсвечивает цель контуром сквозь стены на заданное число тиков. */
+    void glow(UUID target, int ticks);
+
+    /** Отправляет щит цели в перезарядку. */
+    void disableShield(UUID target, int ticks);
+
     /**
      * Сбивает цель: существо выбирает себе другую жертву рядом.
      *

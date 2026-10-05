@@ -1,0 +1,26 @@
+# Вспышка сигнальной стрелы.
+
+id: hunter_flare_burst
+display: "Сигнальный Выстрел — вспышка"
+class: hunter
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: glow, duration: $glow }
+      - { action: potion, effect: blindness, duration: $blind, amplifier: 0 }
+      - action: modify-stat
+        stat: defense
+        op: flat
+        value: $defense_down
+        duration: $glow
+      - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0 }
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_firework_rocket_blast, volume: 1.0, pitch: 1.4,
+          at-origin: true }

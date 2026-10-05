@@ -1,0 +1,62 @@
+# Попадание Отбойного Выстрела.
+#
+# Четыре ветки урона взаимно исключают друг друга: три по добыче на разной
+# дистанции и одна по всем прочим. Пересечься они не могут — полосы дистанции
+# не перекрываются, а четвёртая требует отсутствия метки.
+
+id: hunter_repel_hit
+display: "Отбойный Выстрел — попадание"
+class: hunter
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry, not: true }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "0:8" }
+    do:
+      - { action: damage, amount: $damage_near, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "8:18" }
+    do:
+      - { action: damage, amount: $damage_mid, school: physical }
+
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "18:200" }
+    do:
+      - { action: damage, amount: $damage_far, school: physical }
+
+  # Отброс и замедление — всем, кого задело.
+  - target: { type: trigger }
+    do:
+      - { action: push, strength: $push, lift: 0.45 }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $slow
+        duration: $slow_duration
+      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4 }
+      - { action: sound, sound: entity_breeze_wind_burst, volume: 1.0, pitch: 0.9 }
+
+  # Издали отбрасывает вдвое и оглушает: на такой дистанции это уже не толчок.
+  - target: { type: trigger }
+    if:
+      - { target: has-status, value: quarry }
+      - { target: distance, value: "15:200" }
+    do:
+      - { action: push, strength: $push_far, lift: 0.3 }
+      - { action: status, id: stun, duration: $stun_duration }
+      - { action: sound, sound: entity_wind_charge_wind_burst, volume: 1.2, pitch: 0.7 }

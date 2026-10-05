@@ -498,6 +498,29 @@ public sealed interface Action {
         }
     }
 
+    /**
+     * Подсветка контуром сквозь стены.
+     *
+     * <p>Чистая подсказка глазам, ничего не меняющая в бою: ею охотник метит
+     * добычу и показывает её всей группе. Цвет не задаётся — в Minecraft он
+     * берётся у команды таблицы, а командами на сервере распоряжаются и другие
+     * плагины, и спорить с ними из-за оттенка контура незачем.
+     */
+    record Glow(NumberRef duration) implements Action {
+        @Override
+        public String name() {
+            return "glow";
+        }
+    }
+
+    /** Отправляет щит цели в перезарядку: прикрыться ближайшие секунды нечем. */
+    record DisableShield(NumberRef duration) implements Action {
+        @Override
+        public String name() {
+            return "disable-shield";
+        }
+    }
+
     record Swap() implements Action {
         @Override
         public String name() {

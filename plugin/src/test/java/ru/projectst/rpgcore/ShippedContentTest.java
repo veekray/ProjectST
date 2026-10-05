@@ -48,7 +48,9 @@ class ShippedContentTest {
     private static final Path RESOURCES = Path.of("src", "main", "resources");
 
     /** Сколько активных навыков должно быть перенесено, по шесть на класс. */
-    private static final int EXPECTED_SELECTABLE = 44;
+    // Охотников девять, а не десять: десятым у него шёл Азарт, у которого
+    // кнопки нет и не было — он копится от попаданий и включается сам.
+    private static final int EXPECTED_SELECTABLE = 53;
 
     private static String read(String name) throws IOException {
         return Files.readString(RESOURCES.resolve(name), StandardCharsets.UTF_8);
@@ -175,7 +177,7 @@ class ShippedContentTest {
         assertEquals(EXPECTED_SELECTABLE, selectable,
                 () -> "активных навыков по классам: " + perClass);
         assertEquals(Map.of("mage", 6, "druid", 6, "warlock", 6, "rogue", 6,
-                "assassin", 10, "trickster", 10), perClass);
+                "assassin", 10, "trickster", 10, "hunter", 9), perClass);
     }
 
     @Test

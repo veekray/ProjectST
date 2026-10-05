@@ -1,0 +1,27 @@
+# 8. Охотничье Чутьё — разведка на всю группу.
+#
+# Подсвечивает всё живое вокруг сквозь стены, а добыче вдобавок просаживает
+# защиту. Смерть подсвеченного продлевает чутьё: охота идёт, пока она идёт.
+
+id: hunter_sense
+display: "Охотничье Чутьё"
+class: hunter
+icon: ENDER_EYE
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Видит всё живое вокруг сквозь стены."
+  - "У добычи проседает защита,"
+  - "а чужая смерть продлевает чутьё."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: sense, duration: $duration }
+      - { action: sound, sound: entity_warden_sonic_charge, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: end_rod, shape: ring, count: 32, size: 3.0 }
+      - { action: message, text: "&6Чутьё &7— вижу всё живое вокруг" }

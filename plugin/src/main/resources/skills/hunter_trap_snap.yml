@@ -1,0 +1,22 @@
+# Капкан защёлкивается на том, кто подошёл.
+#
+# Класса у навыка нет: его кастует сам капкан, а навык моба в этом ядре всегда
+# служебный и ничей.
+
+id: hunter_trap_snap
+display: "Капкан"
+internal: true
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
+    do:
+      - { action: status, id: stun, duration: $hold }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: -100
+        duration: $hold
+      - { action: damage, amount: $damage, school: physical }
+      - { action: sound, sound: block_iron_door_close, volume: 1.0, pitch: 0.6 }
+      - { action: particles, particle: crit, shape: point, count: 25, size: 0.3 }

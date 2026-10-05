@@ -1,0 +1,41 @@
+# 9. Выстрел на Поражение — финишер, за который платят неподвижностью.
+#
+# Секунда на изготовку, в которую охотник стоит на месте: это и есть цена
+# выстрела. Дальше — те же ступени дистанции, что у Отбойного, но вдвое весомее.
+
+id: hunter_killshot
+display: "Выстрел на Поражение"
+class: hunter
+icon: CROSSBOW
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Долгая изготовка — и выстрел,"
+  - "который по дальней добыче бьёт"
+  - "сильнее всего, что есть у охотника."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: -100
+        duration: $aim_time
+      - { action: sound, sound: item_crossbow_loading_start, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: crit, shape: ring, count: 20, size: 1.5 }
+
+  - target: { type: self }
+    delay: $aim_time
+    do:
+      - { action: sound, sound: item_crossbow_shoot, volume: 1.5, pitch: 0.6 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: end_rod
+        on-hit: hunter_killshot_hit

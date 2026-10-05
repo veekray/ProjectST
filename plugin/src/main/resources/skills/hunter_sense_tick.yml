@@ -1,0 +1,30 @@
+# Тик чутья: подсветка всех вокруг и просадка защиты у добычи.
+
+id: hunter_sense_tick
+display: "Охотничье Чутьё"
+class: hunter
+tier: 4
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: sense }
+    do:
+      - { action: glow, duration: $glow }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { caster: has-status, value: sense }
+      - { target: has-status, value: quarry }
+    do:
+      - action: modify-stat
+        stat: defense
+        op: flat
+        value: $defense_down
+        duration: $glow
+      - { action: particles, particle: crit, shape: point, count: 4, size: 0.3 }

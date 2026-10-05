@@ -1,0 +1,42 @@
+# 3. Отход Егеря — прыжок назад и капкан на покинутом месте.
+#
+# Порядок важен: капкан ставится ДО прыжка, на той точке, где охотник ещё
+# стоит, иначе он улетел бы вместе с ним в конец прыжка.
+#
+# Прыжок — рывок с отрицательной силой, то есть ровно назад по взгляду. В
+# старом стеке для этого пришлось задавать вектор вручную через поворот
+# камеры, потому что тамошний прыжок умел только «к цели», а при цели-самом-себе
+# вектор выходил нулевым.
+
+id: hunter_disengage
+display: "Отход Егеря"
+class: hunter
+icon: IRON_TRAPDOOR
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Прыжок назад, а на покинутом месте"
+  - "остаётся капкан: первый, кто подойдёт,"
+  - "застрянет в нём."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - action: summon
+        mob: hunter_trap
+        count: 1
+        duration: $trap_life
+        tag: trap
+        attacks-enemies: false
+      - { action: sound, sound: block_chain_place, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4 }
+
+  - target: { type: self }
+    do:
+      - { action: dash, strength: $leap, lift: 0.45 }
+      - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 1.5 }
+      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.3 }

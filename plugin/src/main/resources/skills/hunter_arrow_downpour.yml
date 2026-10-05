@@ -1,0 +1,29 @@
+# 5. Ливень Стрел — зона, которая бьёт и держит сама.
+#
+# Зоной, а не залпом настоящих стрел: стрелы подбираются, застревают в блоках и
+# считаются чужим кодом, а зона бьёт ровно тех, кто в ней стоит, и ровно столько
+# раз, сколько написано. Для глаз над зоной сыплются частицы.
+
+id: hunter_arrow_downpour
+display: "Ливень Стрел"
+class: hunter
+icon: SPECTRAL_ARROW
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Накрывает выбранное место ливнем:"
+  - "всё, что внутри, получает урон"
+  - "и вязнет на месте."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 0.7 }
+      - action: ray
+        range: $aim
+        on-hit: hunter_downpour_place
+        stop-at-entity: false

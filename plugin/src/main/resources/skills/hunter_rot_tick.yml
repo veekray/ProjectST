@@ -1,0 +1,19 @@
+# Гниющая рана точит цель.
+
+id: hunter_rot_tick
+display: "Гниющая рана"
+class: hunter
+tier: 4
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: rot }
+    do:
+      - { action: damage, amount: $damage, school: true }
+      - { action: particles, particle: squid_ink, shape: point, count: 5, size: 0.2 }

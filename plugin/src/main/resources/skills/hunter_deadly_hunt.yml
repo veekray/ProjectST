@@ -1,0 +1,38 @@
+# 10. Смертельная Охота — плоский прирост, а не удвоение множителя.
+#
+# Прежняя версия удваивала бонус за дистанцию; автор сам его убрал, потому что
+# множитель поверх множителя игроком не читается. Здесь то же решение: ульта
+# даёт прибавку к урону навыков и к бегу, и обе видно в меню числом.
+
+id: hunter_deadly_hunt
+display: "Смертельная Охота"
+class: hunter
+icon: NETHER_STAR
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Охота началась: урон навыков"
+  - "и скорость растут на всё её время,"
+  - "а метка держится сама."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: deadly_hunt, duration: $duration }
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $damage_bonus
+        duration: $duration
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: flame, shape: ring, count: 40, size: 4.0 }
+      - { action: message, text: "&6Смертельная Охота &7— началась" }

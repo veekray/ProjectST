@@ -1,0 +1,22 @@
+# Добыча пала — чутьё обновляется.
+#
+# От убийства, а не от метки смерти на каждой подсвеченной цели: убийство
+# сервер и так сообщает, и отдельный учёт тут был бы вторым списком того же.
+
+id: hunter_sense_renew
+display: "Охотничье Чутьё — обновление"
+class: hunter
+tier: 4
+internal: true
+
+on: kill
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: sense }
+    do:
+      - { action: status, id: sense, duration: $duration }
+      - { action: sound, sound: entity_experience_orb_pickup, volume: 1.0, pitch: 0.7 }
+      - { action: message, text: "&6Чутьё &7— добыча пала, чутьё обновлено" }

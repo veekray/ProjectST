@@ -41,6 +41,20 @@ class SkillRuntimeTest {
 
     /** Подставной мир: пишет, что от него просили. */
     private static final class FakeWorld implements SkillWorld {
+        /** Где кто стоит: по умолчанию все в одной точке. */
+        final java.util.Map<UUID, Position> positions = new java.util.HashMap<>();
+
+        final java.util.List<String> glowed = new java.util.ArrayList<>();
+
+        @Override
+        public void glow(UUID target, int ticks) {
+            glowed.add(target + "@" + ticks);
+        }
+
+        @Override
+        public void disableShield(UUID target, int ticks) {
+        }
+
         final java.util.List<String> confused = new java.util.ArrayList<>();
 
         @Override
@@ -116,7 +130,7 @@ class SkillRuntimeTest {
 
         @Override
         public Optional<Position> positionOf(UUID entity) {
-            return Optional.of(new Position(WORLD, 1, 2, 3));
+            return Optional.of(positions.getOrDefault(entity, new Position(WORLD, 1, 2, 3)));
         }
 
         @Override
@@ -321,6 +335,32 @@ class SkillRuntimeTest {
     }
 
     // ------------------------------------------------------------------ шаг
+
+    @Test
+    @DisplayName("условие дистанции отсеивает цели вне полосы, а не отменяет шаг")
+    void distanceFiltersTargets() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    if:
+                      - { target: distance, value: "4:100" }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        // A в трёх блоках от стрелка, B в десяти: нижняя граница включается.
+        f.world.positions.put(CASTER, new Position(WORLD, 0, 0, 0));
+        f.world.positions.put(A, new Position(WORLD, 3, 0, 0));
+        f.world.positions.put(B, new Position(WORLD, 10, 0, 0));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertEquals(List.of("resolve ENEMIES_IN_RADIUS r=6.0", "damage B 5.0 MAGIC"),
+                f.world.calls,
+                "ближняя цель отсеивается, а шаг для дальней выполняется");
+    }
 
     @Test
     @DisplayName("условие спины проверяет кастера относительно цели, а не наоборот")

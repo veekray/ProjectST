@@ -333,3 +333,55 @@ statuses:
     category: immunity
     duration: 40
     tags: [soft, immunity]
+
+  # ---------------------------------------------------------------- охотник
+  # Добыча всегда одна: метка снимается со всех вокруг перед тем, как лечь на
+  # новую цель. Отдельного «кто сейчас добыча» нет и не нужно — вопрос задаётся
+  # самой цели.
+  quarry:
+    display: "Добыча"
+    color: GOLD
+    category: mark
+    duration: 400
+    tags: [mark]
+
+  rot:
+    display: "Гниющая рана"
+    color: DARK_GREEN
+    category: debuff
+    duration: 120
+    tags: [soft]
+
+  # Заряды азарта: пять — и включается разгон. Промежуточных ступеней нет
+  # намеренно, либо разогнался, либо нет.
+  rush:
+    display: "Азарт"
+    color: GOLD
+    category: buff
+    duration: 300
+    stacking: stacks
+    max-stacks: 5
+    tags: [counter]
+
+  # Маркер разгона. Он же замок: без него надбавка вешалась бы на каждом
+  # следующем попадании и за десяток выстрелов раздула бы статы до абсурда.
+  rush_full:
+    display: "Разгон"
+    color: RED
+    category: buff
+    duration: 300
+    tags: [soft, buff]
+
+  sense:
+    display: "Чутьё"
+    color: AQUA
+    category: buff
+    duration: 160
+    tags: [soft, buff]
+
+  deadly_hunt:
+    display: "Смертельная Охота"
+    color: GOLD
+    category: buff
+    duration: 200
+    tags: [soft, buff]

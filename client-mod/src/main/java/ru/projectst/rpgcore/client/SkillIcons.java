@@ -32,6 +32,7 @@ public final class SkillIcons {
             "rogue", 0xFF5B5B6B,
             "assassin", 0xFF4A3A5B,
             "trickster", 0xFF7A4FD1,
+            "hunter", 0xFF8A6A2E,
             "item", 0xFFC9A227);
 
     private SkillIcons() {
@@ -546,6 +547,116 @@ public final class SkillIcons {
                         ".bbbbbbb.",
                         "..bbbbb..",
                         "...ccc..."}));
+
+        // ------------------------------------------------------------ охотник
+        // клеймо добычи: прицел
+        ICONS.put("hunter_quarry_mark", new Icon(0xFF4A2A0A, 0xFFC98A2A, 0xFFF0E0A0,
+                new String[] {
+                        "....c....",
+                        "..bbbbb..",
+                        ".b..c..b.",
+                        "b...c...b",
+                        "cccc.cccc",
+                        "b...c...b",
+                        ".b..c..b.",
+                        "..bbbbb..",
+                        "....c...."}));
+        // отбойный выстрел: стрела и волна позади
+        ICONS.put("hunter_repel_shot", new Icon(0xFF3A3028, 0xFF8A7A5B, 0xFFF0E8D0,
+                new String[] {
+                        ".........",
+                        "b........",
+                        ".b..c....",
+                        "..b..c...",
+                        "bbbcccccc",
+                        "..b..c...",
+                        ".b..c....",
+                        "b........",
+                        "........."}));
+        // отход егеря: капкан с зубьями
+        ICONS.put("hunter_disengage", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFE0E0E8,
+                new String[] {
+                        ".........",
+                        "c.c.c.c.c",
+                        ".c.c.c.c.",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        "..bbbbb..",
+                        ".c.c.c.c.",
+                        "c.c.c.c.c",
+                        "........."}));
+        // сигнальный выстрел: вспышка
+        ICONS.put("hunter_flare_shot", new Icon(0xFF4A3A0A, 0xFFC9A227, 0xFFFFF0B0,
+                new String[] {
+                        "c...c...c",
+                        ".c..c..c.",
+                        "..c.c.c..",
+                        "...ccc...",
+                        "ccccbcccc",
+                        "...ccc...",
+                        "..c.c.c..",
+                        ".c..c..c.",
+                        "c...c...c"}));
+        // ливень стрел: стрелы сверху
+        ICONS.put("hunter_arrow_downpour", new Icon(0xFF2A3A4A, 0xFF6A8AA8, 0xFFD0E8F0,
+                new String[] {
+                        "c..c..c..",
+                        "c..c..c.c",
+                        "b..b..b.b",
+                        "b..b..b.b",
+                        ".b..b..b.",
+                        ".b..b..b.",
+                        "..b..b..b",
+                        "..c..c..c",
+                        "ccccccccc"}));
+        // гнилая стрела: наконечник с каплей
+        ICONS.put("hunter_rot_arrow", new Icon(0xFF1A2A0A, 0xFF5E7A2A, 0xFFBCD88A,
+                new String[] {
+                        ".....ccc.",
+                        "....cc.c.",
+                        "...cc.cc.",
+                        "..cc.....",
+                        ".cc......",
+                        "cc...b...",
+                        "....bbb..",
+                        "....bbb..",
+                        ".....b..."}));
+        // чутьё: глаз с лучами
+        ICONS.put("hunter_sense", new Icon(0xFF0A2A3A, 0xFF2E7F9F, 0xFFBCE8F0,
+                new String[] {
+                        "c...c...c",
+                        ".c.....c.",
+                        "..bbbbb..",
+                        ".bbcccbb.",
+                        "cbcc.ccbc",
+                        ".bbcccbb.",
+                        "..bbbbb..",
+                        ".c.....c.",
+                        "c...c...c"}));
+        // выстрел на поражение: арбалет на прицеле
+        ICONS.put("hunter_killshot", new Icon(0xFF3A1A0A, 0xFFB04A2A, 0xFFF0D070,
+                new String[] {
+                        "b.......b",
+                        ".b.....b.",
+                        "..ccccc..",
+                        "..c...c..",
+                        "ccc.b.ccc",
+                        "..c...c..",
+                        "..ccccc..",
+                        ".b.....b.",
+                        "b.......b"}));
+        // смертельная охота: рога
+        ICONS.put("hunter_deadly_hunt", new Icon(0xFF3A2A0A, 0xFFC9A227, 0xFFF0E0A0,
+                new String[] {
+                        "c.......c",
+                        "cc.....cc",
+                        "c.c...c.c",
+                        "c..c.c..c",
+                        ".c..b..c.",
+                        "..bbbbb..",
+                        "..b.b.b..",
+                        "..bbbbb..",
+                        "...bbb..."}));
     }
 
     /**

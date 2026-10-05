@@ -442,6 +442,42 @@ public final class BukkitSkillWorld implements SkillWorld {
      * не удача.
      */
     /**
+     * Подсветка контуром.
+     *
+     * <p>Снимается отложенной задачей, а не своим счётчиком: счётчик пришлось
+     * бы сверять каждый тик, а задача выполняется ровно один раз. Снимаем
+     * только то, что сами и зажгли: существо могло светиться и до нас — своей
+     * природой или чужим плагином, — и гасить его было бы вмешательством.
+     */
+    @Override
+    public void glow(UUID targetId, int ticks) {
+        Entity target = Bukkit.getEntity(targetId);
+        if (target == null || ticks <= 0 || target.isGlowing()) {
+            return;
+        }
+        target.setGlowing(true);
+        runLater(ticks, () -> {
+            Entity still = Bukkit.getEntity(targetId);
+            if (still != null) {
+                still.setGlowing(false);
+            }
+        });
+    }
+
+    /**
+     * Щит в перезарядку.
+     *
+     * <p>Работает только по игрокам: щит есть только у них, и притворяться,
+     * будто мы что-то сделали мобу, незачем.
+     */
+    @Override
+    public void disableShield(UUID targetId, int ticks) {
+        if (Bukkit.getEntity(targetId) instanceof Player player && ticks > 0) {
+            player.setCooldown(org.bukkit.Material.SHIELD, ticks);
+        }
+    }
+
+    /**
      * Сбить цель с толку: моб выбирает себе другую жертву рядом.
      *
      * <p>Берётся ближайшее живое существо, кроме самого моба и кроме игроков:
