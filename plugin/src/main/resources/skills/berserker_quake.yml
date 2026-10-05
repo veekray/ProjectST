@@ -1,0 +1,35 @@
+# 2. Землетрясение — подбрасывает и вязнет.
+
+id: berserker_quake
+display: "Землетрясение"
+class: berserker
+icon: COBBLESTONE
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Удар по земле подбрасывает всех"
+  - "вокруг и оставляет их вязнуть."
+  - "Платит здоровьем вдвое дороже."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sacrifice, percent: $cost }
+      - { action: cast, skill: berserker_heat, at-targets: true }
+      - { action: cast, skill: berserker_heat, at-targets: true }
+      - { action: sound, sound: entity_ravager_attack, volume: 1.0, pitch: 0.7 }
+      - { action: particles, particle: block_crack, shape: ring, count: 30, size: $radius }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: push, strength: 0.1, lift: 1.1 }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $slow
+        duration: $slow_duration

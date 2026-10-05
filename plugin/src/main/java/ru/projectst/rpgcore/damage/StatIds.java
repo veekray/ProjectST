@@ -62,6 +62,9 @@ public final class StatIds {
     /** Скорость атаки в процентах сверх обычной. */
     public static final String ATTACK_SPEED = "attack_speed";
 
+    /** Доля нанесённого урона, возвращаемая здоровьем. */
+    public static final String LIFESTEAL = "lifesteal";
+
     private StatIds() {
     }
 }

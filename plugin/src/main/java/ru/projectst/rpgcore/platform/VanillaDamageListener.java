@@ -115,6 +115,11 @@ public final class VanillaDamageListener implements Listener {
             statuses.consumeShield(victimId, result.absorbed());
         }
         event.setDamage(result.applied());
+        // Вампиризм считает тот же метод, что и для урона навыков: два места,
+        // считающие одно и то же, однажды разошлись бы.
+        if (attackerId != null) {
+            world.drinkBlood(attackerId, result.applied());
+        }
     }
 
     /**

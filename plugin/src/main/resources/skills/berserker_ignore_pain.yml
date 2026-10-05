@@ -1,0 +1,46 @@
+# 5. Игнорирование Боли — боль не отменяется, а откладывается.
+#
+# Пока держится, урон режется вдвое с лишним, но каждый пропущенный удар
+# записывается в долг. Когда стойка кончается, долг берут кровью разом.
+#
+# В старом стеке сумму хранить было негде, и каждая порция возвращалась своей
+# отложенной строкой. Здесь долг — это стаки, а их число умножает плату: одна
+# запись вместо десятка таймеров, и видно её на экране.
+
+id: berserker_ignore_pain
+display: "Игнорирование Боли"
+class: berserker
+icon: NETHERITE_CHESTPLATE
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Урон режется, но каждый пропущенный"
+  - "удар идёт в долг. Когда стойка"
+  - "кончится, долг возьмут кровью."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: remove-status, id: pain_debt }
+      - { action: status, id: ignore_pain, duration: $duration }
+      - action: modify-stat
+        stat: damage_reduction
+        op: flat
+        value: $reduction
+        duration: $duration
+      - { action: sound, sound: entity_iron_golem_hurt, volume: 1.0, pitch: 0.6 }
+      - { action: particles, particle: ash, shape: sphere, count: 25, size: 0.5 }
+
+  # Срок вышел — платим по счёту.
+  - target: { type: self }
+    delay: $duration
+    do:
+      - { action: count, counter: debt, status: pain_debt }
+      - { action: sacrifice, percent: "$debt_cost * @debt" }
+      - { action: remove-status, id: pain_debt }
+      - { action: sound, sound: entity_player_hurt, volume: 0.8, pitch: 0.6 }
+      - { action: particles, particle: damage_indicator, shape: sphere, count: 20, size: 0.5 }

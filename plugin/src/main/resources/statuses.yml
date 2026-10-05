@@ -400,3 +400,76 @@ statuses:
     category: buff
     duration: 200
     tags: [soft, buff]
+
+  # ---------------------------------------------------------------- берсерк
+  # Жар — ядро класса. Копится платой здоровьем, быстро остывает. Надбавку к
+  # урону считает навык berserker_heat: она равна «сила жара × стаки» и ставится
+  # одним источником, поэтому не может сложиться сама с собой.
+  heat:
+    display: "Жар"
+    color: RED
+    category: buff
+    duration: 100
+    stacking: stacks
+    max-stacks: 10
+    tags: [counter]
+
+  # Перегрев: короткое окно на полном Жаре, ради которого всё и платилось.
+  overheat:
+    display: "Перегрев"
+    color: DARK_RED
+    category: buff
+    duration: 120
+    tags: [soft, buff]
+
+  berserk_bleed:
+    display: "Кровоточащая рана"
+    color: DARK_RED
+    category: debuff
+    duration: 100
+    tags: [soft]
+
+  ignore_pain:
+    display: "Боль отложена"
+    color: GRAY
+    category: buff
+    duration: 100
+    tags: [soft, buff]
+
+  # Долг боли: один стак за каждый пропущенный удар. Его число умножает плату,
+  # когда стойка кончится.
+  pain_debt:
+    display: "Долг боли"
+    color: DARK_GRAY
+    category: debuff
+    duration: 200
+    stacking: stacks
+    max-stacks: 20
+    tags: [counter]
+
+  # Непоколебимость блокирует оглушение статусом, а не статом: контроль в этом
+  # ядре — это статусы с объявленными конфликтами, и защита от него обязана
+  # быть такой же, чтобы конфликт был виден.
+  unshakable:
+    display: "Непоколебимость"
+    color: GOLD
+    category: immunity
+    duration: 60
+    blocks: [stun, root]
+    suppresses: [stun, root]
+    tags: [soft, buff]
+
+  hunger:
+    display: "Неутолимый Голод"
+    color: RED
+    category: buff
+    duration: 100
+    tags: [soft, buff]
+
+  undying:
+    display: "Бессмертная Ярость"
+    color: DARK_RED
+    category: immunity
+    priority: 90
+    duration: 100
+    tags: [hard, immunity]

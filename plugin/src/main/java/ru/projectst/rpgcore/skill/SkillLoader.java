@@ -340,6 +340,8 @@ public final class SkillLoader {
 
             case "heal" -> require(b, path, errors, "amount", Action.Heal::new);
 
+            case "sacrifice" -> require(b, path, errors, "percent", Action.Sacrifice::new);
+
             case "status" -> {
                 String statusId = b.str("id", "");
                 NumberRef duration = number(b, "duration", errors, path, null);

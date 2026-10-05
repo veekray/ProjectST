@@ -33,6 +33,13 @@ public interface SkillWorld {
 
     void heal(UUID target, double amount);
 
+    /**
+     * Отнимает долю предела здоровья, но не ниже единицы.
+     *
+     * <p>Не урон: ни конвейера, ни брони, ни события «по мне попали».
+     */
+    void sacrifice(UUID target, double share);
+
     void message(UUID target, String text);
 
     void potion(UUID target, String effect, int durationTicks, int amplifier);

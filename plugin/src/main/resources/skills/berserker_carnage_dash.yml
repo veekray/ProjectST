@@ -1,0 +1,30 @@
+# 4. Мясорубка — рывок сквозь строй.
+
+id: berserker_carnage_dash
+display: "Мясорубка"
+class: berserker
+icon: NETHERITE_AXE
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рывок вперёд, который рвёт всех"
+  - "на пути. Платит здоровьем"
+  - "и копит Жар."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sacrifice, percent: $cost }
+      - { action: cast, skill: berserker_heat, at-targets: true }
+      - { action: dash, strength: $leap, lift: 0.1 }
+      - { action: sound, sound: entity_breeze_charge, volume: 1.0, pitch: 1.2 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 70 }
+    delay: 3
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: damage_indicator, shape: point, count: 10, size: 0.3 }

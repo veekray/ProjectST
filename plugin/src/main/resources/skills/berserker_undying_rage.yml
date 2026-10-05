@@ -1,0 +1,43 @@
+# 10. Бессмертная Ярость — несколько секунд, когда берсерка не взять.
+#
+# В старом стеке это была отмена события урона с ручным списанием здоровья до
+# единицы. Здесь это статус неуязвимости: конвейер и так умеет объяснять, почему
+# урон не прошёл, и «не умирает» через отмену чужих событий было бы вторым
+# способом делать то же самое — тем самым, из-за которого в старом стеке ничего
+# нельзя было объяснить.
+#
+# Отличие от оригинала честное: там урон доходил и оставлял на единице, здесь
+# не доходит вовсе. Для пяти секунд это одно и то же, кроме одного — выйти из
+# ярости можно не при смерти.
+
+id: berserker_undying_rage
+display: "Бессмертная Ярость"
+class: berserker
+icon: LAVA_BUCKET
+tier: 5
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Несколько секунд берсерка не взять"
+  - "ничем. Он быстрее, бьёт сильнее"
+  - "и не может пасть."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: undying, duration: $duration }
+      - action: modify-stat
+        stat: movement_speed
+        op: flat
+        value: $speed
+        duration: $duration
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: $damage_bonus
+        duration: $duration
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 0.5 }
+      - { action: particles, particle: lava, shape: sphere, count: 40, size: 1.0 }

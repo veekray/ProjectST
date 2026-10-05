@@ -1,0 +1,16 @@
+# Убийство возвращает Удар Палача.
+
+id: berserker_execution_reset
+display: "Удар Палача — возврат"
+class: berserker
+tier: 5
+internal: true
+
+on: kill
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: reset-cooldown, skill: berserker_execution }
+      - { action: sound, sound: entity_experience_orb_pickup, volume: 0.8, pitch: 0.6 }

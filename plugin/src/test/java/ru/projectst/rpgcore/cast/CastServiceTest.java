@@ -61,6 +61,10 @@ class CastServiceTest {
     /** Мир, который только считает нанесённый урон. */
     private static final class FakeWorld implements SkillWorld {
         @Override
+        public void sacrifice(UUID target, double share) {
+        }
+
+        @Override
         public void glow(UUID target, int ticks) {
         }
 

@@ -1,0 +1,29 @@
+# 1. Кровавый Разрез — платит кровью, оставляет кровоточащую рану.
+
+id: berserker_blood_slash
+display: "Кровавый Разрез"
+class: berserker
+icon: IRON_SWORD
+tier: 1
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Разрез конусом, после которого"
+  - "рана кровоточит. Платит здоровьем"
+  - "и копит Жар."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sacrifice, percent: $cost }
+      - { action: cast, skill: berserker_heat, at-targets: true }
+      - { action: sound, sound: item_trident_hit, volume: 1.0, pitch: 0.7 }
+
+  - target: { type: enemies_in_cone, radius: $range, angle: 60 }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: status, id: berserk_bleed, duration: $bleed_duration }
+      - { action: particles, particle: damage_indicator, shape: point, count: 15, size: 0.4 }

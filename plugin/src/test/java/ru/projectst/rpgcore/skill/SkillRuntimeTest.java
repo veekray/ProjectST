@@ -41,6 +41,13 @@ class SkillRuntimeTest {
 
     /** Подставной мир: пишет, что от него просили. */
     private static final class FakeWorld implements SkillWorld {
+        final java.util.List<String> paid = new java.util.ArrayList<>();
+
+        @Override
+        public void sacrifice(UUID target, double share) {
+            paid.add(target + "@" + share);
+        }
+
         /** Где кто стоит: по умолчанию все в одной точке. */
         final java.util.Map<UUID, Position> positions = new java.util.HashMap<>();
 
@@ -335,6 +342,36 @@ class SkillRuntimeTest {
     }
 
     // ------------------------------------------------------------------ шаг
+
+    @Test
+    @DisplayName("счётчик стаков умножает надбавку, а не складывается сам с собой")
+    void counterScalesModifier() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: count, counter: heat, status: charge }
+                      - action: modify-stat
+                        stat: magic_damage
+                        op: flat
+                        value: "10 * @heat"
+                        duration: 100
+                """);
+        Fixture f = fixture(skill);
+        f.statuses.apply(CASTER, new StatusApplication("charge", 100, 0, "test"));
+        f.statuses.apply(CASTER, new StatusApplication("charge", 100, 0, "test"));
+        f.statuses.apply(CASTER, new StatusApplication("charge", 100, 0, "test"));
+
+        f.runtime.cast(CASTER, skill, 1);
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Три стака по десять — тридцать, и второй каст не делает из них
+        // шестьдесят: надбавка ставится по источнику, а не копится.
+        assertEquals(30, f.stats.snapshot(CASTER).getOrZero("magic_damage"), 1e-9,
+                "иначе повторное применение раздувало бы статы, как в старом стеке");
+    }
 
     @Test
     @DisplayName("условие дистанции отсеивает цели вне полосы, а не отменяет шаг")

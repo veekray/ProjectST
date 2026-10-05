@@ -1,0 +1,19 @@
+# Кровоточащая рана точит цель.
+
+id: berserker_bleed_tick
+display: "Кровотечение"
+class: berserker
+tier: 1
+internal: true
+
+on: interval
+every: 20
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    if:
+      - { target: has-status, value: berserk_bleed }
+    do:
+      - { action: damage, amount: $damage, school: true }
+      - { action: particles, particle: damage_indicator, shape: point, count: 5, size: 0.2 }

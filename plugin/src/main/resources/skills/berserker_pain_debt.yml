@@ -1,0 +1,18 @@
+# Каждый удар в стойке записывается в долг.
+
+id: berserker_pain_debt
+display: "Долг боли"
+class: berserker
+tier: 3
+internal: true
+
+on: damaged
+
+steps:
+
+  - target: { type: self }
+    if:
+      - { caster: has-status, value: ignore_pain }
+    do:
+      - { action: status, id: pain_debt, duration: $duration }
+      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4 }

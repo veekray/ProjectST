@@ -28,6 +28,7 @@ import ru.projectst.rpgcore.damage.DamageEngine;
 import ru.projectst.rpgcore.damage.DamageRequest;
 import ru.projectst.rpgcore.damage.DamageResult;
 import ru.projectst.rpgcore.damage.DamageSchool;
+import ru.projectst.rpgcore.damage.StatIds;
 import ru.projectst.rpgcore.damage.DefenderState;
 import ru.projectst.rpgcore.skill.Action;
 import ru.projectst.rpgcore.skill.CastContext;
@@ -197,6 +198,7 @@ public final class BukkitSkillWorld implements SkillWorld {
             return;
         }
         statuses.consumeShield(targetId, result.absorbed());
+        drinkBlood(casterId, result.applied());
 
         // Единственный вызов, отнимающий здоровье. Событие Bukkit испускается
         // им же, поэтому региональные плагины могут отменить урон штатно.
@@ -224,6 +226,44 @@ public final class BukkitSkillWorld implements SkillWorld {
         var maxAttribute = target.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         double max = maxAttribute == null ? target.getHealth() : maxAttribute.getValue();
         target.setHealth(Math.clamp(target.getHealth() + amount, 0, max));
+    }
+
+    /**
+     * Вампиризм: часть нанесённого урона возвращается здоровьем.
+     *
+     * <p>Один метод на оба пути урона — и на навыки, и на обычные удары: два
+     * места, считающие одно и то же, однажды разошлись бы, и выяснилось бы это
+     * не на тесте, а в бою.
+     *
+     * <p>Возврат идёт через то же лечение, что и любое другое, то есть считается
+     * с получаемым лечением. Анти-хил обязан гасить и вампиризм, иначе он был бы
+     * лазейкой мимо собственных правил.
+     */
+    public void drinkBlood(UUID attackerId, double dealt) {
+        if (dealt <= 0) {
+            return;
+        }
+        double percent = stats.snapshot(attackerId).getOrZero(StatIds.LIFESTEAL);
+        if (percent > 0) {
+            heal(attackerId, dealt * percent / 100.0);
+        }
+    }
+
+    /**
+     * Плата здоровьем.
+     *
+     * <p>Здоровье снимается напрямую, а не через урон: иначе плата прошла бы
+     * конвейером, подняла событие «получил урон» и сорвала бы всё, что от него
+     * зависит, — начиная с собственного разгона берсерка.
+     */
+    @Override
+    public void sacrifice(UUID targetId, double share) {
+        if (!(Bukkit.getEntity(targetId) instanceof LivingEntity target) || target.isDead()) {
+            return;
+        }
+        var attribute = target.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        double max = attribute == null ? target.getHealth() : attribute.getValue();
+        target.setHealth(Math.max(1.0, target.getHealth() - max * share));
     }
 
     @Override

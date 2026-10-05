@@ -1,0 +1,32 @@
+# 7. Неутолимый Голод — весь урон возвращается кровью.
+#
+# Вампиризм — объявленный стат, который читает один общий метод на оба пути
+# урона: и на навыки, и на обычные удары. В старом стеке это были два разных
+# стата чужого плагина, и совпадали они по договорённости.
+
+id: berserker_insatiable_hunger
+display: "Неутолимый Голод"
+class: berserker
+icon: ROTTEN_FLESH
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Ненадолго весь нанесённый урон"
+  - "возвращается здоровьем —"
+  - "и удары, и навыки, и раны."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: hunger, duration: $duration }
+      - action: modify-stat
+        stat: lifesteal
+        op: flat
+        value: $lifesteal
+        duration: $duration
+      - { action: sound, sound: entity_wolf_growl, volume: 1.0, pitch: 0.7 }
+      - { action: particles, particle: heart, shape: sphere, count: 15, size: 0.5 }

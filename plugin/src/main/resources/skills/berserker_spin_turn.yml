@@ -1,0 +1,20 @@
+# Один оборот вихря.
+
+id: berserker_spin_turn
+display: "Вихрь Смерти — оборот"
+class: berserker
+tier: 4
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sacrifice, percent: $cost }
+      - { action: cast, skill: berserker_heat, at-targets: true }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 12, size: 2.5 }
+      - { action: sound, sound: entity_breeze_idle_air, volume: 0.8, pitch: 0.7 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: physical }

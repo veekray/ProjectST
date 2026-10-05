@@ -158,6 +158,7 @@ public final class SkillLinker {
         return switch (action) {
             case Action.Damage a -> List.of(a.amount());
             case Action.Heal a -> List.of(a.amount());
+            case Action.Sacrifice a -> List.of(a.percent());
             case Action.ApplyStatus a -> refs(a.duration(), a.amount());
             case Action.ModifyStat a -> refs(a.value(), a.duration());
             case Action.Potion a -> refs(a.duration());
@@ -210,6 +211,8 @@ public final class SkillLinker {
                     checkBalance(skill, where, table, path + ".amount", d.amount(), errors);
             case Action.Heal h ->
                     checkBalance(skill, where, table, path + ".amount", h.amount(), errors);
+            case Action.Sacrifice sa ->
+                    checkBalance(skill, where, table, path + ".percent", sa.percent(), errors);
             case Action.ApplyStatus s -> {
                 checkBalance(skill, where, table, path + ".duration", s.duration(), errors);
                 checkBalance(skill, where, table, path + ".amount", s.amount(), errors);

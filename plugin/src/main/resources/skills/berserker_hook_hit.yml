@@ -1,0 +1,16 @@
+# Крюк зацепился.
+
+id: berserker_hook_hit
+display: "Цепной Крюк — рывок"
+class: berserker
+tier: 2
+internal: true
+
+steps:
+
+  - target: { type: trigger }
+    do:
+      - { action: damage, amount: $damage, school: physical }
+      - { action: pull, strength: $pull, ticks: 10 }
+      - { action: sound, sound: entity_fishing_bobber_retrieve, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3 }

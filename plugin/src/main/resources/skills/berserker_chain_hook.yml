@@ -1,0 +1,30 @@
+# 3. Цепной Крюк — притягивает врага вплотную.
+#
+# Крови не стоит: это не удар, а приглашение к нему. Жара не даёт по той же
+# причине — платы не было.
+
+id: berserker_chain_hook
+display: "Цепной Крюк"
+class: berserker
+icon: CHAIN
+tier: 2
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Крюк вытаскивает врага к себе."
+  - "Крови не стоит и Жара не даёт:"
+  - "это ещё не удар."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: entity_fishing_bobber_throw, volume: 1.0, pitch: 0.6 }
+      - action: projectile
+        speed: $speed
+        range: $range
+        hit-radius: 1.0
+        particle: crit
+        on-hit: berserker_hook_hit

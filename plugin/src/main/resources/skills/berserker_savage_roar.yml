@@ -1,0 +1,32 @@
+# 6. Дикий Рёв — расталкивает и не даёт себя оглушить.
+#
+# Сопротивление оглушению сделано статусом, который его блокирует, а не статом:
+# в этом ядре контроль — это статусы с объявленными конфликтами, и «меня нельзя
+# оглушить» обязано быть таким же статусом, чтобы конфликт был виден.
+
+id: berserker_savage_roar
+display: "Дикий Рёв"
+class: berserker
+icon: GOAT_HORN
+tier: 3
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Рёв расталкивает всех вокруг."
+  - "Пока он не стих, берсерка"
+  - "не оглушить."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: unshakable, duration: $duration }
+      - { action: sound, sound: entity_ravager_roar, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: 4.0 }
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: push, strength: $push, lift: 0.6 }
+      - { action: sound, sound: entity_generic_explode, volume: 0.5, pitch: 1.5 }

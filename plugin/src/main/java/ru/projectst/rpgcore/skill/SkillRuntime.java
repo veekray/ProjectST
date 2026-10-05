@@ -286,6 +286,11 @@ public final class SkillRuntime {
             // Эти два стата были объявлены и не читались никем: числа, которые
             // игрок видит в меню и которые ничего не меняют, — худший вид
             // объявления без исполнения.
+            case Action.Sacrifice a -> {
+                double share = a.percent().resolve(table, level, context.counters());
+                forEach(targets, t -> world.sacrifice(t, share));
+            }
+
             case Action.Heal a -> {
                 double healed = a.amount().resolve(table, level, context.counters())
                         * effectScale(context.caster());

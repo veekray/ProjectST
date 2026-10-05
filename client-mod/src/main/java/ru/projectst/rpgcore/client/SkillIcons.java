@@ -33,6 +33,7 @@ public final class SkillIcons {
             "assassin", 0xFF4A3A5B,
             "trickster", 0xFF7A4FD1,
             "hunter", 0xFF8A6A2E,
+            "berserker", 0xFF8A2A1E,
             "item", 0xFFC9A227);
 
     private SkillIcons() {
@@ -707,6 +708,118 @@ public final class SkillIcons {
                         "..bbbb...",
                         "...bb..c.",
                         "..c....c."}));
+
+        // ------------------------------------------------------------ берсерк
+        ICONS.put("berserker_blood_slash", new Icon(0xFF4A0A0A, 0xFFB02A24, 0xFFF08078,
+                new String[] {
+                        "......ccc",
+                        ".....cc..",
+                        "....cc...",
+                        "...cc....",
+                        "..cc.....",
+                        ".cc..b.b.",
+                        "cc..bbbb.",
+                        "....b.b..",
+                        "....b...."}));
+        ICONS.put("berserker_quake", new Icon(0xFF2A2A2A, 0xFF7A6A5A, 0xFFC0B0A0,
+                new String[] {
+                        "....b....",
+                        "...bbb...",
+                        "..bbbbb..",
+                        ".bbbbbbb.",
+                        "ccccccccc",
+                        "c.c...c.c",
+                        ".c.c.c.c.",
+                        "..c.c.c..",
+                        "...c.c..."}));
+        ICONS.put("berserker_chain_hook", new Icon(0xFF2A2A2A, 0xFF8A8A9A, 0xFFE0E0E8,
+                new String[] {
+                        "bb.......",
+                        ".bb......",
+                        "..bb.....",
+                        "...bb....",
+                        "....cc...",
+                        ".....c.c.",
+                        ".....c..c",
+                        "......cc.",
+                        "........."}));
+        ICONS.put("berserker_carnage_dash", new Icon(0xFF4A0A0A, 0xFFB02A24, 0xFFF0A080,
+                new String[] {
+                        "b...c....",
+                        ".b..c..cc",
+                        "..b.c.cc.",
+                        "bbbccccc.",
+                        "..b.c.cc.",
+                        ".b..c..cc",
+                        "b...c....",
+                        ".........",
+                        "........."}));
+        ICONS.put("berserker_ignore_pain", new Icon(0xFF2A2A2A, 0xFF6A6A6A, 0xFFC0C0C0,
+                new String[] {
+                        "bbb...bbb",
+                        "bbbbbbbbb",
+                        ".bbbbbbb.",
+                        ".bbcccbb.",
+                        ".bbbcbbb.",
+                        ".bbbcbbb.",
+                        "..bbbbb..",
+                        "..bbbbb..",
+                        "...bbb..."}));
+        ICONS.put("berserker_savage_roar", new Icon(0xFF4A2A0A, 0xFFC9892A, 0xFFF0E0A0,
+                new String[] {
+                        "c.......c",
+                        ".c.bbb.c.",
+                        "..bb.bb..",
+                        "cbbbbbbbc",
+                        ".b.bbb.b.",
+                        "cbbbbbbbc",
+                        "..bb.bb..",
+                        ".c.bbb.c.",
+                        "c.......c"}));
+        ICONS.put("berserker_insatiable_hunger", new Icon(0xFF4A0A0A, 0xFFB02A24, 0xFFF08078,
+                new String[] {
+                        ".bb.bb...",
+                        "bbbbbbb..",
+                        "bbbbbbb.c",
+                        ".bbbbb.c.",
+                        "..bbb.c..",
+                        "...b.c...",
+                        "....c....",
+                        "...c.....",
+                        "..c......"}));
+        ICONS.put("berserker_death_spin", new Icon(0xFF2A2A3A, 0xFF8A8A9A, 0xFFF0F0F8,
+                new String[] {
+                        "..ccccc..",
+                        ".c.....c.",
+                        "c..bbb..c",
+                        "c.bbbbb.c",
+                        "c.bbbbb.c",
+                        "c.bbbbb.c",
+                        "c..bbb..c",
+                        ".c.....c.",
+                        "..ccccc.."}));
+        ICONS.put("berserker_execution", new Icon(0xFF2A1A0A, 0xFF8A6A3A, 0xFFE0E0E8,
+                new String[] {
+                        "...ccccc.",
+                        "..cccccc.",
+                        ".ccccccc.",
+                        ".ccccc...",
+                        "...b.....",
+                        "..b......",
+                        ".b.......",
+                        "b........",
+                        "........."}));
+        ICONS.put("berserker_undying_rage", new Icon(0xFF4A0A0A, 0xFFC94A1A, 0xFFF0C050,
+                new String[] {
+                        "c...c...c",
+                        ".c.ccc.c.",
+                        "..ccccc..",
+                        ".cc.b.cc.",
+                        "cc.bbb.cc",
+                        ".cc.b.cc.",
+                        "..ccccc..",
+                        ".c.ccc.c.",
+                        "c...c...c"}));
     }
 
     /**

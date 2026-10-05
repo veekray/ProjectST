@@ -1,0 +1,58 @@
+# Ядро берсерка: Жар.
+#
+# Было: урон рос от недостающего здоровья. Формула честная, но решения в ней
+# нет — игрок ничего не выбирает, он просто замечает, что внизу шкалы бьёт
+# больнее. Худшее следствие: выгоднее всего стоять при смерти, а хилер в группе
+# ломает класс, потому что лечит и тем гасит урон.
+#
+# Стало: сила растёт от того, сколько ты заплатил только что. Каждая плата
+# здоровьем добавляет Жар, Жар быстро остывает. Лечиться можно — Жар от этого не
+# гаснет; сидеть на одном хите бессмысленно — Жар остынет и там.
+#
+# Надбавка ставится одним источником и пересчитывается целиком: она равна
+# «сила жара × стаки», а не складывается сама с собой. Именно на этом в старом
+# стеке статы раздувало за десяток ударов.
+
+id: berserker_heat
+display: "Жар"
+class: berserker
+tier: 1
+internal: true
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: status, id: heat, duration: $heat_duration }
+
+  - target: { type: self }
+    do:
+      - { action: count, counter: heat, status: heat }
+      - action: modify-stat
+        stat: skill_damage
+        op: flat
+        value: "$heat_power * @heat"
+        duration: $heat_duration
+      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3 }
+
+  # Полный Жар — Перегрев: короткое окно, ради которого всё и платилось.
+  - target: { type: self }
+    if:
+      - { caster: status-stacks, value: "heat:10" }
+      - { caster: has-status, value: overheat, not: true }
+    do:
+      - { action: status, id: overheat, duration: $overheat_duration }
+      - { action: remove-status, id: heat }
+      - action: modify-stat
+        stat: lifesteal
+        op: flat
+        value: $overheat_lifesteal
+        duration: $overheat_duration
+      - action: modify-stat
+        stat: physical_damage
+        op: flat
+        value: $overheat_damage
+        duration: $overheat_duration
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.6 }
+      - { action: particles, particle: lava, shape: ring, count: 30, size: 3.0 }
+      - { action: message, text: "&cПерегрев &7— кровь кипит" }

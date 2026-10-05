@@ -1,0 +1,39 @@
+# 8. Вихрь Смерти — крутится, жжёт своё и чужое.
+#
+# Четыре оборота отложенными шагами, а не тиком ауры: плата идёт за каждый
+# оборот, и видно, за что именно заплачено.
+
+id: berserker_death_spin
+display: "Вихрь Смерти"
+class: berserker
+icon: NETHERITE_SWORD
+tier: 4
+
+mana: $stamina
+cooldown: $cooldown
+
+description:
+  - "Четыре оборота с оружием."
+  - "Каждый стоит крови"
+  - "и бьёт всех вокруг."
+
+steps:
+
+  - target: { type: self }
+    do:
+      - { action: cast, skill: berserker_spin_turn, at-targets: true }
+
+  - target: { type: self }
+    delay: 10
+    do:
+      - { action: cast, skill: berserker_spin_turn, at-targets: true }
+
+  - target: { type: self }
+    delay: 20
+    do:
+      - { action: cast, skill: berserker_spin_turn, at-targets: true }
+
+  - target: { type: self }
+    delay: 30
+    do:
+      - { action: cast, skill: berserker_spin_turn, at-targets: true }
