@@ -58,7 +58,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         DamageEngine damage = new DamageEngine(random);
 
         BukkitSkillWorld world = new BukkitSkillWorld(this, damage, stats, statuses);
-        SkillRuntime runtime = new SkillRuntime(world, statuses, content.balance());
+        SkillRuntime runtime = new SkillRuntime(world, statuses, stats,
+                content.balance(), content.skills(), random);
 
         data = new PlayerDataStore(getDataFolder().toPath().resolve("players"),
                 message -> getLogger().warning(message));

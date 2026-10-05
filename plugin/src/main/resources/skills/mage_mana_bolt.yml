@@ -18,13 +18,10 @@ cooldown: $cooldown
 
 steps:
 
-  # Урон и метка уходят по одним и тем же целям — именно потому, что это один шаг.
-  - target: { type: enemies_in_radius, radius: $radius }
-    do:
-      - { action: damage, amount: $damage, school: magic }
-      - { action: status, id: mark, duration: $mark_duration }
-
-  # Отдельный шаг с другими целями: сообщение только самому магу.
+  # Шаг от лица самого мага: звук выстрела и собственно луч. Попадание — это
+  # отдельный навык, и у него своя точка действия, поэтому взрыв гремит там,
+  # куда прилетело, а не под ногами у кастующего.
   - target: { type: self }
     do:
-      - { action: message, text: "§dРазряд ушёл" }
+      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.4 }
+      - { action: ray, range: $range, on-hit: mage_mana_bolt_impact }

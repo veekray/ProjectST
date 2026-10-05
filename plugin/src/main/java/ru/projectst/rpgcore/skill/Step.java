@@ -13,10 +13,12 @@ import java.util.List;
  *
  * <p>Если нужны разные цели — это разные шаги, и в файле это видно.
  *
- * @param delayTicks задержка перед шагом; нужна там, где эффект должен
- *                   догнать анимацию или дождаться перемещения цели
+ * @param conditions условия; на кастере отменяют шаг, на целях отсеивают
+ *                   не прошедших
+ * @param delayTicks задержка перед шагом
  */
-public record Step(TargetSpec target, List<Action> actions, int delayTicks) {
+public record Step(TargetSpec target, List<Action> actions, List<Condition> conditions,
+                   int delayTicks) {
 
     public Step {
         if (target == null) {
@@ -26,8 +28,13 @@ public record Step(TargetSpec target, List<Action> actions, int delayTicks) {
             throw new IllegalArgumentException("шаг без действий бессмыслен");
         }
         actions = List.copyOf(actions);
+        conditions = conditions == null ? List.of() : List.copyOf(conditions);
         if (delayTicks < 0) {
             throw new IllegalArgumentException("задержка не может быть отрицательной");
         }
+    }
+
+    public Step(TargetSpec target, List<Action> actions, int delayTicks) {
+        this(target, actions, List.of(), delayTicks);
     }
 }

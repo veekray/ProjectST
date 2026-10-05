@@ -1,0 +1,34 @@
+# Коллапс: добивает помеченных сильнее, чем остальных.
+#
+# Два шага с одинаковыми целями, но разными условиями — и видно, что чем они
+# отличаются. В старом стеке это было одно условие внутри механики, которое
+# проверяло кастера, хотя выглядело как проверка цели.
+
+id: mage_collapse
+display: "Коллапс"
+class: mage
+tier: 4
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  # Усиленная часть: только по тем, на кого легла метка, и метка тратится.
+  - target: { type: enemies_in_cone, radius: $radius, angle: $angle }
+    if:
+      - { target: has-status, value: mark }
+    do:
+      - { action: damage, amount: $marked_damage, school: magic }
+      - { action: remove-status, id: mark }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 20, size: 0.8 }
+
+  # Базовая часть: по всем в конусе, включая уже задетых выше.
+  - target: { type: enemies_in_cone, radius: $radius, angle: $angle }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 1 }
+
+  - target: { type: self }
+    do:
+      - { action: sound, sound: block_beacon_deactivate, pitch: 0.6 }

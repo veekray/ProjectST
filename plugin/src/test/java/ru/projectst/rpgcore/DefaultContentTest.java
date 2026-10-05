@@ -94,30 +94,45 @@ class DefaultContentTest {
         assertEquals(5, registry.require("charge").maxStacks());
     }
 
+    /** Все навыки, которые плагин кладёт при первом запуске. */
+    private static final String[] SKILLS = {
+            "mage_mana_bolt", "mage_mana_bolt_impact", "mage_flux_loop", "mage_collapse"};
+
+    private static java.util.List<ru.projectst.rpgcore.skill.SkillDef> skills(
+            ContentErrors errors) throws IOException {
+        var out = new java.util.ArrayList<ru.projectst.rpgcore.skill.SkillDef>();
+        for (String id : SKILLS) {
+            out.add(ru.projectst.rpgcore.skill.SkillLoader
+                    .load(id + ".yml", resource("skills/" + id + ".yml"), errors)
+                    .orElseThrow(() -> new AssertionError(errors.all().toString())));
+        }
+        return out;
+    }
+
     @Test
-    @DisplayName("поставляемый навык грузится и все его ссылки разрешаются")
-    void defaultSkillLinks() throws IOException {
+    @DisplayName("поставляемые навыки грузятся и все их ссылки разрешаются")
+    void defaultSkillsLink() throws IOException {
         ContentErrors errors = new ContentErrors();
-        var skill = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_bolt.yml",
-                resource("skills/mage_mana_bolt.yml"), errors).orElseThrow(
-                        () -> new AssertionError(errors.all().toString()));
+        var loaded = skills(errors);
         assertTrue(errors.isEmpty(), () -> errors.all().toString());
 
         var balance = ru.projectst.rpgcore.balance.BalanceLoader
                 .load("balance.yml", resource("balance.yml"), errors).orElseThrow();
         var statuses = StatusDefLoader
                 .load("statuses.yml", resource("statuses.yml"), errors).orElseThrow();
+        var stats = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
 
         ContentErrors link = new ContentErrors();
-        ru.projectst.rpgcore.skill.SkillLinker.link(java.util.List.of(skill), balance,
-                statuses, java.util.List.of(), link);
+        ru.projectst.rpgcore.skill.SkillLinker.link(loaded, balance, statuses,
+                java.util.List.of(), stats, link);
 
-        assertTrue(link.isEmpty(), () -> "ссылки поставляемого навыка не разрешились: "
+        assertTrue(link.isEmpty(), () -> "ссылки поставляемых навыков не разрешились: "
                 + link.all());
     }
 
     @Test
-    @DisplayName("поставляемый класс грузится и навык ссылается на существующий класс")
+    @DisplayName("поставляемый класс грузится и навыки ссылаются на существующий класс")
     void defaultClassLinks() throws IOException {
         ContentErrors errors = new ContentErrors();
         var mage = ru.projectst.rpgcore.classes.ClassDefLoader
@@ -126,15 +141,13 @@ class DefaultContentTest {
         assertTrue(errors.isEmpty(), () -> errors.all().toString());
         assertEquals(5, mage.levelForTier(2), "вторая ступень открыта с пятого уровня");
 
-        var skill = ru.projectst.rpgcore.skill.SkillLoader.load("mage_mana_bolt.yml",
-                resource("skills/mage_mana_bolt.yml"), new ContentErrors()).orElseThrow();
         var balance = ru.projectst.rpgcore.balance.BalanceLoader
                 .load("balance.yml", resource("balance.yml"), new ContentErrors()).orElseThrow();
         var statuses = StatusDefLoader
                 .load("statuses.yml", resource("statuses.yml"), new ContentErrors()).orElseThrow();
 
         ContentErrors link = new ContentErrors();
-        ru.projectst.rpgcore.skill.SkillLinker.link(java.util.List.of(skill), balance,
+        ru.projectst.rpgcore.skill.SkillLinker.link(skills(new ContentErrors()), balance,
                 statuses, java.util.Set.of(mage.id()), link);
 
         assertTrue(link.isEmpty(), () -> link.all().toString());

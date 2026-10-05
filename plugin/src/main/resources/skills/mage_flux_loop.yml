@@ -1,0 +1,26 @@
+# Петля потоков: отбрасывание без контроля.
+#
+# Намеренно не ставит стан. Отбросить и застанить одновременно — это два
+# контроля в одном нажатии, и ровно такие совмещения приходилось потом
+# расплетать в старом стеке.
+
+id: mage_flux_loop
+display: "Петля потоков"
+class: mage
+tier: 3
+
+mana: $mana
+cooldown: $cooldown
+
+steps:
+
+  - target: { type: enemies_in_radius, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: push, strength: $push, lift: $lift }
+      - { action: particles, particle: enchanted_hit, shape: point, count: 12 }
+
+  - target: { type: self }
+    do:
+      - { action: particles, particle: end_rod, shape: ring, count: 40, size: $radius, at-origin: true }
+      - { action: sound, sound: entity_player_attack_sweep, pitch: 0.8, at-origin: true }

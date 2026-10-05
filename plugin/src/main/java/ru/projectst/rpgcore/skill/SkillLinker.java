@@ -5,6 +5,7 @@ import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.balance.BalanceTable;
 import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.loader.SourceRef;
+import ru.projectst.rpgcore.stat.StatRegistry;
 import ru.projectst.rpgcore.status.StatusRegistry;
 
 /**
@@ -35,6 +36,14 @@ public final class SkillLinker {
     public static void link(Collection<SkillDef> skills, BalanceBook balance,
                             StatusRegistry statuses, Collection<String> classIds,
                             ContentErrors errors) {
+        link(skills, balance, statuses, classIds, null, errors);
+    }
+
+    public static void link(Collection<SkillDef> skills, BalanceBook balance,
+                            StatusRegistry statuses, Collection<String> classIds,
+                            StatRegistry stats, ContentErrors errors) {
+        java.util.Set<String> skillIds = new java.util.LinkedHashSet<>();
+        skills.forEach(s -> skillIds.add(s.id()));
         for (SkillDef skill : skills) {
             SourceRef where = SourceRef.ofFile(skill.id() + ".yml");
             BalanceTable table = balance.table(skill.id());
@@ -56,17 +65,49 @@ public final class SkillLinker {
                 checkBalance(skill, where, table, stepPath + ".target.angle",
                         step.target().angle(), errors);
 
+                // Цель, которой нужна точка действия, не имеет смысла в навыке,
+                // который её не задаёт. Это ловится здесь, а не пустым списком
+                // целей в бою.
+                if (step.target().type().needsOrigin() && !providesOrigin(skills, skill)) {
+                    errors.add(where, stepPath + ".target.type",
+                            "цель " + step.target().type().name().toLowerCase(java.util.Locale.ROOT)
+                                    + " требует точку действия, но навык её не задаёт: "
+                                    + "его должен вызывать ray или cast");
+                }
+
                 for (int a = 0; a < step.actions().size(); a++) {
                     Action action = step.actions().get(a);
                     String path = stepPath + ".do[" + a + "]";
-                    checkAction(skill, where, table, statuses, action, path, errors);
+                    checkAction(skill, where, table, statuses, stats, skillIds, action, path, errors);
                 }
             }
         }
     }
 
+    /**
+     * Навык, вызываемый лучом или другим навыком, точку действия получает
+     * извне. Отличить такой от самостоятельного по одному файлу нельзя,
+     * поэтому проверка мягкая: ошибка только если на него никто не ссылается.
+     */
+    private static boolean providesOrigin(Collection<SkillDef> all, SkillDef skill) {
+        for (SkillDef other : all) {
+            for (Step step : other.steps()) {
+                for (Action action : step.actions()) {
+                    if (action instanceof Action.Ray r && r.onHit().equals(skill.id())) {
+                        return true;
+                    }
+                    if (action instanceof Action.Cast c && c.skillId().equals(skill.id())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private static void checkAction(SkillDef skill, SourceRef where, BalanceTable table,
-                                    StatusRegistry statuses, Action action, String path,
+                                    StatusRegistry statuses, StatRegistry stats,
+                                    java.util.Set<String> skillIds, Action action, String path,
                                     ContentErrors errors) {
         switch (action) {
             case Action.Damage d ->
@@ -80,6 +121,47 @@ public final class SkillLinker {
             }
             case Action.RemoveStatus r ->
                     checkStatus(statuses, r.statusId(), where, path + ".id", errors);
+            case Action.ModifyStat m -> {
+                checkBalance(skill, where, table, path + ".value", m.value(), errors);
+                checkBalance(skill, where, table, path + ".duration", m.duration(), errors);
+                if (stats != null && !stats.has(m.statId())) {
+                    errors.add(where, path + ".stat",
+                            "ссылка на необъявленный стат \"" + m.statId() + "\"");
+                }
+            }
+            case Action.Potion p ->
+                    checkBalance(skill, where, table, path + ".duration", p.duration(), errors);
+            case Action.Push p -> {
+                checkBalance(skill, where, table, path + ".strength", p.strength(), errors);
+                checkBalance(skill, where, table, path + ".lift", p.lift(), errors);
+            }
+            case Action.Pull p ->
+                    checkBalance(skill, where, table, path + ".strength", p.strength(), errors);
+            case Action.Teleport t ->
+                    checkBalance(skill, where, table, path + ".forward", t.forward(), errors);
+            case Action.Particles p -> {
+                checkBalance(skill, where, table, path + ".count", p.count(), errors);
+                checkBalance(skill, where, table, path + ".size", p.size(), errors);
+            }
+            case Action.Cast c -> {
+                if (!skillIds.contains(c.skillId())) {
+                    errors.add(where, path + ".skill",
+                            "ссылка на несуществующий навык \"" + c.skillId() + "\"");
+                }
+                if (c.skillId().equals(skill.id())) {
+                    errors.add(where, path + ".skill", "навык вызывает сам себя");
+                }
+            }
+            case Action.Ray r -> {
+                checkBalance(skill, where, table, path + ".range", r.range(), errors);
+                if (!skillIds.contains(r.onHit())) {
+                    errors.add(where, path + ".on-hit",
+                            "ссылка на несуществующий навык \"" + r.onHit() + "\"");
+                }
+            }
+            case Action.Sound ignored -> {
+                // ссылок не содержит
+            }
             case Action.Message ignored -> {
                 // ссылок не содержит
             }

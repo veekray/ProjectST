@@ -1,0 +1,27 @@
+# Попадание манового разряда.
+#
+# Отдельный файл не из-за размера, а потому что это другая точка действия:
+# всё здесь считается от места попадания, а не от мага. Навык вызывается
+# только лучом, и связывание это знает — самостоятельно он бы получил ошибку
+# «цель требует точку действия».
+
+id: mage_mana_bolt_impact
+display: "Мановый разряд — попадание"
+class: mage
+tier: 2
+
+steps:
+
+  # Урон и метка уходят по одним и тем же целям — именно потому, что это один шаг.
+  - target: { type: enemies_near_origin, radius: $radius }
+    do:
+      - { action: damage, amount: $damage, school: magic }
+      - { action: status, id: mark, duration: $mark_duration }
+
+  # Визуал в точке попадания. Он в отдельном шаге с целью «сам маг», и это
+  # важно: at-origin рисует в точке действия независимо от того, нашлись цели
+  # или нет, поэтому промах видно так же хорошо, как попадание.
+  - target: { type: self }
+    do:
+      - { action: particles, particle: electric_spark, shape: sphere, count: 30, size: 1.2, at-origin: true }
+      - { action: sound, sound: entity_wither_shoot, volume: 0.6, pitch: 1.8, at-origin: true }

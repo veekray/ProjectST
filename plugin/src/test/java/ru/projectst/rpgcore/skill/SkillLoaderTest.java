@@ -13,6 +13,9 @@ import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.balance.BalanceLoader;
 import ru.projectst.rpgcore.damage.DamageSchool;
 import ru.projectst.rpgcore.loader.ContentErrors;
+import ru.projectst.rpgcore.stat.Rounding;
+import ru.projectst.rpgcore.stat.StatDef;
+import ru.projectst.rpgcore.stat.StatRegistry;
 import ru.projectst.rpgcore.status.StatusDefLoader;
 import ru.projectst.rpgcore.status.StatusRegistry;
 
@@ -285,5 +288,92 @@ class SkillLoaderTest {
 
         assertTrue(link.isEmpty(), () -> link.all().toString());
         assertEquals(Map.of(), Map.of());
+    }
+
+    @Test
+    @DisplayName("цель у точки действия без вызывающего навыка — ошибка связывания")
+    void linkingCatchesOrphanOriginTarget() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_near_origin, radius: 4 }
+                    do:
+                      - { action: damage, amount: 5 }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("точку действия"),
+                link.all().get(0).what());
+    }
+
+    @Test
+    @DisplayName("тот же навык, вызванный лучом, претензий не вызывает")
+    void linkingAcceptsOriginTargetWhenCalled() {
+        SkillDef hit = load("""
+                id: boom
+                class: mage
+                steps:
+                  - target: { type: enemies_near_origin, radius: 4 }
+                    do:
+                      - { action: damage, amount: 5 }
+                """).orElseThrow();
+        SkillDef caller = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: ray, range: 20, on-hit: boom }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(caller, hit), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertTrue(link.isEmpty(), () -> link.all().toString());
+    }
+
+    @Test
+    @DisplayName("ссылка на несуществующий навык в cast ловится до запуска")
+    void linkingCatchesMissingSkillReference() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: cast, skill: нет_такого }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("несуществующий навык"));
+    }
+
+    @Test
+    @DisplayName("ссылка на необъявленный стат в modify-stat ловится до запуска")
+    void linkingCatchesUnknownStat() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: modify-stat, stat: нет_такого, value: 5 }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+        StatRegistry stats = new StatRegistry(Map.of("magic_damage",
+                new StatDef("magic_damage", "md", 0, -100, 1000, Rounding.NONE)));
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"),
+                stats, link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("необъявленный стат"));
     }
 }

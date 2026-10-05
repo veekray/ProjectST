@@ -19,13 +19,52 @@ balance:
 
   mage_mana_bolt:
     mana: 8
-    radius: 6
-    mark_duration: 160
+    range: 24
     cooldown:
       base: 4.0
       per-level: -0.1
       min: 2.0
+
+  # Попадание — отдельный навык, поэтому и числа у него свои. Иначе радиус
+  # взрыва пришлось бы искать в таблице выстрела, где его никто не ждёт.
+  mage_mana_bolt_impact:
+    radius: 3.5
+    mark_duration: 160
     damage:
       base: 6
       per-level: 0.8
       max: 40
+
+  mage_flux_loop:
+    mana: 14
+    radius: 5
+    push: 1.1
+    lift: 0.35
+    cooldown:
+      base: 9.0
+      per-level: -0.2
+      min: 6.0
+    damage:
+      base: 8
+      per-level: 0.6
+      max: 36
+
+  mage_collapse:
+    mana: 22
+    radius: 8
+    angle: 60
+    slow_duration: 60
+    cooldown:
+      base: 14.0
+      per-level: -0.3
+      min: 9.0
+    damage:
+      base: 10
+      per-level: 0.9
+      max: 50
+    # Надбавка за метку, а не полный урон: сработавший коллапс наносит
+    # damage + marked_damage, потому что помеченные попадают в оба шага.
+    marked_damage:
+      base: 9
+      per-level: 1.1
+      max: 60
