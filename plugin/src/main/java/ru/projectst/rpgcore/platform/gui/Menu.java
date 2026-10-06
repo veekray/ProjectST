@@ -2,11 +2,13 @@ package ru.projectst.rpgcore.platform.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -27,8 +29,15 @@ import org.bukkit.inventory.meta.ItemMeta;
  */
 public abstract class Menu {
 
-    /** Кнопка экрана: что нарисовать и что сделать по щелчку. */
-    protected record Button(ItemStack icon, Runnable action) {
+    /**
+     * Кнопка экрана: что нарисовать и что сделать по щелчку.
+     *
+     * <p>Действие получает вид щелчка. Нужно тем экранам, где одной ячейкой
+     * правят число: левый прибавляет, правый убавляет. Разносить «плюс» и
+     * «минус» по отдельным ячейкам значило бы вдвое больше кнопок и вдвое
+     * меньше статов на экране.
+     */
+    protected record Button(ItemStack icon, Consumer<ClickType> action) {
     }
 
     private final List<Button> buttons = new ArrayList<>();
@@ -69,24 +78,30 @@ public abstract class Menu {
     }
 
     /** Щелчок по ячейке. Пустая ячейка — не ошибка, просто ничего не делает. */
-    public final void click(int slot) {
+    public final void click(int slot, ClickType type) {
         if (slot < 0 || slot >= buttons.size()) {
             return;
         }
         Button button = buttons.get(slot);
         if (button != null && button.action() != null) {
-            button.action().run();
+            button.action().accept(type);
         }
     }
 
+    /** Кнопка, которой всё равно, чем по ней щёлкнули: таких большинство. */
     protected final void put(int slot, ItemStack icon, Runnable action) {
+        onClick(slot, icon, action == null ? null : type -> action.run());
+    }
+
+    /** Кнопка, которая разбирает вид щелчка сама. */
+    protected final void onClick(int slot, ItemStack icon, Consumer<ClickType> action) {
         if (slot >= 0 && slot < buttons.size()) {
             buttons.set(slot, new Button(icon, action));
         }
     }
 
     protected final void put(int slot, ItemStack icon) {
-        put(slot, icon, null);
+        onClick(slot, icon, null);
     }
 
     /** Рамка из стекла: отделяет кнопки от пустоты, по ней щелчки не делают ничего. */

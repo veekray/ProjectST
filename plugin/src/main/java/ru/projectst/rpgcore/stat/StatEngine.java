@@ -58,6 +58,19 @@ public final class StatEngine {
         return def.rounding().apply(value);
     }
 
+    /**
+     * Знает ли движок такой стат.
+     *
+     * <p>Нужно тем, кто правит контент на живом сервере. Реестр статов движок
+     * получает один раз при запуске; перечитанный {@code stats.yml} заменяет
+     * реестр в ContentService, но не здесь. Надбавка к стату, которого движок не
+     * знает, молча не применяется — и спросить об этом надо до записи предмета,
+     * а не выяснять по тому, что цифры не изменились.
+     */
+    public boolean knows(String statId) {
+        return registry.has(statId);
+    }
+
     /** Считает все объявленные статы сразу: снимок для игрока. */
     public StatSnapshot computeAll(Map<String, Double> bases, Collection<StatModifier> modifiers) {
         Map<String, Double> values = new LinkedHashMap<>();

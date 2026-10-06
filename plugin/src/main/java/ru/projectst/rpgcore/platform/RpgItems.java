@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import java.util.function.Supplier;
 import org.bukkit.plugin.Plugin;
 import ru.projectst.rpgcore.item.ItemDef;
 import ru.projectst.rpgcore.item.ItemRegistry;
@@ -28,20 +29,26 @@ import ru.projectst.rpgcore.stat.StatOp;
  *
  * <p>Описание собирается заново при каждой выдаче: статы, требования и умения
  * видны в предмете теми же числами, которыми их считает бой.
+ *
+ * <p><b>Реестр спрашивается каждый раз, а не запоминается.</b> Перечитывание
+ * контента заменяет реестры целиком — они на то и неизменяемые. Запомни этот
+ * класс один реестр при запуске, и предмет, добавленный верстаком или правкой
+ * файла, перестал бы находиться: предмет надет, метка на месте, а статов нет.
+ * Именно так выглядит худший сорт поломки — тихий.
  */
 public final class RpgItems {
 
     private final NamespacedKey idKey;
-    private final ItemRegistry registry;
+    private final Supplier<ItemRegistry> registry;
 
-    public RpgItems(Plugin plugin, ItemRegistry registry) {
+    public RpgItems(Plugin plugin, Supplier<ItemRegistry> registry) {
         this.idKey = new NamespacedKey(plugin, "item");
         this.registry = registry;
     }
 
     /** Реестр предметов: нужен тем, кто выдаёт предмет по идентификатору. */
     public ItemRegistry registry() {
-        return registry;
+        return registry.get();
     }
 
     /** Идентификатор нашего предмета, если это он. */
@@ -59,7 +66,7 @@ public final class RpgItems {
 
     /** Объявление предмета, если стак — наш предмет и он всё ещё объявлен. */
     public Optional<ItemDef> defOf(ItemStack stack) {
-        return idOf(stack).flatMap(registry::find);
+        return idOf(stack).flatMap(stackId -> registry.get().find(stackId));
     }
 
     /**
@@ -80,7 +87,7 @@ public final class RpgItems {
             return stack;
         }
 
-        Rarity rarity = registry.rarity(def.rarityId());
+        Rarity rarity = registry.get().rarity(def.rarityId());
         NamedTextColor color = color(rarity.color());
         meta.displayName(Component.text(def.display(), color)
                 .decoration(TextDecoration.ITALIC, false));

@@ -27,7 +27,7 @@ public final class MenuListener implements Listener {
         // Щелчки по своему инвентарю при открытом экране тоже отменены выше, но
         // в действие превращаются только те, что по самому экрану.
         if (event.getClickedInventory() == event.getInventory()) {
-            holder.menu().click(event.getSlot());
+            holder.menu().click(event.getSlot(), event.getClick());
         }
     }
 

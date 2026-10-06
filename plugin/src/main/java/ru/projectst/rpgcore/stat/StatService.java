@@ -44,6 +44,11 @@ public final class StatService {
      *
      * @param source имя источника: {@code item:main_hand}, {@code status:warlock_wither}
      */
+    /** Знает ли движок такой стат: см. {@link StatEngine#knows(String)}. */
+    public boolean knows(String statId) {
+        return engine.knows(statId);
+    }
+
     public void setSource(UUID player, String source, Collection<StatModifier> values) {
         if (source == null || source.isBlank()) {
             throw new IllegalArgumentException("source обязателен");

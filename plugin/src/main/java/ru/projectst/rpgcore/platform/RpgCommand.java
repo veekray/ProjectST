@@ -31,13 +31,13 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
             "resource",
-            "progress", "xp", "give", "items", "mobs", "spawn", "convert", "client",
-            "reset");
+            "progress", "xp", "give", "items", "forge", "mobs", "spawn", "convert",
+            "client", "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
-            Set.of("validate", "reload", "debug", "why", "xp", "give", "spawn", "convert",
-                    "reset");
+            Set.of("validate", "reload", "debug", "why", "xp", "give", "forge", "spawn",
+                    "convert", "reset");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
 
@@ -54,6 +54,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final MobService mobs;
     private final ClientLink clientLink;
     private final java.nio.file.Path dataFolder;
+    private final ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
@@ -62,6 +63,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                       ru.projectst.rpgcore.platform.gui.MenuContext menus,
                       RpgItems rpgItems, EquipmentWatcher equipment,
                       RecipeRegistrar recipes, MobService mobs, ClientLink clientLink,
+                      ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus,
                       java.nio.file.Path dataFolder) {
         this.content = content;
         this.stats = stats;
@@ -75,6 +77,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         this.recipes = recipes;
         this.mobs = mobs;
         this.clientLink = clientLink;
+        this.forgeMenus = forgeMenus;
         this.dataFolder = dataFolder;
     }
 
@@ -108,6 +111,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
             sender.sendMessage("§e/rpg items §7— список предметов");
             sender.sendMessage("§e/rpg give <предмет> [сколько] §7— выдать себе предмет");
+            sender.sendMessage("§e/rpg forge §7— верстак: собрать предмет со статами"
+                    + " и получить его в руки");
             sender.sendMessage("§e/rpg mobs §7— список мобов и правил спавна");
             sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
             sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
@@ -138,6 +143,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "xp" -> giveXp(sender, args);
             case "give" -> give(sender, args);
             case "items" -> listItems(sender);
+            case "forge" -> forge(sender);
             case "mobs" -> listMobs(sender);
             case "spawn" -> spawnMob(sender, args);
             case "convert" -> convert(sender);
@@ -173,6 +179,21 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                 + "§7, предметов: §f" + content.items().size()
                 + "§7, рецептов: §f" + added
                 + "§7, мобов: §f" + content.mobs().size());
+        return true;
+    }
+
+    /**
+     * Верстак предметов.
+     *
+     * <p>Админская: она пишет файлы контента и перечитывает его. Поэтому и стоит
+     * рядом с reload, а не в меню персонажа — игроку там делать нечего.
+     */
+    private boolean forge(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок: верстак — это окно");
+            return true;
+        }
+        new ru.projectst.rpgcore.platform.gui.ForgeMenu(forgeMenus, player).open(player);
         return true;
     }
 

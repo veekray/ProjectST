@@ -60,6 +60,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private PlayerDataStore data;
     private ClassService classService;
     private ResourcePool resources;
+    private ru.projectst.rpgcore.platform.ItemForge itemForge;
+    private ru.projectst.rpgcore.platform.gui.ChatPrompt chatPrompt;
+    private ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
     private VitalsSync vitals;
     private RpgItems rpgItems;
     private EquipmentWatcher equipment;
@@ -120,13 +123,23 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 random);
 
         // Предметы: сборка по метке, статы от снаряжения, умения по щелчку.
-        rpgItems = new RpgItems(this, content.items());
+        // Реестр передаётся ссылкой на метод, а не значением: перечитывание
+        // контента заменяет реестр целиком, и запомненный устарел бы молча.
+        rpgItems = new RpgItems(this, content::items);
         equipment = new EquipmentWatcher(rpgItems, stats, classService);
         recipes = new RecipeRegistrar(this, rpgItems, content.items());
         int added = recipes.reload(content.recipes());
 
         MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
                 content.stats(), classService, casts, stats, statuses);
+
+        // Верстак предметов: собранный в игре предмет становится файлом контента.
+        // Нужен проверке навыков — статы снаряжения иначе не подобрать.
+        itemForge = new ru.projectst.rpgcore.platform.ItemForge(content, stats,
+                getDataFolder().toPath());
+        chatPrompt = new ru.projectst.rpgcore.platform.gui.ChatPrompt(this);
+        forgeMenus = new ru.projectst.rpgcore.platform.gui.ForgeContext(itemForge, content,
+                rpgItems, equipment, recipes, chatPrompt);
 
         // Канал клиентского мода. Регистрируется всегда: мод может появиться у
         // игрока в любой момент, а отсутствие мода ничего не меняет — состояние
@@ -139,7 +152,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
                     classService, casts, menus, rpgItems, equipment, recipes,
-                    mobService, clientLink, getDataFolder().toPath());
+                    mobService, clientLink, forgeMenus, getDataFolder().toPath());
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -156,6 +169,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
+        // Ввод строки для верстака: материал и имя из ячеек не выбираются.
+        Bukkit.getPluginManager().registerEvents(chatPrompt, this);
         // Обычный урон через тот же конвейер, что и урон навыков: иначе
         // физический урон, защита, крит, щиты и проклятия не делают ничего.
         Bukkit.getPluginManager().registerEvents(new VanillaDamageListener(
@@ -284,6 +299,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         statusEffects.release(event.getPlayer());
         resources.forget(uuid);
         equipment.forget(uuid);
+        // Черновик верстака уходит с игроком: он всё равно не переживает
+        // перезапуск, а сохранённый предмет лежит файлом.
+        itemForge.forget(uuid);
         clientLink.forget(uuid);
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
