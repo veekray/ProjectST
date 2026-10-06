@@ -11,7 +11,7 @@ class: rogue
 icon: FEATHER
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

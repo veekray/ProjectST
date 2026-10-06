@@ -14,7 +14,7 @@ class: hunter
 icon: ARROW
 tier: 1
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

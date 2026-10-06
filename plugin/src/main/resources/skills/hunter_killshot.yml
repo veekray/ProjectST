@@ -9,7 +9,7 @@ class: hunter
 icon: CROSSBOW
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

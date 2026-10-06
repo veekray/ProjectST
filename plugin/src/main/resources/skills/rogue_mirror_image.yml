@@ -14,7 +14,7 @@ class: rogue
 icon: GLASS_PANE
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

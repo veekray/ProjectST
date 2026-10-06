@@ -9,7 +9,7 @@ class: warlock
 icon: CHAIN
 tier: 3
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

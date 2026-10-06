@@ -15,9 +15,9 @@ max-level: 60
 points-per-level: 1
 
 resource:
-  name: "Ярость"
-  max: max_stamina
-  regen: stamina_regen
+  name: "Сила духа"
+  max: max_spirit
+  regen: spirit_regen
 
 xp:
   base: 120
@@ -34,10 +34,10 @@ stats:
   max_health:
     base: 26
     per-level: 3
-  max_stamina:
+  max_spirit:
     base: 0
     per-level: 0
-  stamina_regen:
+  spirit_regen:
     base: 0
     per-level: 0
   physical_damage:

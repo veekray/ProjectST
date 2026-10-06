@@ -29,6 +29,8 @@ public final class HudLayout {
     public enum Element {
         HEALTH("Здоровье", 0.5f, 0.86f),
         RESOURCE("Ресурс", 0.5f, 0.90f),
+        STAMINA("Выносливость", 0.5f, 0.825f),
+        DASH("Заряды рывка", 0.68f, 0.90f),
         COUNTERS("Счётчики ядра", 0.18f, 0.80f),
         SLOTS("Слоты навыков", 0.03f, 0.70f),
         STATUSES("Статусы", 0.03f, 0.08f);

@@ -11,9 +11,14 @@ import java.util.List;
  * рисует. Любой расчёт на клиенте означал бы второй источник правды, а
  * расхождение между полосой маны и настоящей маной игрок заметит раньше нас.
  *
- * @param resourceName как называется ресурс: мана у мага, выносливость у плута
+ * @param resourceName как называется ресурс: мана у мага, сила духа у воина
  * @param resource     текущий запас
  * @param resourceMax  предел запаса
+ * @param stamina      выносливость: общий запас всех игроков, из которого
+ *                     платится рывок. Отдельным полем, а не ещё одной строкой
+ *                     в списке, потому что это полоса на экране, а не значение
+ *                     в таблице
+ * @param staminaMax   предел выносливости
  * @param level        уровень класса
  * @param className    имя класса, уже с цветовыми кодами из файла
  * @param statuses     действующие статусы
@@ -24,11 +29,23 @@ import java.util.List;
  *                     потому что это не эффект, который пройдёт, а ресурс, по
  *                     которому игрок принимает решения — и смотреть на него он
  *                     должен не в списке из восьми строк
+ * @param dash         заряды врождённого рывка; {@code null} — врождённого
+ *                     навыка в контенте нет, и рисовать нечего
  */
 public record ClientState(String resourceName, double resource, double resourceMax,
+                          double stamina, double staminaMax,
                           int level, String className,
                           List<StatusLine> statuses, List<CooldownLine> cooldowns,
-                          List<SlotLine> slots, List<CounterLine> counters) {
+                          List<SlotLine> slots, List<CounterLine> counters,
+                          DashLine dash) {
+
+    public ClientState(String resourceName, double resource, double resourceMax,
+                       int level, String className,
+                       List<StatusLine> statuses, List<CooldownLine> cooldowns,
+                       List<SlotLine> slots, List<CounterLine> counters) {
+        this(resourceName, resource, resourceMax, 0, 0, level, className, statuses,
+                cooldowns, slots, counters, null);
+    }
 
     public ClientState {
         resourceName = resourceName == null ? "" : resourceName;
@@ -72,6 +89,24 @@ public record ClientState(String resourceName, double resource, double resourceM
      * @param icon    имя предмета-значка
      */
     public record SlotLine(int slot, String skillId, String display, String icon) {
+    }
+
+    /**
+     * Заряды врождённого рывка.
+     *
+     * <p>Отдельно от перезарядок слотов: рывок не на слоте и слотов не занимает.
+     * Заряды и время до ближайшего приходят вместе — доля для полосы считается
+     * из них на экране, но числа в ней те же, что в бою.
+     *
+     * @param skillId   навык: по нему мод выбирает значок, как и у слотов
+     * @param display   имя для показа
+     * @param charges   сколько зарядов сейчас
+     * @param maxCharges сколько их всего
+     * @param remaining сколько тиков до возврата ближайшего; ноль — все на месте
+     * @param total     сколько тиков занимает возврат одного заряда
+     */
+    public record DashLine(String skillId, String display, int charges, int maxCharges,
+                           int remaining, int total) {
     }
 
     /**

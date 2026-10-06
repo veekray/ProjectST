@@ -17,7 +17,7 @@ class: striker
 icon: FEATHER
 tier: 1
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

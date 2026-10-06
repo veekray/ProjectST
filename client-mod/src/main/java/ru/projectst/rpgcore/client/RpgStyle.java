@@ -50,6 +50,10 @@ public final class RpgStyle {
     public static final int HEALTH_LOW = 0xFFD94A3D;
     /** Лазурь: мана и прочие ресурсы. */
     public static final int RESOURCE = 0xFF2F6FA8;
+    /** Старое золото: выносливость и заряды рывка. Отдельно от маны намеренно —
+     * это другой запас, и одинаковый цвет читался бы как одна полоса. */
+    public static final int STAMINA = 0xFFB08A2E;
+
     /** Зелень: готовность. */
     public static final int READY = 0xFF4F7A3A;
     /** Пепел: перезарядка. */

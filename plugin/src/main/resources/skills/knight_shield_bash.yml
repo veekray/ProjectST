@@ -10,7 +10,7 @@ class: knight
 icon: IRON_DOOR
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

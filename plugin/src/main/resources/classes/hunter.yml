@@ -15,9 +15,9 @@ max-level: 60
 points-per-level: 1
 
 resource:
-  name: "Выносливость"
-  max: max_stamina
-  regen: stamina_regen
+  name: "Сила духа"
+  max: max_spirit
+  regen: spirit_regen
 
 xp:
   base: 120
@@ -34,10 +34,10 @@ stats:
   max_health:
     base: 18
     per-level: 2
-  max_stamina:
+  max_spirit:
     base: 100
     per-level: 4
-  stamina_regen:
+  spirit_regen:
     base: 4
     per-level: 0.1
   physical_damage:

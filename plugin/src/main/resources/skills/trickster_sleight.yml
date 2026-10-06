@@ -11,7 +11,7 @@ class: trickster
 icon: ENDER_EYE
 tier: 1
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

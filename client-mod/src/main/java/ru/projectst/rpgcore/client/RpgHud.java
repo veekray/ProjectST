@@ -73,6 +73,8 @@ public final class RpgHud {
 
         drawHealth(graphics, client, width, height);
         drawResource(graphics, client, state, width, height);
+        drawStamina(graphics, client, state, width, height);
+        drawDash(graphics, client, state, width, height);
         drawCounters(graphics, client, state, width, height);
         drawSlots(graphics, client, state, width, height);
         drawStatuses(graphics, client, state, width, height);
@@ -115,6 +117,67 @@ public final class RpgHud {
                 + Math.round(state.resourceMax());
         graphics.drawString(client.font, Component.literal(text),
                 x + BAR_WIDTH / 2 - client.font.width(text) / 2, y - 1, RpgStyle.TEXT, true);
+    }
+
+    /**
+     * Выносливость: общий запас, из которого платится рывок.
+     *
+     * <p>Отдельной полосой, а не второй частью полосы ресурса: это другой запас,
+     * и слитая полоса означала бы, что у них общий предел.
+     */
+    private static void drawStamina(GuiGraphics graphics, Minecraft client,
+                                    ClientState state, int width, int height) {
+        if (state.staminaMax() <= 0) {
+            return;
+        }
+        int x = HudLayout.screenX(HudLayout.Element.STAMINA, width) - BAR_WIDTH / 2;
+        int y = HudLayout.screenY(HudLayout.Element.STAMINA, height);
+
+        RpgStyle.bar(graphics, x, y, BAR_WIDTH, BAR_HEIGHT - 2,
+                state.stamina() / state.staminaMax(), RpgStyle.STAMINA);
+        String text = Math.round(Math.floor(state.stamina())) + " / "
+                + Math.round(state.staminaMax());
+        graphics.drawString(client.font, Component.literal(text),
+                x + BAR_WIDTH / 2 - client.font.width(text) / 2, y - 2, RpgStyle.TEXT_DIM,
+                true);
+    }
+
+    /**
+     * Заряды рывка.
+     *
+     * <p>Ромбами, как счётчики ядра: «два из трёх» читается взглядом. Тот, что
+     * сейчас возвращается, залит наполовину своего пути — долю считает экран, но
+     * из чисел, присланных сервером, а не из своего таймера: свой таймер
+     * разошёлся бы с боем на первом же лаге.
+     */
+    private static void drawDash(GuiGraphics graphics, Minecraft client,
+                                 ClientState state, int width, int height) {
+        ClientState.DashLine dash = state.dash();
+        if (dash == null || dash.maxCharges() <= 0) {
+            return;
+        }
+        int x = HudLayout.screenX(HudLayout.Element.DASH, width);
+        int y = HudLayout.screenY(HudLayout.Element.DASH, height);
+
+        // Имя и клавиша — двумя строками разного цвета, а не одной со служебными
+        // символами: подпись клавиши должна читаться как подсказка, а не как имя.
+        String title = dash.display();
+        graphics.drawString(client.font, Component.literal(title), x, y - 10,
+                dash.charges() > 0 ? RpgStyle.TEXT : RpgStyle.TEXT_DIM, true);
+        graphics.drawString(client.font, Component.literal(RpgKeys.dashKeyLabel()),
+                x + client.font.width(title) + 4, y - 10, RpgStyle.TEXT_DIM, true);
+
+        int pipX = x;
+        for (int i = 0; i < dash.maxCharges(); i++) {
+            boolean full = i < dash.charges();
+            RpgStyle.pip(graphics, pipX, y, 9, full, RpgStyle.STAMINA);
+            pipX += 11;
+        }
+        // Время до ближайшего заряда — только когда он действительно в пути.
+        if (dash.remaining() > 0 && dash.charges() < dash.maxCharges()) {
+            graphics.drawString(client.font, Component.literal(seconds(dash.remaining())),
+                    pipX + 3, y, RpgStyle.TEXT_DIM, true);
+        }
     }
 
     // ------------------------------------------------------------------ ядро

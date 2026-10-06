@@ -68,6 +68,8 @@ public final class StateCodec {
             writeString(out, state.resourceName());
             out.writeFloat((float) state.resource());
             out.writeFloat((float) state.resourceMax());
+            out.writeFloat((float) state.stamina());
+            out.writeFloat((float) state.staminaMax());
             out.writeShort(state.level());
             writeString(out, state.className());
 
@@ -104,6 +106,20 @@ public final class StateCodec {
                 out.writeByte(Math.min(255, line.maxStacks()));
                 writeString(out, line.color());
             }
+
+            // Рывок есть не всегда: без врождённого навыка в контенте рисовать
+            // нечего. Флаг, а не нулевые числа: ноль зарядов — это «все
+            // потрачены», и путать его с «рывка нет» нельзя.
+            ClientState.DashLine dash = state.dash();
+            out.writeBoolean(dash != null);
+            if (dash != null) {
+                writeString(out, dash.skillId());
+                writeString(out, dash.display());
+                out.writeByte(Math.min(255, dash.charges()));
+                out.writeByte(Math.min(255, dash.maxCharges()));
+                out.writeInt(dash.remaining());
+                out.writeInt(dash.total());
+            }
         });
     }
 
@@ -117,6 +133,8 @@ public final class StateCodec {
             String resourceName = readString(in);
             double resource = in.readFloat();
             double resourceMax = in.readFloat();
+            double stamina = in.readFloat();
+            double staminaMax = in.readFloat();
             int level = in.readShort();
             String className = readString(in);
 
@@ -147,8 +165,14 @@ public final class StateCodec {
                 counters.add(new ClientState.CounterLine(readString(in), readString(in),
                         in.readUnsignedByte(), in.readUnsignedByte(), readString(in)));
             }
-            return new ClientState(resourceName, resource, resourceMax, level, className,
-                    statuses, cooldowns, slots, counters);
+            ClientState.DashLine dash = null;
+            if (in.readBoolean()) {
+                dash = new ClientState.DashLine(readString(in), readString(in),
+                        in.readUnsignedByte(), in.readUnsignedByte(), in.readInt(),
+                        in.readInt());
+            }
+            return new ClientState(resourceName, resource, resourceMax, stamina, staminaMax,
+                    level, className, statuses, cooldowns, slots, counters, dash);
         });
     }
 
@@ -183,7 +207,8 @@ public final class StateCodec {
                 out.writeByte(line.level());
                 out.writeByte(line.maxLevel());
                 out.writeShort(line.required());
-                out.writeFloat((float) line.mana());
+                out.writeFloat((float) line.cost());
+                out.writeFloat((float) line.stamina());
                 out.writeFloat((float) line.cooldown());
                 out.writeByte(line.boundSlot());
                 out.writeFloat((float) line.damage());
@@ -234,7 +259,8 @@ public final class StateCodec {
                 int skillLevel = in.readUnsignedByte();
                 int maxLevel = in.readUnsignedByte();
                 int required = in.readShort();
-                double mana = in.readFloat();
+                double cost = in.readFloat();
+                double stamina = in.readFloat();
                 double cooldown = in.readFloat();
                 int boundSlot = in.readUnsignedByte();
                 double damage = in.readFloat();
@@ -244,7 +270,8 @@ public final class StateCodec {
                     description.add(readString(in));
                 }
                 skills.add(new MenuData.SkillLine(skillId, display, icon, tier, skillLevel,
-                        maxLevel, required, mana, cooldown, boundSlot, damage, description));
+                        maxLevel, required, cost, stamina, cooldown, boundSlot, damage,
+                        description));
             }
 
             int statCount = in.readUnsignedByte();
@@ -263,19 +290,39 @@ public final class StateCodec {
     /**
      * Просьба клиента.
      *
-     * @param action что просят
-     * @param number число: номер слота
-     * @param id     идентификатор: навык или класс
+     * <p>Ввод движения пишется всегда, хотя читает его только рывок. Это
+     * восемь байт на нажатие — и один формат сообщения вместо двух. Два формата
+     * в одном канале означали бы, что читать его надо по-разному в зависимости
+     * от действия, а именно так теряется байт и съезжает всё остальное.
+     *
+     * @param action  что просят
+     * @param number  число: номер слота
+     * @param id      идентификатор: навык или класс
+     * @param forward ход вперёд: от -1 (назад) до 1 (вперёд). Читает только
+     *                рывок
+     * @param left    ход влево: от -1 (вправо) до 1 (влево)
      */
-    public record ActionRequest(Protocol.Action action, int number, String id) {
+    public record ActionRequest(Protocol.Action action, int number, String id,
+                                double forward, double left) {
+
+        public ActionRequest(Protocol.Action action, int number, String id) {
+            this(action, number, id, 0, 0);
+        }
     }
 
     public static byte[] writeAction(Protocol.Action action, int number, String id) {
+        return writeAction(action, number, id, 0, 0);
+    }
+
+    public static byte[] writeAction(Protocol.Action action, int number, String id,
+                                     double forward, double left) {
         return write(out -> {
             out.writeByte(Protocol.VERSION);
             out.writeByte(action.code());
             out.writeByte(Math.clamp(number, 0, 255));
             writeString(out, id);
+            out.writeFloat((float) Math.clamp(forward, -1, 1));
+            out.writeFloat((float) Math.clamp(left, -1, 1));
         });
     }
 
@@ -286,8 +333,14 @@ public final class StateCodec {
                 throw new IllegalArgumentException("версия формата " + version
                         + ", поддерживается " + Protocol.VERSION);
             }
-            return new ActionRequest(Protocol.Action.of(in.readUnsignedByte()),
-                    in.readUnsignedByte(), readString(in));
+            Protocol.Action action = Protocol.Action.of(in.readUnsignedByte());
+            int number = in.readUnsignedByte();
+            String id = readString(in);
+            // Границы ставятся и на чтении: клиент мог прислать что угодно, а
+            // «что угодно» в направлении — это рывок на другой конец карты.
+            double forward = Math.clamp(in.readFloat(), -1, 1);
+            double left = Math.clamp(in.readFloat(), -1, 1);
+            return new ActionRequest(action, number, id, forward, left);
         });
     }
 

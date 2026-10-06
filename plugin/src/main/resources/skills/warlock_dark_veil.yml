@@ -10,7 +10,7 @@ class: warlock
 icon: INK_SAC
 tier: 3
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

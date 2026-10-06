@@ -15,7 +15,7 @@ class: warrior
 icon: IRON_HELMET
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

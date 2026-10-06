@@ -64,6 +64,24 @@ class DefaultContentTest {
     }
 
     @Test
+    @DisplayName("статы запасов объявлены: мана, сила духа и выносливость")
+    void resourceStatsExist() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        StatRegistry registry = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
+
+        // Выносливость читается у каждого игрока на каждом тике восстановления,
+        // независимо от класса. Её отсутствие в файле — это не «нет стата», а
+        // исключение при каждом касте и каждом тике.
+        for (String id : new String[] {
+                StatIds.MAX_MANA, StatIds.MANA_REGEN,
+                StatIds.MAX_SPIRIT, StatIds.SPIRIT_REGEN,
+                StatIds.MAX_STAMINA, StatIds.STAMINA_REGEN}) {
+            assertTrue(registry.has(id), "в stats.yml нет стата запаса " + id);
+        }
+    }
+
+    @Test
     @DisplayName("поставляемый statuses.yml грузится без ошибок, граф конфликтов цел")
     void defaultStatusesAreValid() throws IOException {
         ContentErrors errors = new ContentErrors();

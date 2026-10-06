@@ -15,7 +15,7 @@ class: mage
 icon: AMETHYST_CLUSTER
 tier: 4
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

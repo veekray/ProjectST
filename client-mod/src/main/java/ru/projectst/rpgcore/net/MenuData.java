@@ -52,7 +52,10 @@ public record MenuData(String classId, int level, double xp, double xpToNext, in
      * @param level     уровень у игрока; ноль — не изучен
      * @param maxLevel  предел уровня навыка
      * @param required  уровень класса, с которого навык доступен
-     * @param mana      стоимость
+     * @param cost      стоимость ресурса класса: маны или силы духа
+     * @param stamina   стоимость выносливости; ноль — навык её не тратит. Отдельно
+     *                  от cost, потому что это другой запас: подсказка, которая
+     *                  показывает половину цены, хуже подсказки без цены
      * @param cooldown  перезарядка в секундах
      * @param boundSlot слот, на котором он стоит; ноль — ни на каком
      * @param damage    наибольший урон за одно попадание на текущем уровне;
@@ -62,8 +65,9 @@ public record MenuData(String classId, int level, double xp, double xpToNext, in
      * @param description короткое описание из файла навыка
      */
     public record SkillLine(String id, String display, String icon, int tier, int level,
-                            int maxLevel, int required, double mana, double cooldown,
-                            int boundSlot, double damage, List<String> description) {
+                            int maxLevel, int required, double cost, double stamina,
+                            double cooldown, int boundSlot, double damage,
+                            List<String> description) {
 
         public SkillLine {
             description = description == null ? List.of() : List.copyOf(description);

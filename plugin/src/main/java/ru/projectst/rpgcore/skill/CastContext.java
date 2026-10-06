@@ -26,9 +26,20 @@ import java.util.UUID;
  *                 подчинённые навыки: счётчик, посчитанный первым шагом, обязан
  *                 быть виден второму, иначе «урон за каждую печать» выразить
  *                 нечем
+ * @param heading  куда идёт кастер, если это известно. Нужно рывку по ходу, а
+ *                 не по взгляду. {@code null} — неизвестно: игрок стоит на
+ *                 месте или каст пришёл не от нажатия клавиши. Отсутствие
+ *                 означает «направления нет», а не «вперёд»: подставить взгляд
+ *                 молча — значит иногда бросать игрока на врага вместо того,
+ *                 чтобы увести от него
  */
 public record CastContext(UUID caster, int level, Position origin, UUID trigger,
-                          Map<String, Double> counters) {
+                          Map<String, Double> counters, Heading heading) {
+
+    public CastContext(UUID caster, int level, Position origin, UUID trigger,
+                       Map<String, Double> counters) {
+        this(caster, level, origin, trigger, counters, null);
+    }
 
     public CastContext(UUID caster, int level, Position origin, UUID trigger) {
         this(caster, level, origin, trigger, new HashMap<>());
@@ -36,6 +47,10 @@ public record CastContext(UUID caster, int level, Position origin, UUID trigger,
 
     public static CastContext of(UUID caster, int level) {
         return new CastContext(caster, level, null, null, new HashMap<>());
+    }
+
+    public Optional<Heading> headingOpt() {
+        return Optional.ofNullable(heading);
     }
 
     /** Записывает счётчик. Перезапись намеренна: счёт идёт за текущий каст. */
@@ -56,15 +71,15 @@ public record CastContext(UUID caster, int level, Position origin, UUID trigger,
     }
 
     public CastContext withOrigin(Position position) {
-        return new CastContext(caster, level, position, trigger, counters);
+        return new CastContext(caster, level, position, trigger, counters, heading);
     }
 
     public CastContext withTrigger(UUID entity) {
-        return new CastContext(caster, level, origin, entity, counters);
+        return new CastContext(caster, level, origin, entity, counters, heading);
     }
 
     /** Тот же каст от лица другого исполнителя: счётчики общие. */
     public CastContext withCaster(UUID other) {
-        return new CastContext(other, level, origin, trigger, counters);
+        return new CastContext(other, level, origin, trigger, counters, heading);
     }
 }

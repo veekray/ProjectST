@@ -10,7 +10,7 @@ class: knight
 icon: NETHERITE_SCRAP
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

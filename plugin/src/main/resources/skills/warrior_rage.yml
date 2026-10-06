@@ -14,7 +14,7 @@ class: warrior
 icon: REDSTONE
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

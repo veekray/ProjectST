@@ -40,6 +40,18 @@ public record ActionPayload(byte[] data) implements CustomPacketPayload {
         send(action, 0, "");
     }
 
+    /**
+     * Просит рывок и сообщает, какие клавиши движения держит игрок.
+     *
+     * <p>Именно клавиши, а не направление: куда это в мире, считает сервер по
+     * повороту, который видит сам. Клиент говорит только то, что знает лучше
+     * сервера.
+     */
+    public static void sendDash(double forward, double left) {
+        PacketDistributor.sendToServer(new ActionPayload(
+                StateCodec.writeAction(Protocol.Action.CAST_DASH, 0, "", forward, left)));
+    }
+
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;

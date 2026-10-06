@@ -14,7 +14,7 @@ class: druid
 icon: OAK_LOG
 tier: 3
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

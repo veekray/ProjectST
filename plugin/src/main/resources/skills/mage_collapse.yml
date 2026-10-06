@@ -14,7 +14,7 @@ class: mage
 icon: NETHER_STAR
 tier: 5
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

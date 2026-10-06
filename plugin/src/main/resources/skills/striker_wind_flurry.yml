@@ -10,7 +10,7 @@ class: striker
 icon: STRING
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

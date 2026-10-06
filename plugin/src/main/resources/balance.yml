@@ -347,7 +347,7 @@ balance:
   # статами, и объявлено это один раз в его классе.
 
   rogue_dash:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 6.0
       per-level: -0.1
@@ -356,7 +356,7 @@ balance:
     lift: 0.3
 
   rogue_ghost_step:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 14.0
       per-level: -0.1
@@ -368,7 +368,7 @@ balance:
     damage: 5
 
   rogue_shadow_strike:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 12.0
       per-level: -0.1
@@ -379,7 +379,7 @@ balance:
     stun_duration: 40
 
   rogue_fan_of_knives:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 10.0
       per-level: -0.1
@@ -390,7 +390,7 @@ balance:
     restore: 5
 
   rogue_mirror_image:
-    stamina: 22
+    spirit: 22
     cooldown:
       base: 20.0
       per-level: -0.2
@@ -411,7 +411,7 @@ balance:
     vulnerability: -15
 
   rogue_mark_of_death:
-    stamina: 26
+    spirit: 26
     cooldown:
       base: 24.0
       per-level: -0.5
@@ -484,7 +484,7 @@ balance:
     back_arc: 120
 
   assassin_nowhere_blade:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 6.0
       per-level: -0.05
@@ -501,7 +501,7 @@ balance:
       per-level: 2.2
 
   assassin_dissolve:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 18.0
       per-level: -0.1
@@ -511,7 +511,7 @@ balance:
     speed: 20
 
   assassin_reaper_brand:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 14.0
       per-level: -0.1
@@ -527,7 +527,7 @@ balance:
       per-level: 1.6
 
   assassin_arterial_cut:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 12.0
       per-level: -0.1
@@ -545,7 +545,7 @@ balance:
 
   assassin_garrote:
     back_arc: 120
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 20.0
       per-level: -0.1
@@ -564,7 +564,7 @@ balance:
     lock_duration: 10
 
   assassin_corpse_venom:
-    stamina: 20
+    spirit: 20
     cooldown:
       base: 22.0
       per-level: -0.1
@@ -583,7 +583,7 @@ balance:
       per-level: 0.2
 
   assassin_shadowmeld:
-    stamina: 24
+    spirit: 24
     cooldown:
       base: 45.0
       per-level: -0.2
@@ -592,7 +592,7 @@ balance:
     duration: 40
 
   assassin_shadow_cascade:
-    stamina: 22
+    spirit: 22
     cooldown:
       base: 25.0
       per-level: -0.15
@@ -608,7 +608,7 @@ balance:
       per-level: 1.1
 
   assassin_riposte:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 16.0
       per-level: -0.1
@@ -621,7 +621,7 @@ balance:
       per-level: 1.3
 
   assassin_executioners_hour:
-    stamina: 40
+    spirit: 40
     cooldown:
       base: 120.0
       per-level: -0.5
@@ -639,7 +639,7 @@ balance:
   # ================================================================ трикстер
 
   trickster_split:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 16.0
       per-level: -0.1
@@ -651,7 +651,7 @@ balance:
     damage_bonus: 30
 
   trickster_sleight:
-    stamina: 8
+    spirit: 8
     cooldown:
       base: 8.0
       per-level: -0.05
@@ -659,7 +659,7 @@ balance:
     range: 15
 
   trickster_knife_storm:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 12.0
       per-level: -0.1
@@ -677,7 +677,7 @@ balance:
       per-level: 0.45
 
   trickster_blinding_dust:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 18.0
       per-level: -0.1
@@ -688,7 +688,7 @@ balance:
     weaken: -25
 
   trickster_pickpocket:
-    stamina: 20
+    spirit: 20
     cooldown:
       base: 25.0
       per-level: -0.15
@@ -700,7 +700,7 @@ balance:
     stolen_defense: 11
 
   trickster_unstable_doubles:
-    stamina: 22
+    spirit: 22
     cooldown:
       base: 20.0
       per-level: -0.1
@@ -714,7 +714,7 @@ balance:
     push: 1.2
 
   trickster_feign_death:
-    stamina: 24
+    spirit: 24
     cooldown:
       base: 40.0
       per-level: -0.2
@@ -725,7 +725,7 @@ balance:
     speed: 30
 
   trickster_shuffle:
-    stamina: 22
+    spirit: 22
     cooldown:
       base: 26.0
       per-level: -0.15
@@ -734,7 +734,7 @@ balance:
     throw: 6
 
   trickster_puppeteer:
-    stamina: 26
+    spirit: 26
     cooldown:
       base: 45.0
       per-level: -0.2
@@ -745,7 +745,7 @@ balance:
     weaken: -40
 
   trickster_carnival:
-    stamina: 40
+    spirit: 40
     cooldown:
       base: 140.0
       per-level: -0.5
@@ -768,7 +768,7 @@ balance:
   # восемнадцати — вдвое. Числа те же, что были у подкласса.
 
   hunter_quarry_mark:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 10.0
       per-level: -0.05
@@ -778,7 +778,7 @@ balance:
     duration: 400
 
   hunter_repel_shot:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 5.0
       per-level: -0.05
@@ -806,7 +806,7 @@ balance:
     stun_duration: 20
 
   hunter_disengage:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 12.0
       per-level: -0.1
@@ -822,7 +822,7 @@ balance:
       per-level: 0.5
 
   hunter_flare_shot:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 14.0
       per-level: -0.1
@@ -840,7 +840,7 @@ balance:
     defense_down: -20
 
   hunter_arrow_downpour:
-    stamina: 22
+    spirit: 22
     cooldown:
       base: 22.0
       per-level: -0.15
@@ -871,7 +871,7 @@ balance:
     speed: 25
 
   hunter_rot_arrow:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 15.0
       per-level: -0.1
@@ -894,7 +894,7 @@ balance:
       per-level: 0.25
 
   hunter_sense:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 45.0
       per-level: -0.2
@@ -910,7 +910,7 @@ balance:
     duration: 160
 
   hunter_killshot:
-    stamina: 24
+    spirit: 24
     cooldown:
       base: 28.0
       per-level: -0.15
@@ -934,7 +934,7 @@ balance:
       per-level: 3.6
 
   hunter_deadly_hunt:
-    stamina: 40
+    spirit: 40
     cooldown:
       base: 130.0
       per-level: -0.5
@@ -949,7 +949,7 @@ balance:
   # старых файлов урон брался из модификатора MMOCore, которого здесь нет.
 
   rogue_piercing_blow:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 9.0
       per-level: -0.08
@@ -962,7 +962,7 @@ balance:
     push: 0.5
 
   rogue_smoke_screen:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 16.0
       per-level: -0.1
@@ -979,7 +979,7 @@ balance:
     slow: -40
 
   rogue_eagle_eye:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 30.0
       per-level: -0.15
@@ -992,7 +992,7 @@ balance:
     glow: 45
 
   rogue_thrill:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 35.0
       per-level: -0.2
@@ -1001,11 +1001,11 @@ balance:
     speed: 15
 
   rogue_thrill_hit:
-    stamina_back: 2
+    spirit_back: 2
 
   # ================================================================ берсерк
   # Стоимость навыков — доля предела здоровья. Выносливости у класса нет, и
-  # все stamina здесь нули: цена одна, и она кровью.
+  # все spirit здесь нули: цена одна, и она кровью.
 
   berserker_heat:
     heat_duration: 100
@@ -1016,7 +1016,7 @@ balance:
     overheat_damage: 30
 
   berserker_blood_slash:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 6.0
       per-level: -0.05
@@ -1035,7 +1035,7 @@ balance:
       per-level: 0.2
 
   berserker_quake:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 12.0
       per-level: -0.1
@@ -1049,7 +1049,7 @@ balance:
     slow_duration: 60
 
   berserker_chain_hook:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 10.0
       per-level: -0.08
@@ -1064,7 +1064,7 @@ balance:
     pull: 1.4
 
   berserker_carnage_dash:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 9.0
       per-level: -0.08
@@ -1077,7 +1077,7 @@ balance:
       per-level: 0.9
 
   berserker_ignore_pain:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 20.0
       per-level: -0.1
@@ -1091,7 +1091,7 @@ balance:
     duration: 200
 
   berserker_savage_roar:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 18.0
       per-level: -0.1
@@ -1101,7 +1101,7 @@ balance:
     push: 1.4
 
   berserker_insatiable_hunger:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 25.0
       per-level: -0.15
@@ -1110,7 +1110,7 @@ balance:
     lifesteal: 100
 
   berserker_death_spin:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 16.0
       per-level: -0.1
@@ -1124,7 +1124,7 @@ balance:
       per-level: 0.5
 
   berserker_execution:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 14.0
       per-level: -0.1
@@ -1141,7 +1141,7 @@ balance:
     unused: 0
 
   berserker_undying_rage:
-    stamina: 0
+    spirit: 0
     cooldown:
       base: 120.0
       per-level: -0.5
@@ -1164,7 +1164,7 @@ balance:
     duration: 100
 
   striker_soaring_fist:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 5.0
       per-level: -0.05
@@ -1180,7 +1180,7 @@ balance:
       per-level: 1.2
 
   striker_gale_palm:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 8.0
       per-level: -0.05
@@ -1197,7 +1197,7 @@ balance:
     push_breach: 2.0
 
   striker_sweep_kick:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 7.0
       per-level: -0.05
@@ -1210,7 +1210,7 @@ balance:
     stun_press: 30
 
   striker_wind_flurry:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 9.0
       per-level: -0.06
@@ -1221,7 +1221,7 @@ balance:
       per-level: 0.3
 
   striker_chi_blast:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 8.0
       per-level: -0.05
@@ -1238,7 +1238,7 @@ balance:
       per-level: 1.0
 
   striker_rising_dragon:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 11.0
       per-level: -0.08
@@ -1254,7 +1254,7 @@ balance:
     lift_breach: 1.4
 
   striker_touch_of_karma:
-    stamina: 20
+    spirit: 20
     cooldown:
       base: 18.0
       per-level: -0.1
@@ -1266,7 +1266,7 @@ balance:
     burst: 0.12
 
   striker_phantom_step:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 10.0
       per-level: -0.08
@@ -1275,7 +1275,7 @@ balance:
     invuln: 8
 
   striker_zen_meditation:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 22.0
       per-level: -0.12
@@ -1288,7 +1288,7 @@ balance:
     reduction: 100
 
   striker_asura_mode:
-    stamina: 35
+    spirit: 35
     cooldown:
       base: 110.0
       per-level: -0.5
@@ -1321,7 +1321,7 @@ balance:
     damage_each: 5
 
   knight_challenge:
-    stamina: 8
+    spirit: 8
     cooldown:
       base: 8.0
       per-level: -0.05
@@ -1331,7 +1331,7 @@ balance:
     weaken: 50
 
   knight_war_cry:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 18.0
       per-level: -0.1
@@ -1341,7 +1341,7 @@ balance:
     weaken: 50
 
   knight_shockwave:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 7.0
       per-level: -0.05
@@ -1357,7 +1357,7 @@ balance:
     weaken: 50
 
   knight_protector:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 16.0
       per-level: -0.1
@@ -1371,7 +1371,7 @@ balance:
     weaken: 50
 
   knight_shield_wall:
-    stamina: 16
+    spirit: 16
     cooldown:
       base: 20.0
       per-level: -0.12
@@ -1385,7 +1385,7 @@ balance:
     each: 20
 
   knight_shield_bash:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 12.0
       per-level: -0.08
@@ -1399,7 +1399,7 @@ balance:
     weaken: 50
 
   knight_retribution:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 15.0
       per-level: -0.1
@@ -1414,7 +1414,7 @@ balance:
     weaken: 50
 
   knight_banner:
-    stamina: 20
+    spirit: 20
     cooldown:
       base: 35.0
       per-level: -0.2
@@ -1429,7 +1429,7 @@ balance:
     guard: 18
 
   knight_judgment:
-    stamina: 26
+    spirit: 26
     cooldown:
       base: 30.0
       per-level: -0.15
@@ -1440,7 +1440,7 @@ balance:
       per-level: 2.0
 
   knight_absolute_fortress:
-    stamina: 40
+    spirit: 40
     cooldown:
       base: 140.0
       per-level: -0.5
@@ -1460,7 +1460,7 @@ balance:
   # навыка вместо всего набора страйкера.
 
   warrior_charge:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 8.0
       per-level: -0.05
@@ -1473,7 +1473,7 @@ balance:
     push: 1.0
 
   warrior_cleave:
-    stamina: 8
+    spirit: 8
     cooldown:
       base: 4.0
       per-level: -0.03
@@ -1484,7 +1484,7 @@ balance:
       per-level: 0.9
 
   warrior_shield_up:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 14.0
       per-level: -0.08
@@ -1494,7 +1494,7 @@ balance:
     root: -60
 
   warrior_shield_charge:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 12.0
       per-level: -0.08
@@ -1508,7 +1508,7 @@ balance:
     push: 1.2
 
   warrior_spin:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 10.0
       per-level: -0.06
@@ -1520,7 +1520,7 @@ balance:
     push: 1.1
 
   warrior_challenge:
-    stamina: 10
+    spirit: 10
     cooldown:
       base: 14.0
       per-level: -0.08
@@ -1532,7 +1532,7 @@ balance:
     weaken: 25
 
   warrior_rage:
-    stamina: 12
+    spirit: 12
     cooldown:
       base: 20.0
       per-level: -0.1
@@ -1542,7 +1542,7 @@ balance:
     damage_bonus: 35
 
   warrior_combo:
-    stamina: 14
+    spirit: 14
     cooldown:
       base: 9.0
       per-level: -0.06
@@ -1560,7 +1560,7 @@ balance:
     duration: 40
 
   warrior_stance:
-    stamina: 18
+    spirit: 18
     cooldown:
       base: 24.0
       per-level: -0.12
@@ -1576,7 +1576,7 @@ balance:
     duration: 100
 
   warrior_war_cry:
-    stamina: 30
+    spirit: 30
     cooldown:
       base: 100.0
       per-level: -0.4
@@ -1585,3 +1585,19 @@ balance:
     duration: 160
     damage_bonus: 25
     speed: 20
+
+  # ================================================================ ВСЕ
+  # Врождённый рывок. Один набор чисел на всех: рывок — не классовая черта, а
+  # то, что умеет любой игрок с первого уровня. Разные числа по классам означали
+  # бы, что класс выбирают ещё и по тому, как он уклоняется.
+
+  dash:
+    # Выносливость, а не ресурс класса: уклонение не должно покупаться уроном.
+    stamina: 20
+    # Перезарядка одного заряда. Зарядов три, и каждый возвращается сам, считая
+    # от своей траты: три рывка подряд вернутся по одному.
+    cooldown: 6.0
+    strength: 1.5
+    # Подъём небольшой: рывок уводит в сторону, а не подбрасывает. Ноль цеплялся
+    # бы за каждый блок на пути.
+    lift: 0.3

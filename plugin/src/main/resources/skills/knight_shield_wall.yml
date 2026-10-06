@@ -9,7 +9,7 @@ class: knight
 icon: SHIELD
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

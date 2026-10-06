@@ -182,6 +182,26 @@ public final class StatIcons {
                 "..bbb..",
                 "...b..."}));
 
+        SHORT.put("max_spirit", "Запас духа");
+        ICONS.put("max_spirit", new Icon(0xFF3A2A5A, 0xFF7B52B0, 0xFFD8C0F0, new String[] {
+                "..bbb..",
+                ".bcccb.",
+                "bc.c.cb",
+                "bcccccb",
+                "bc.c.cb",
+                ".bcccb.",
+                "..bbb.."}));
+
+        SHORT.put("spirit_regen", "Реген духа");
+        ICONS.put("spirit_regen", new Icon(0xFF3A2A5A, 0xFF7B52B0, 0xFFD8C0F0, new String[] {
+                "...b...",
+                "..bbb..",
+                ".bcccb.",
+                "..bbb..",
+                "...c...",
+                "..ccc..",
+                ".c.c.c."}));
+
         SHORT.put("max_stamina", "Запас сил");
         ICONS.put("max_stamina", new Icon(0xFF5A4A1A, 0xFFC9A227, 0xFFF0E0A0, new String[] {
                 "....cc.",

@@ -43,4 +43,33 @@ public final class Facing {
         double angle = Math.toDegrees(Math.acos(Math.clamp(cosine, -1.0, 1.0)));
         return angle >= 180 - arcDegrees / 2;
     }
+
+    /**
+     * Куда игрок идёт: нажатые клавиши движения — в направление по земле.
+     *
+     * <p>Считает сервер, а не мод, хотя нажатия знает мод. Так сделано
+     * намеренно: от клиента приходит только то, что он действительно знает
+     * лучше сервера — какие клавиши держит игрок, — а поворот берётся тот, что
+     * сервер видит сам. Поэтому подменённый мод может попросить рывок в одну из
+     * восьми сторон относительно своего настоящего поворота, а не в любую точку
+     * мира.
+     *
+     * @param yawDegrees поворот игрока, как его считает Minecraft:
+     *                   ноль смотрит на юг, в сторону роста Z
+     * @param forward    ход вперёд: от -1 (назад) до 1 (вперёд)
+     * @param left       ход влево: от -1 (вправо) до 1 (влево)
+     * @return направление или {@code null}, если игрок стоит на месте
+     */
+    public static Heading headingOf(double yawDegrees, double forward, double left) {
+        double yaw = Math.toRadians(yawDegrees);
+        // Вперёд — то же направление, что у взгляда по земле. Влево — оно же,
+        // повёрнутое на девяносто градусов: при нулевом повороте игрок смотрит
+        // на юг, и слева от него восток, то есть рост X.
+        double forwardX = -Math.sin(yaw);
+        double forwardZ = Math.cos(yaw);
+        double leftX = Math.cos(yaw);
+        double leftZ = Math.sin(yaw);
+        return Heading.orNull(forwardX * forward + leftX * left,
+                forwardZ * forward + leftZ * left);
+    }
 }

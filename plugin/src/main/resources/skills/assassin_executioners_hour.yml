@@ -10,7 +10,7 @@ class: assassin
 icon: WITHER_SKELETON_SKULL
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

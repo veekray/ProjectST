@@ -22,6 +22,7 @@ import ru.projectst.rpgcore.balance.BalanceLoader;
 import ru.projectst.rpgcore.classes.ClassDefLoader;
 import ru.projectst.rpgcore.classes.ClassRegistry;
 import ru.projectst.rpgcore.classes.ClassService;
+import ru.projectst.rpgcore.classes.ResourceSpec;
 import ru.projectst.rpgcore.damage.DamageSchool;
 import ru.projectst.rpgcore.data.PlayerDataStore;
 import ru.projectst.rpgcore.loader.ContentErrors;
@@ -171,8 +172,15 @@ class CastServiceTest {
             return new RayHit(positionOf(caster).orElseThrow(), ENEMY);
         }
 
+        /** Рывки: сколько их было и куда шёл последний. */
+        int dashes;
+        ru.projectst.rpgcore.skill.Heading lastHeading;
+
         @Override
-        public void dash(UUID entity, double strength, double lift) {
+        public void dash(UUID entity, double strength, double lift,
+                         ru.projectst.rpgcore.skill.Heading heading) {
+            dashes++;
+            lastHeading = heading;
         }
 
         @Override
@@ -218,7 +226,7 @@ class CastServiceTest {
             id: bolt
             class: mage
             tier: 1
-            mana: $mana
+            cost: $mana
             cooldown: $cooldown
             steps:
               - target: { type: enemies_in_radius, radius: 5 }
@@ -232,7 +240,7 @@ class CastServiceTest {
             class: mage
             tier: 1
             on: damaged
-            mana: 0
+            cost: 0
             cooldown: 0
             steps:
               - target: { type: trigger }
@@ -247,12 +255,30 @@ class CastServiceTest {
             tier: 1
             on: interval
             every: 40
-            mana: 0
+            cost: 0
             cooldown: 0
             steps:
               - target: { type: self }
                 do:
                   - { action: heal, amount: 1 }
+            """;
+
+    /**
+     * Врождённый рывок: без класса, с зарядами, за выносливость.
+     *
+     * <p>Повторяет поставляемый контент ровно в том, что проверяется: заряды,
+     * второй запас и направление по ходу.
+     */
+    private static final String DASH = """
+            id: dash
+            innate: true
+            charges: 3
+            stamina: $stamina
+            cooldown: $cooldown
+            steps:
+              - target: { type: self }
+                do:
+                  - { action: dash, strength: 1.5, direction: movement }
             """;
 
     private static final String BALANCE = """
@@ -263,6 +289,9 @@ class CastServiceTest {
                 damage:
                   base: 10
                   per-level: 5
+              dash:
+                stamina: 20
+                cooldown: 6
             """;
 
     private PlayerDataStore data;
@@ -293,6 +322,14 @@ class CastServiceTest {
                     base: 2
                     min: 0
                     max: 200
+                  max_stamina:
+                    base: 100
+                    min: 0
+                    max: 10000
+                  stamina_regen:
+                    base: 4
+                    min: 0
+                    max: 200
                   cooldown_reduction:
                     base: 0
                     min: 0
@@ -306,6 +343,10 @@ class CastServiceTest {
                     category: debuff
                     duration: 60
                     tags: [blocks-cast]
+                  root:
+                    category: control
+                    duration: 60
+                    tags: [immobilize]
                   mark:
                     category: mark
                     duration: 60
@@ -319,6 +360,7 @@ class CastServiceTest {
         byId.put("bolt", skill);
         byId.put("thorns", thorns);
         byId.put("aura", aura);
+        byId.put("dash", SkillLoader.load("dash.yml", DASH, errors).orElseThrow());
         SkillRegistry skills = new SkillRegistry(byId);
         BalanceBook balance = BalanceLoader.load("balance.yml", BALANCE, errors).orElseThrow();
         assertTrue(errors.isEmpty(), () -> errors.all().toString());
@@ -378,6 +420,123 @@ class CastServiceTest {
         casts.cast(PLAYER, "bolt");
 
         assertEquals(List.of(20.0), world.damage, "10 + 5 * 2 на третьем уровне");
+    }
+
+    // ------------------------------------------------------------------ рывок
+
+    @Test
+    @DisplayName("врождённый рывок работает без класса и без изучения")
+    void innateNeedsNeitherClassNorUnlock() {
+        UUID stranger = UUID.randomUUID();
+
+        CastOutcome out = casts.castInnate(stranger, null);
+
+        assertEquals(CastOutcome.Kind.CAST, out.kind(), out::toString);
+        assertEquals(1, world.dashes, "иначе игрок до выбора класса остался бы без движения");
+    }
+
+    @Test
+    @DisplayName("три заряда — три рывка подряд, четвёртый отказывает")
+    void threeChargesThenRefusal() {
+        for (int i = 1; i <= 3; i++) {
+            assertEquals(CastOutcome.Kind.CAST, casts.castInnate(PLAYER, null).kind(),
+                    "рывок номер " + i);
+        }
+
+        CastOutcome fourth = casts.castInnate(PLAYER, null);
+
+        assertEquals(CastOutcome.Kind.ON_COOLDOWN, fourth.kind(), fourth::toString);
+        assertTrue(fourth.toString().contains("зарядов нет"), fourth::toString);
+        assertEquals(3, world.dashes, "четвёртого рывка не было");
+        assertEquals(40, mana.current(PLAYER, ResourceSpec.STAMINA), 1e-9,
+                "сто минус три по двадцать");
+    }
+
+    @Test
+    @DisplayName("заряды возвращаются по одному, считая от своей траты")
+    void chargesReturnOneByOne() {
+        casts.castInnate(PLAYER, null);
+        tick += 10;
+        casts.castInnate(PLAYER, null);
+
+        // Первый заряд потрачен в нулевой тик, второй — в десятый. Шесть секунд
+        // — это сто двадцать тиков, поэтому к тику 125 вернулся только первый.
+        tick += 115;
+
+        assertEquals(2, cooldowns.freeCharges(PLAYER, "dash", 3),
+                "один заряд ещё в пути, два свободны");
+        tick += 10;
+        assertEquals(3, cooldowns.freeCharges(PLAYER, "dash", 3), "вернулись оба");
+    }
+
+    @Test
+    @DisplayName("нехватка выносливости названа своим словом и ничего не тратит")
+    void notEnoughStaminaIsExplained() {
+        mana.spend(PLAYER, ResourceSpec.STAMINA, 85);
+        double resourceBefore = mana.current(PLAYER);
+
+        CastOutcome out = casts.castInnate(PLAYER, null);
+
+        assertEquals(CastOutcome.Kind.NOT_ENOUGH_RESOURCE, out.kind(), out::toString);
+        assertTrue(out.toString().toLowerCase(java.util.Locale.ROOT).contains("выносливость"),
+                out::toString);
+        assertEquals(15, mana.current(PLAYER, ResourceSpec.STAMINA), 1e-9,
+                "отказ не трогает выносливость");
+        assertEquals(resourceBefore, mana.current(PLAYER), 1e-9,
+                "и ресурс класса тем более: рывок его не касается");
+        assertEquals(0, world.dashes);
+    }
+
+    @Test
+    @DisplayName("ресурс класса и выносливость — разные запасы и не трогают друг друга")
+    void poolsAreSeparate() {
+        casts.cast(PLAYER, "bolt");
+
+        assertEquals(80, mana.current(PLAYER), 1e-9, "мана ушла на навык");
+        assertEquals(100, mana.current(PLAYER, ResourceSpec.STAMINA), 1e-9,
+                "выносливость навык класса не трогает");
+
+        casts.castInnate(PLAYER, null);
+
+        assertEquals(80, mana.current(PLAYER), 1e-9, "рывок ману не трогает");
+        assertEquals(80, mana.current(PLAYER, ResourceSpec.STAMINA), 1e-9);
+    }
+
+    @Test
+    @DisplayName("направление хода доходит до рывка как есть")
+    void headingReachesTheDash() {
+        casts.castInnate(PLAYER, new ru.projectst.rpgcore.skill.Heading(0, -1));
+
+        assertEquals(new ru.projectst.rpgcore.skill.Heading(0, -1), world.lastHeading,
+                "иначе рывок ушёл бы по взгляду, а игрок просил назад");
+    }
+
+    @Test
+    @DisplayName("под корнями рывка нет, но ударить можно")
+    void rootHoldsTheDashButNotTheSpell() {
+        statuses.apply(PLAYER, new StatusApplication("root", 60, 0, "test"));
+
+        CastOutcome dash = casts.castInnate(PLAYER, null);
+
+        assertEquals(CastOutcome.Kind.BLOCKED, dash.kind(), dash::toString);
+        assertTrue(dash.toString().contains("root"), dash::toString);
+        assertEquals(0, world.dashes, "иначе рывок был бы бесплатным снятием корней");
+        assertEquals(100, mana.current(PLAYER, ResourceSpec.STAMINA), 1e-9,
+                "отказ не тратит выносливость");
+
+        // Корни запрещают ходить, а не бить: у них нет метки blocks-cast, и
+        // навык, который никого не двигает, под ними работает.
+        assertEquals(CastOutcome.Kind.CAST, casts.cast(PLAYER, "bolt").kind());
+    }
+
+    @Test
+    @DisplayName("рывок по имени идёт тем же путём: класс для него не нужен")
+    void innateByNameWorks() {
+        UUID stranger = UUID.randomUUID();
+
+        CastOutcome out = casts.cast(stranger, "dash");
+
+        assertEquals(CastOutcome.Kind.CAST, out.kind(), out::toString);
     }
 
     // ------------------------------------------------------------------ отказы

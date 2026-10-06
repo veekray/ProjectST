@@ -13,7 +13,7 @@ class: striker
 icon: BLAZE_POWDER
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

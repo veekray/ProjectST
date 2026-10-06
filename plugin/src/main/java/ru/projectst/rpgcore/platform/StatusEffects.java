@@ -37,7 +37,8 @@ import ru.projectst.rpgcore.status.StatusService;
 public final class StatusEffects {
 
     /** Метка статуса: пока он действует, цель не может двигаться. */
-    public static final String TAG_IMMOBILIZE = "immobilize";
+    public static final String TAG_IMMOBILIZE =
+            ru.projectst.rpgcore.status.StatusTags.IMMOBILIZE;
 
     private static final PotionEffectType SLOWNESS =
             Registry.EFFECT.get(NamespacedKey.minecraft("slowness"));

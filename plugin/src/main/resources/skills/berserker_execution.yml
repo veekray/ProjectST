@@ -6,7 +6,7 @@ class: berserker
 icon: IRON_AXE
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

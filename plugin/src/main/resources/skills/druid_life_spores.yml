@@ -11,7 +11,7 @@ class: druid
 icon: GLOW_BERRIES
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

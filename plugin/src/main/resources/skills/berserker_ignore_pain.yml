@@ -13,7 +13,7 @@ class: berserker
 icon: NETHERITE_CHESTPLATE
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

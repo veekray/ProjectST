@@ -10,7 +10,7 @@ class: berserker
 icon: ROTTEN_FLESH
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

@@ -424,7 +424,11 @@ public final class SkillRuntime {
 
             case Action.Dash a -> world.dash(context.caster(),
                     a.strength().resolve(table, level, context.counters()),
-                    resolve(a.lift(), table, context, 0.2));
+                    resolve(a.lift(), table, context, 0.2),
+                    // Направление хода есть только у того каста, которому его
+                    // прислали вместе с нажатием. Нет — рывок идёт по взгляду, и
+                    // решается это здесь, а не в мире.
+                    a.alongMovement() ? context.heading() : null);
 
             case Action.Approach a -> {
                 // Сближение идёт к первой цели шага. С limit: 1 это ближайшая,

@@ -10,7 +10,7 @@ class: berserker
 icon: GOAT_HORN
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

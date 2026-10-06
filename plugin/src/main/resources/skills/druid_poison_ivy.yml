@@ -10,7 +10,7 @@ class: druid
 icon: VINE
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

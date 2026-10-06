@@ -10,7 +10,7 @@ icon: AMETHYST_SHARD
 tier: 1
 internal: true
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 steps:

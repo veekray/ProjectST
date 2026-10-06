@@ -25,6 +25,24 @@ public final class StatIds {
     /** Восстановление маны в секунду. */
     public static final String MANA_REGEN = "mana_regen";
 
+    /** Запас силы духа: тем же механизмом, что мана, но у не магических классов. */
+    public static final String MAX_SPIRIT = "max_spirit";
+
+    /** Восстановление силы духа в секунду. */
+    public static final String SPIRIT_REGEN = "spirit_regen";
+
+    /**
+     * Запас выносливости.
+     *
+     * <p>Не ресурс класса, а общий для всех запас: из него платится врождённый
+     * рывок. Поэтому класс не может объявить его своим ресурсом — проверка в
+     * ClassDefLoader, а причина в ResourcePool.
+     */
+    public static final String MAX_STAMINA = "max_stamina";
+
+    /** Восстановление выносливости в секунду. */
+    public static final String STAMINA_REGEN = "stamina_regen";
+
     /** Сокращение перезарядки в процентах; ограничено сверху в CastService. */
     public static final String COOLDOWN_REDUCTION = "cooldown_reduction";
 

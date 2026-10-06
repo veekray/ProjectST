@@ -65,7 +65,8 @@ class StateCodecTest {
                 List.of(new MenuData.ClassLine("rogue", "&8Плут", "LEATHER_BOOTS",
                         "Выносливость", 6, 60)),
                 List.of(new MenuData.SkillLine("rogue_dash", "Рывок", "SUGAR", 1, 2, 5, 1,
-                        10, 6.0, 1, 12.5, List.of("Рывок по взгляду.", "Дёшево и быстро."))),
+                        10, 4, 6.0, 1, 12.5,
+                        List.of("Рывок по взгляду.", "Дёшево и быстро."))),
                 List.of(new MenuData.StatLine("physical_damage", "Физический урон", 12.5),
                         new MenuData.StatLine("physical_defense", "Физическая защита", 150,
                                 "режет 60% урона")));

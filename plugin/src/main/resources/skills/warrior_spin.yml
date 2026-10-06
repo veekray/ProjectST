@@ -9,7 +9,7 @@ class: warrior
 icon: NETHERITE_SWORD
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

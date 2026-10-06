@@ -9,8 +9,10 @@ import java.util.UUID;
 import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.classes.ClassDef;
 import ru.projectst.rpgcore.classes.ClassService;
+import ru.projectst.rpgcore.classes.ResourceSpec;
 import ru.projectst.rpgcore.damage.StatIds;
 import ru.projectst.rpgcore.skill.CastContext;
+import ru.projectst.rpgcore.skill.Heading;
 import ru.projectst.rpgcore.skill.SkillDef;
 import ru.projectst.rpgcore.skill.SkillRegistry;
 import ru.projectst.rpgcore.skill.SkillRuntime;
@@ -29,13 +31,20 @@ import ru.projectst.rpgcore.status.StatusService;
  * нигде не был записан. Отсюда же росло худшее: нажатие впустую без причины.
  *
  * <p>Порядок здесь зафиксирован и проверяется тестами: право на навык →
- * запрещающие статусы → перезарядка → мана. Мана списывается последней, то
- * есть отказ по любой другой причине её не трогает.
+ * запрещающие статусы → перезарядка → запасы. Запасы списываются последними, то
+ * есть отказ по любой другой причине их не трогает. Запасов двое — ресурс класса
+ * и выносливость, — и проверяются оба <b>до</b> списания любого: иначе навык,
+ * которому хватило маны и не хватило выносливости, забирал бы ману ни за что.
  */
 public final class CastService {
 
     /** Статус с этой меткой запрещает касты, пока действует. */
-    public static final String TAG_BLOCKS_CAST = "blocks-cast";
+    public static final String TAG_BLOCKS_CAST =
+            ru.projectst.rpgcore.status.StatusTags.BLOCKS_CAST;
+
+    /** Статус с этой меткой запрещает навыки, которые двигают кастера. */
+    public static final String TAG_IMMOBILIZE =
+            ru.projectst.rpgcore.status.StatusTags.IMMOBILIZE;
 
     private final ClassService classes;
     private final SkillRegistry skills;
@@ -164,6 +173,28 @@ public final class CastService {
         return attempt(player, skill, null);
     }
 
+    /**
+     * Применить врождённый навык: тот, что есть у каждого игрока.
+     *
+     * <p>Идёт через те же ворота: запрещающие статусы, заряды, выносливость.
+     * Отличий от ручного каста два, и оба следуют из «есть у всех»: изучения не
+     * требует и класса не проверяет — иначе игрок до выбора класса остался бы без
+     * движения.
+     *
+     * @param heading куда игрок идёт; {@code null} — стоит на месте, и тогда
+     *                рывок пойдёт по взгляду
+     */
+    public CastOutcome castInnate(UUID player, Heading heading) {
+        Optional<SkillDef> found = skills.innate();
+        if (found.isEmpty()) {
+            // Без контента врождённого навыка нет вовсе — и молчать об этом
+            // нельзя: игрок нажал клавишу и обязан узнать, почему ничего.
+            return CastOutcome.of(CastOutcome.Kind.UNKNOWN_SKILL,
+                    "врождённого навыка нет в контенте");
+        }
+        return attempt(player, found.get(), null, heading);
+    }
+
     /** Применить навык по идентификатору. */
     public CastOutcome cast(UUID player, String skillId) {
         Optional<SkillDef> found = skills.find(skillId);
@@ -171,6 +202,12 @@ public final class CastService {
             return CastOutcome.of(CastOutcome.Kind.UNKNOWN_SKILL, skillId);
         }
         SkillDef skill = found.get();
+        if (skill.innate()) {
+            // Врождённый навык по имени — это команда. Направления хода у неё
+            // нет, и рывок пойдёт по взгляду; отказывать было бы хуже, чем
+            // ответить «по взгляду», а молча требовать класс — тем более.
+            return castInnate(player, null);
+        }
 
         Optional<ClassDef> def = classes.classOf(player);
         if (def.isEmpty()) {
@@ -197,10 +234,15 @@ public final class CastService {
      * проверять нечего, оно идёт по изученным.
      */
     private CastOutcome attempt(UUID player, SkillDef skill, UUID source) {
+        return attempt(player, skill, source, null);
+    }
+
+    private CastOutcome attempt(UUID player, SkillDef skill, UUID source, Heading heading) {
         String skillId = skill.id();
         int level = classes.skillLevel(player, skillId);
-        if (level == 0 && skill.internal()) {
+        if (level == 0 && (skill.internal() || skill.innate())) {
             // Служебный навык не изучают, поэтому уровень ему даёт класс.
+            // Врождённый не изучают тем более: он есть сразу и у всех.
             level = 1;
         }
         if (level == 0) {
@@ -213,37 +255,72 @@ public final class CastService {
                     "мешает " + blocker.get().id());
         }
 
-        long left = cooldowns.remaining(player, skillId);
-        if (left > 0) {
-            return CastOutcome.of(CastOutcome.Kind.ON_COOLDOWN,
-                    "осталось " + seconds(left) + " с");
+        // Обездвиженный не перемещается — ни рывком, ни телепортом, ни
+        // сближением. Проверка здесь, а не в самом навыке: иначе каждый
+        // перемещающий навык пришлось бы об этом помнить, а забытый означал бы
+        // бесплатное снятие корней. Корни молчат про касты намеренно: они
+        // запрещают ходить, а не бить.
+        if (skill.movesCaster()) {
+            Optional<ActiveStatus> held = immobilizingStatus(player);
+            if (held.isPresent()) {
+                return CastOutcome.of(CastOutcome.Kind.BLOCKED,
+                        "мешает " + held.get().id() + ": перемещение под контролем");
+            }
         }
 
-        double cost = skill.manaCost().resolve(balance.table(skillId), level);
+        long left = cooldowns.remaining(player, skillId, skill.charges());
+        if (left > 0) {
+            return CastOutcome.of(CastOutcome.Kind.ON_COOLDOWN,
+                    skill.charges() > 1
+                            ? "зарядов нет, следующий через " + seconds(left) + " с"
+                            : "осталось " + seconds(left) + " с");
+        }
+
+        double cost = skill.resourceCost().resolve(balance.table(skillId), level);
+        double stamina = skill.staminaCost().resolve(balance.table(skillId), level);
+        // Оба запаса проверяются до списания любого: навык, которому хватило
+        // маны и не хватило выносливости, не должен забрать ману ни за что.
         if (!resource.has(player, cost)) {
             return CastOutcome.of(CastOutcome.Kind.NOT_ENOUGH_RESOURCE,
                     resource.displayName(player).toLowerCase(java.util.Locale.ROOT)
                             + ": нужно " + round(cost)
                             + ", есть " + round(resource.current(player)));
         }
+        if (!resource.has(player, ResourceSpec.STAMINA, stamina)) {
+            return CastOutcome.of(CastOutcome.Kind.NOT_ENOUGH_RESOURCE,
+                    ResourceSpec.STAMINA.display().toLowerCase(java.util.Locale.ROOT)
+                            + ": нужно " + round(stamina) + ", есть "
+                            + round(resource.current(player, ResourceSpec.STAMINA)));
+        }
 
         // Всё проверено — только теперь тратим. Обратного порядка быть не
-        // может: списанная мана при последующем отказе не возвращается ничем.
+        // может: списанный запас при последующем отказе не возвращается ничем.
         resource.spend(player, cost);
+        resource.spend(player, ResourceSpec.STAMINA, stamina);
         // Периодический навык не может сработать чаще своего промежутка, даже
         // если перезарядка у него нулевая: иначе «каждые две секунды» зависело
         // бы от того, как часто его зовёт слушатель.
         cooldowns.start(player, skillId,
-                Math.max(cooldownTicks(player, skill, level), skill.intervalTicks()));
-        runtime.cast(new CastContext(player, level, null, source), skill, 0);
+                Math.max(cooldownTicks(player, skill, level), skill.intervalTicks()),
+                skill.charges());
+        runtime.cast(new CastContext(player, level, null, source,
+                new java.util.HashMap<>(), heading), skill, 0);
         return CastOutcome.cast();
     }
 
     /** Действующий статус, запрещающий касты, если такой есть. */
     public Optional<ActiveStatus> blockingStatus(UUID player) {
+        return statusWithTag(player, TAG_BLOCKS_CAST);
+    }
+
+    /** Действующий статус, запрещающий перемещение, если такой есть. */
+    public Optional<ActiveStatus> immobilizingStatus(UUID player) {
+        return statusWithTag(player, TAG_IMMOBILIZE);
+    }
+
+    private Optional<ActiveStatus> statusWithTag(UUID player, String tag) {
         for (ActiveStatus status : statuses.acting(player)) {
-            if (statusDefs.find(status.id())
-                    .filter(d -> d.hasTag(TAG_BLOCKS_CAST)).isPresent()) {
+            if (statusDefs.find(status.id()).filter(d -> d.hasTag(tag)).isPresent()) {
                 return Optional.of(status);
             }
         }

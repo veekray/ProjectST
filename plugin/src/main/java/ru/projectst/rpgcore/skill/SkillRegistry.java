@@ -20,6 +20,22 @@ public final class SkillRegistry {
         return Optional.ofNullable(byId.get(id));
     }
 
+    /**
+     * Врождённый навык: тот, что есть у каждого игрока с первого уровня.
+     *
+     * <p>Он один — это проверяет связывание. Поэтому здесь не список, а
+     * «есть или нет»: список заставил бы каждого вызывающего придумывать, что
+     * делать со вторым.
+     */
+    public Optional<SkillDef> innate() {
+        for (SkillDef skill : byId.values()) {
+            if (skill.innate()) {
+                return Optional.of(skill);
+            }
+        }
+        return Optional.empty();
+    }
+
     public boolean has(String id) {
         return byId.containsKey(id);
     }

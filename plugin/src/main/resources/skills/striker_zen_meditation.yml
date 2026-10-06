@@ -11,7 +11,7 @@ class: striker
 icon: AMETHYST_SHARD
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

@@ -34,7 +34,7 @@ class SkillLoaderTest {
             display: "Мановый разряд"
             class: mage
             tier: 2
-            mana: $mana
+            cost: $mana
             cooldown: $cooldown
 
             steps:

@@ -10,7 +10,7 @@ class: knight
 icon: WHITE_BANNER
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

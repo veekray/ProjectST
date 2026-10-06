@@ -10,7 +10,7 @@ class: knight
 icon: IRON_SHOVEL
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

@@ -9,7 +9,7 @@ class: mage
 icon: AMETHYST_SHARD
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

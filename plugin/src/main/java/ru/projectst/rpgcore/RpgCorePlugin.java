@@ -296,6 +296,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private void saveDefaultContent() {
         for (String name : new String[] {
                 "stats.yml", "statuses.yml", "balance.yml", "rarities.yml", "spawn.yml",
+                "skills/dash.yml",
                 "skills/druid_abyss_bloom.yml", "skills/druid_bark_guard.yml",
                 "skills/druid_bark_react.yml", "skills/druid_beast_call.yml",
                 "skills/druid_beast_ward_tick.yml", "skills/druid_bloom_tick.yml",

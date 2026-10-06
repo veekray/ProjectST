@@ -18,7 +18,7 @@ import ru.projectst.rpgcore.stat.StatOp;
  * id: mage_mana_bolt
  * class: mage
  * tier: 2
- * mana: $mana
+ * cost: $mana
  * cooldown: $cooldown
  *
  * steps:
@@ -59,11 +59,14 @@ public final class SkillLoader {
         // ниже — своими словами, а не общим «обязательный ключ отсутствует».
         String classId = root.str("class", "");
         int tier = root.integer("tier", 1, 5, 1);
-        NumberRef mana = number(root, "mana", errors, "skill", new NumberRef.Literal(0));
+        NumberRef cost = number(root, "cost", errors, "skill", new NumberRef.Literal(0));
+        NumberRef stamina = number(root, "stamina", errors, "skill", new NumberRef.Literal(0));
         NumberRef cooldown = number(root, "cooldown", errors, "skill", new NumberRef.Literal(0));
         SkillTrigger trigger = readTrigger(root, errors);
         int interval = root.integer("every", 1, 12_000, 0);
         boolean internal = root.bool("internal", false);
+        boolean innate = root.bool("innate", false);
+        int charges = root.integer("charges", 1, 10, 1);
         String icon = root.str("icon", SkillDef.DEFAULT_ICON);
         List<String> description = new ArrayList<>(root.strings("description"));
         List<Step> steps = readSteps(root, errors);
@@ -78,8 +81,36 @@ public final class SkillLoader {
             errors.add(root.at(), "id", "идентификатор навыка должен быть в нижнем регистре");
             ok = false;
         }
-        if (classId.isBlank() && !internal) {
+        if (classId.isBlank() && !internal && !innate) {
             errors.add(root.at(), "class", "навык должен принадлежать классу");
+            ok = false;
+        }
+        // Врождённый навык есть у каждого игрока, в том числе у того, кто класс
+        // ещё не выбрал. Принадлежать классу он поэтому не может.
+        if (innate && !classId.isBlank()) {
+            errors.add(root.at(), "class",
+                    "врождённый навык есть у всех, поэтому он не принадлежит классу");
+            ok = false;
+        }
+        // Служебный и врождённый — разные вещи: служебный запускает предмет или
+        // класс, врождённый нажимает сам игрок. Совмещение означало бы, что
+        // непонятно, кто его применяет.
+        if (innate && internal) {
+            errors.add(root.at(), "innate",
+                    "навык не может быть и служебным, и врождённым");
+            ok = false;
+        }
+        if (innate && trigger != SkillTrigger.MANUAL) {
+            errors.add(root.at(), "on", "врождённый навык применяет игрок, а не триггер");
+            ok = false;
+        }
+        // Заряд без перезарядки не возвращается никогда, то есть навык с тремя
+        // зарядами работает три раза за всю игру. Это ровно тот тихий отказ, от
+        // которого проект уходит, поэтому он ловится здесь.
+        if (charges > 1 && cooldown instanceof NumberRef.Literal literal
+                && literal.value() <= 0) {
+            errors.add(root.at(), "charges",
+                    "зарядам нужна перезарядка: без неё потраченный заряд не вернётся");
             ok = false;
         }
         // Служебный навык без класса — это умение предмета: его запускает
@@ -107,8 +138,8 @@ public final class SkillLoader {
         if (!ok) {
             return Optional.empty();
         }
-        return Optional.of(new SkillDef(id, display, classId, tier, mana, cooldown, steps,
-                trigger, interval, internal, icon, description));
+        return Optional.of(new SkillDef(id, display, classId, tier, cost, cooldown, steps,
+                trigger, interval, internal, icon, description, stamina, charges, innate));
     }
 
     /**
@@ -431,12 +462,19 @@ public final class SkillLoader {
             case "dash" -> {
                 NumberRef strength = number(b, "strength", errors, path, null);
                 NumberRef lift = number(b, "lift", errors, path, null);
+                String direction = b.str("direction", "look");
+                if (!direction.equals("look") && !direction.equals("movement")) {
+                    errors.add(b.at(), path + ".direction", "неизвестное направление "
+                            + direction + ", допустимы: look, movement");
+                    yield Optional.empty();
+                }
                 if (strength == null) {
                     errors.add(b.at(), path + ".strength",
                             "обязательный ключ strength отсутствует");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.Dash(strength, lift));
+                yield Optional.of(new Action.Dash(strength, lift,
+                        direction.equals("movement")));
             }
 
             case "approach" -> {

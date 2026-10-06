@@ -12,7 +12,7 @@ class: knight
 icon: BEACON
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

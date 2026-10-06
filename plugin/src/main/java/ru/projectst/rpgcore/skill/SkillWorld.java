@@ -59,7 +59,12 @@ public interface SkillWorld {
     Optional<Position> forwardOf(UUID entity, double distance);
 
     /** Рывок сущности по её собственному взгляду. */
-    void dash(UUID entity, double strength, double lift);
+    /**
+     * Рывок существа.
+     *
+     * @param heading куда двигать; {@code null} — туда, куда существо смотрит
+     */
+    void dash(UUID entity, double strength, double lift, Heading heading);
 
     /**
      * Точка рядом с сущностью по её направлению взгляда.

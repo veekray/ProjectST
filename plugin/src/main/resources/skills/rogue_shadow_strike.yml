@@ -13,7 +13,7 @@ class: rogue
 icon: IRON_SWORD
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

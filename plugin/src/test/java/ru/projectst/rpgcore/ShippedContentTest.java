@@ -201,8 +201,9 @@ class ShippedContentTest {
 
         for (SkillDef skill : content.skills()) {
             if (skill.classId().isBlank()) {
-                assertTrue(skill.internal(),
-                        "без класса бывают только служебные навыки: " + skill.id());
+                assertTrue(skill.internal() || skill.innate(),
+                        "без класса бывают только служебные и врождённые навыки: "
+                                + skill.id());
                 continue;
             }
             assertTrue(classIds.contains(skill.classId()),
@@ -241,6 +242,64 @@ class ShippedContentTest {
             if (skill.internal()) {
                 assertFalse(skill.selectable(), skill.id() + " не должен быть выбираемым");
             }
+        }
+    }
+
+    @Test
+    @DisplayName("врождённый рывок есть, он один, и платит выносливостью")
+    void innateDashIsThere() throws IOException {
+        Content content = load();
+
+        List<SkillDef> innate = content.skills().stream().filter(SkillDef::innate).toList();
+
+        assertEquals(1, innate.size(),
+                () -> "врождённый навык должен быть ровно один: " + innate.stream()
+                        .map(SkillDef::id).toList());
+        SkillDef dash = innate.get(0);
+        assertTrue(dash.classId().isBlank(), "врождённый навык есть у всех, значит без класса");
+        assertFalse(dash.selectable(), "его не изучают и не вешают на слот");
+        assertFalse(dash.internal(), "его нажимает игрок, а не предмет и не триггер класса");
+        assertTrue(dash.charges() > 1, "заряды — половина смысла рывка");
+        assertNotEquals(SkillDef.DEFAULT_ICON, dash.icon(),
+                "рывок рисуется на экране, значок ему нужен так же, как навыку на слоте");
+        assertFalse(dash.description().isEmpty(), "подсказке нужно, что он делает");
+
+        // Платит выносливостью, а не ресурсом класса: иначе уклонение
+        // покупалось бы уроном. Числа — из той же таблицы, что читает бой.
+        var table = content.balance().table(dash.id());
+        assertTrue(dash.staminaCost().resolve(table, 1) > 0,
+                "рывок обязан тратить выносливость: иначе её не из чего тратить вовсе");
+        assertEquals(0, dash.resourceCost().resolve(table, 1),
+                "ресурс класса рывок не трогает");
+        assertTrue(dash.cooldown().resolve(table, 1) > 0,
+                "без перезарядки потраченный заряд не вернётся никогда");
+    }
+
+    @Test
+    @DisplayName("рывок идёт по ходу игрока, а не по взгляду")
+    void dashFollowsMovement() throws IOException {
+        Content content = load();
+        SkillDef dash = content.skills().stream().filter(SkillDef::innate).findFirst()
+                .orElseThrow();
+
+        boolean alongMovement = dash.steps().stream()
+                .flatMap(step -> step.actions().stream())
+                .anyMatch(action -> action instanceof ru.projectst.rpgcore.skill.Action.Dash d
+                        && d.alongMovement());
+
+        assertTrue(alongMovement, "иначе бегущий в сторону игрок прыгнет туда, куда смотрит");
+    }
+
+    @Test
+    @DisplayName("ни один класс не платит выносливостью: она общая и её ест рывок")
+    void noClassPaysWithStamina() throws IOException {
+        Content content = load();
+        var stamina = ru.projectst.rpgcore.classes.ResourceSpec.STAMINA;
+
+        for (ClassDef def : content.classes()) {
+            assertNotEquals(stamina.maxStat(), def.resource().maxStat(),
+                    "класс " + def.id() + " платит выносливостью, из которой платится рывок:"
+                            + " тогда уклонение покупается уроном");
         }
     }
 

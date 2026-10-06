@@ -10,7 +10,7 @@ class: trickster
 icon: BONE
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

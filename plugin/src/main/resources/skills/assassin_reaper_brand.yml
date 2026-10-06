@@ -14,7 +14,7 @@ class: assassin
 icon: NETHER_STAR
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

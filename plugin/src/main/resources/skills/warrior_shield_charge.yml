@@ -10,7 +10,7 @@ class: warrior
 icon: IRON_DOOR
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

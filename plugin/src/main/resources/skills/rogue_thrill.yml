@@ -15,7 +15,7 @@ class: rogue
 icon: RABBIT_FOOT
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

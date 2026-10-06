@@ -9,7 +9,7 @@ class: assassin
 icon: ENDER_PEARL
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

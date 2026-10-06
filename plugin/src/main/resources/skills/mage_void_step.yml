@@ -10,7 +10,7 @@ class: mage
 icon: ENDER_PEARL
 tier: 3
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

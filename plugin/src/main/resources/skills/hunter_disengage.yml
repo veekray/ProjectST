@@ -14,7 +14,7 @@ class: hunter
 icon: IRON_TRAPDOOR
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

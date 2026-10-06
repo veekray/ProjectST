@@ -197,9 +197,13 @@ class SkillRuntimeTest {
             return nextRayHit;
         }
 
+        /** Последнее направление рывка: null — по взгляду. */
+        Heading lastHeading;
+
         @Override
-        public void dash(UUID entity, double strength, double lift) {
-            calls.add("dash " + strength);
+        public void dash(UUID entity, double strength, double lift, Heading heading) {
+            lastHeading = heading;
+            calls.add("dash " + strength + (heading == null ? " по взгляду" : " по ходу"));
         }
 
         @Override
@@ -1329,7 +1333,8 @@ class SkillRuntimeTest {
 
         f.runtime.cast(CASTER, skill, 1);
 
-        assertTrue(f.world.calls.contains("dash 1.4"), f.world.calls.toString());
+        assertTrue(f.world.calls.contains("dash 1.4 по взгляду"),
+                f.world.calls.toString());
         assertTrue(f.world.calls.contains("offset 1.2 behind"), f.world.calls.toString());
         assertTrue(f.world.calls.contains("teleport caster -> 5.0"),
                 "перемещается кастер, а не цель: " + f.world.calls);

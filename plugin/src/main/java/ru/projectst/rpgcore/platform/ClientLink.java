@@ -202,16 +202,33 @@ public final class ClientLink implements PluginMessageListener {
                             NamedTextColor.RED));
                 }
             }
+            case CAST_DASH -> {
+                // Направление считает сервер: от клиента пришло только то, что
+                // он знает лучше, — какие клавиши держит игрок. Поворот берётся
+                // тот, что сервер видит сам, поэтому подменённый мод может
+                // попросить одну из восьми сторон, а не любую точку мира.
+                var heading = ru.projectst.rpgcore.skill.Facing.headingOf(
+                        player.getLocation().getYaw(), request.forward(), request.left());
+                CastOutcome outcome = casts.castInnate(id, heading);
+                if (!outcome.succeeded() && outcome.kind() != CastOutcome.Kind.ON_COOLDOWN) {
+                    player.sendActionBar(Component.text(outcome.toString(), NamedTextColor.RED));
+                }
+            }
             case REFRESH_MENU -> {
                 // Ничего не меняет: ответ уйдёт ниже вместе со всеми остальными.
             }
         }
-        // После любого действия меню и состояние пересобираются: экран с
-        // прежними числами после нажатия — такая же тихая ложь, как стат,
-        // которого нет в мире.
+        // После любого действия состояние пересобирается: экран с прежними
+        // числами после нажатия — такая же тихая ложь, как стат, которого нет в
+        // мире.
         lastSent.remove(id);
         send(player);
-        sendMenu(player);
+        // Меню — только если в нём могло измениться. Оно большое, а нажатие
+        // навыка или рывка меняет одни перезарядки, и те идут состоянием.
+        if (request.action() != Protocol.Action.CAST_SLOT
+                && request.action() != Protocol.Action.CAST_DASH) {
+            sendMenu(player);
+        }
     }
 
     // ------------------------------------------------------------------ отправка
@@ -280,7 +297,8 @@ public final class ClientLink implements PluginMessageListener {
                         skill.tier(), level,
                         ru.projectst.rpgcore.classes.ClassService.MAX_SKILL_LEVEL,
                         def.levelForTier(skill.tier()),
-                        skill.manaCost().resolve(table, atLeast),
+                        skill.resourceCost().resolve(table, atLeast),
+                        skill.staminaCost().resolve(table, atLeast),
                         skill.cooldown().resolve(table, atLeast), boundSlot,
                         damageOf(skill, table, atLeast), skill.description()));
             }
@@ -291,8 +309,9 @@ public final class ClientLink implements PluginMessageListener {
         List<MenuData.StatLine> statLines = new ArrayList<>();
         var snapshot = statValues.snapshot(id);
         for (var def : statDefs.all()) {
-            statLines.add(new MenuData.StatLine(def.id(), def.display(),
-                    snapshot.get(def.id())));
+            double value = snapshot.get(def.id());
+            statLines.add(new MenuData.StatLine(def.id(), def.display(), value,
+                    noteFor(def.id(), value)));
         }
 
         return new MenuData(own.map(ClassDef::id).orElse(""), data.level(), data.xp(),
@@ -380,6 +399,19 @@ public final class ClientLink implements PluginMessageListener {
                     colour == null ? "" : colour));
         }
 
+        // Врождённый рывок: не на слоте и слотов не занимает, поэтому идёт
+        // отдельным полем. Числа — из тех же перезарядок, что считают бой.
+        ClientState.DashLine dash = null;
+        Optional<SkillDef> innate = skills.innate();
+        if (innate.isPresent()) {
+            SkillDef skill = innate.get();
+            int maxCharges = skill.charges();
+            dash = new ClientState.DashLine(skill.id(), skill.display(),
+                    casts.cooldowns().freeCharges(id, skill.id(), maxCharges), maxCharges,
+                    (int) casts.cooldowns().untilNextCharge(id, skill.id()),
+                    (int) Math.max(1, casts.cooldownTicks(id, skill, 1)));
+        }
+
         List<ClientState.CooldownLine> cooldowns = new ArrayList<>();
         List<ClientState.SlotLine> slots = new ArrayList<>();
         int slotCount = def.map(own -> own.slots()).orElse(0);
@@ -394,7 +426,8 @@ public final class ClientLink implements PluginMessageListener {
                     skill.map(SkillDef::display).orElse(skillId),
                     skill.map(SkillDef::icon).orElse(SkillDef.DEFAULT_ICON)));
 
-            long remaining = casts.cooldowns().remaining(id, skillId);
+            long remaining = casts.cooldowns().remaining(id, skillId,
+                    skill.map(SkillDef::charges).orElse(1));
             if (remaining > 0 && skill.isPresent()) {
                 long total = casts.cooldownTicks(id, skill.get(),
                         Math.max(1, classes.skillLevel(id, skillId)));
@@ -403,8 +436,10 @@ public final class ClientLink implements PluginMessageListener {
             }
         }
 
+        var stamina = ru.projectst.rpgcore.classes.ResourceSpec.STAMINA;
         return new ClientState(resource.displayName(id), resource.current(id),
-                resource.max(id), data.level(), def.map(own -> own.display()).orElse(""),
-                statusLines, cooldowns, slots, counterLines);
+                resource.max(id), resource.current(id, stamina), resource.max(id, stamina),
+                data.level(), def.map(own -> own.display()).orElse(""),
+                statusLines, cooldowns, slots, counterLines, dash);
     }
 }

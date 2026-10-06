@@ -29,7 +29,8 @@ import ru.projectst.rpgcore.status.StatusService;
 public final class RpgCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
-            "menu", "cast", "slot", "class", "skills", "unlock", "upgrade", "bind", "mana",
+            "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
+            "resource",
             "progress", "xp", "give", "items", "mobs", "spawn", "convert", "client",
             "reset");
 
@@ -98,7 +99,9 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg cast <навык> §7— применить навык со всеми проверками");
             sender.sendMessage("§e/rpg cast <навык> raw [ур] §7— в обход маны и перезарядки");
             sender.sendMessage("§e/rpg slot <номер> §7— применить навык из слота");
-            sender.sendMessage("§e/rpg mana §7— запас маны и перезарядки");
+            sender.sendMessage("§e/rpg dash §7— врождённый рывок (по взгляду:"
+                    + " направление хода знает только мод)");
+            sender.sendMessage("§e/rpg resource §7— запасы и перезарядки");
             sender.sendMessage("§e/rpg §7— открыть интерфейс (или §f/rpg menu§7)");
             sender.sendMessage("§e/rpg skills §7— навыки своего класса");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
@@ -125,7 +128,10 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "why" -> why(sender, args);
             case "cast" -> cast(sender, args);
             case "slot" -> castSlot(sender, args);
-            case "mana" -> mana(sender);
+            case "dash" -> dash(sender);
+            // «mana» оставлено рядом с «resource»: команда жила под этим именем,
+            // и отнимать её молча — то же, что молчаливый отказ.
+            case "resource", "mana" -> resource(sender);
             case "menu" -> openMenu(sender);
             case "skills" -> listSkills(sender);
             case "progress" -> progress(sender);
@@ -536,8 +542,25 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /** Мана, перезарядки и запрещающий статус — всё, что решает исход нажатия. */
-    private boolean mana(CommandSender sender) {
+    /**
+     * Врождённый рывок из команды.
+     *
+     * <p>Идёт по взгляду, а не по ходу: направление хода знает мод, и в команде
+     * его нет. Сказано об этом в подсказке — рывок, который «иногда не туда»,
+     * выглядел бы поломкой.
+     */
+    private boolean dash(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок");
+            return true;
+        }
+        var out = casts.castInnate(player.getUniqueId(), null);
+        sender.sendMessage((out.succeeded() ? "§a" : "§c") + out);
+        return true;
+    }
+
+    /** Запасы, перезарядки и запрещающий статус — всё, что решает исход нажатия. */
+    private boolean resource(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("§cКоманду выполняет игрок");
             return true;
@@ -546,12 +569,18 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§6" + casts.resource().displayName(id) + ": §f"
                 + trim(Math.floor(casts.resource().current(id)))
                 + "§7/§f" + trim(casts.resource().max(id)));
+        var stamina = ru.projectst.rpgcore.classes.ResourceSpec.STAMINA;
+        sender.sendMessage("§6" + stamina.display() + ": §f"
+                + trim(Math.floor(casts.resource().current(id, stamina)))
+                + "§7/§f" + trim(casts.resource().max(id, stamina)));
         casts.blockingStatus(id).ifPresent(status ->
                 sender.sendMessage("§cКасты запрещены статусом §f" + status.id()));
 
         boolean any = false;
         for (String skillId : content.skills().ids()) {
-            long left = casts.cooldowns().remaining(id, skillId);
+            int charges = content.skills().find(skillId)
+                    .map(ru.projectst.rpgcore.skill.SkillDef::charges).orElse(1);
+            long left = casts.cooldowns().remaining(id, skillId, charges);
             if (left > 0) {
                 sender.sendMessage("§7перезарядка §f" + skillId + " §7— §f"
                         + trim(Math.round(left / 2.0) / 10.0) + " с");

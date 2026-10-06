@@ -10,7 +10,7 @@ class: warlock
 icon: SOUL_LANTERN
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

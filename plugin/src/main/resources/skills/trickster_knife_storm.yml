@@ -10,7 +10,7 @@ class: trickster
 icon: FLINT
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

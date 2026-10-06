@@ -10,7 +10,7 @@ class: assassin
 icon: BLACK_DYE
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

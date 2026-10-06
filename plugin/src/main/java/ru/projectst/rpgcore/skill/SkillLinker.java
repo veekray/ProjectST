@@ -46,6 +46,18 @@ public final class SkillLinker {
         java.util.Set<String> skillIds = new java.util.LinkedHashSet<>();
         skills.forEach(s -> skillIds.add(s.id()));
 
+        // Врождённый навык один. У клавиши рывка нет второго адресата, и
+        // «какой-нибудь из двух» было бы решением, принятым порядком файлов в
+        // папке. Второй врождённый навык потребует своей клавиши и своего поля
+        // в протоколе — и пусть лучше об этом скажет загрузка, чем игрок.
+        List<String> innate = skills.stream().filter(SkillDef::innate)
+                .map(SkillDef::id).sorted().toList();
+        if (innate.size() > 1) {
+            errors.add(SourceRef.ofFile("skills"), "innate",
+                    "врождённых навыков больше одного: " + String.join(", ", innate)
+                            + ". У каждого должна быть своя клавиша, а она одна");
+        }
+
         // Счётчики, которые вообще кто-нибудь заполняет. Ссылка на незаполняемый
         // счётчик даёт нулевой урон — это ровно тот сорт тихого отказа, из-за
         // которого проект затевался, поэтому ловим его здесь.
@@ -66,7 +78,8 @@ public final class SkillLinker {
             SourceRef where = SourceRef.ofFile(skill.id() + ".yml");
             BalanceTable table = balance.table(skill.id());
 
-            checkBalance(skill, where, table, "mana", skill.manaCost(), errors);
+            checkBalance(skill, where, table, "cost", skill.resourceCost(), errors);
+            checkBalance(skill, where, table, "stamina", skill.staminaCost(), errors);
             checkBalance(skill, where, table, "cooldown", skill.cooldown(), errors);
 
             // Навык без класса — умение предмета; его класс проверять нечем.

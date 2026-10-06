@@ -10,7 +10,7 @@ class: warrior
 icon: IRON_SWORD
 tier: 1
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

@@ -9,7 +9,7 @@ class: hunter
 icon: TIPPED_ARROW
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

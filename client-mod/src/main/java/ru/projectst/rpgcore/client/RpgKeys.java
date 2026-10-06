@@ -19,12 +19,19 @@ import ru.projectst.rpgcore.net.Protocol;
  * остальное, и конфликт с чужой клавишей Minecraft покажет сам — своего списка
  * привязок у мода нет намеренно: он бы не знал про чужие моды.
  *
- * <p>По умолчанию клавиши <b>не назначены</b>. Это сознательно: любая цифра уже
- * занята хотбаром, любая буква — чьим-нибудь модом, а мод, который молча
- * перехватывает чужую клавишу, выясняется в бою. Игрок назначает их один раз
- * сам, а до тех пор навык применяется командой {@code /rpg slot}. Поэтому и на
- * экране, и в меню рядом со слотом написано, что клавиша не назначена: молчание
- * выглядело бы как поломка.
+ * <p>По умолчанию клавиши слотов <b>не назначены</b>. Это сознательно: любая
+ * цифра уже занята хотбаром, любая буква — чьим-нибудь модом, а мод, который
+ * молча перехватывает чужую клавишу, выясняется в бою. Игрок назначает их один
+ * раз сам, а до тех пор навык применяется командой {@code /rpg slot}. Поэтому и
+ * на экране, и в меню рядом со слотом написано, что клавиша не назначена:
+ * молчание выглядело бы как поломка.
+ *
+ * <p><b>Рывок — исключение, и назначен на V.</b> Он врождённый: есть у каждого
+ * игрока с первого уровня и до выбора класса. Ненастроенная клавиша у такого
+ * умения читается не как «назначьте сами», а как «рывка в игре нет» — поэтому
+ * тут молчание опаснее чужой клавиши. V в ванили свободна, и переназначить её
+ * можно там же, где всё остальное; подпись на экране всегда показывает ту
+ * клавишу, которая действительно работает.
  */
 @EventBusSubscriber(modid = RpgCoreClient.MOD_ID, value = Dist.CLIENT)
 public final class RpgKeys {
@@ -36,6 +43,7 @@ public final class RpgKeys {
 
     private static final KeyMapping[] SLOT_KEYS = new KeyMapping[SLOTS];
     private static KeyMapping menuKey;
+    private static KeyMapping dashKey;
 
     private RpgKeys() {
     }
@@ -56,6 +64,14 @@ public final class RpgKeys {
             return "не назначено";
         }
         return key.getTranslatedKeyMessage().getString();
+    }
+
+    /** Как подписать клавишу рывка. */
+    public static String dashKeyLabel() {
+        if (dashKey == null || dashKey.isUnbound()) {
+            return "не назначено";
+        }
+        return dashKey.getTranslatedKeyMessage().getString();
     }
 
     /** Как подписать клавишу окна персонажа. */
@@ -86,6 +102,9 @@ public final class RpgKeys {
         menuKey = new KeyMapping("key.rpgcore.menu", InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_K, CATEGORY);
         event.register(menuKey);
+        dashKey = new KeyMapping("key.rpgcore.dash", InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_V, CATEGORY);
+        event.register(dashKey);
     }
 
     /**
@@ -117,6 +136,15 @@ public final class RpgKeys {
                 // отказов в секунду — это сорок строк в строке действия.
                 while (key.consumeClick()) {
                     ActionPayload.send(Protocol.Action.CAST_SLOT, i + 1, "");
+                }
+            }
+            if (dashKey != null) {
+                while (dashKey.consumeClick()) {
+                    // Клавиши движения читаются в момент нажатия, а не
+                    // запоминаются: игрок рывком отвечает на то, что происходит
+                    // сейчас, и прошлый тик здесь был бы прошлым решением.
+                    var input = client.player.input;
+                    ActionPayload.sendDash(input.forwardImpulse, input.leftImpulse);
                 }
             }
             if (menuKey != null) {

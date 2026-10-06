@@ -16,7 +16,7 @@ class: warrior
 icon: GOLDEN_SWORD
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

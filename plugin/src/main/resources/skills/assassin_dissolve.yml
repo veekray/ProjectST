@@ -11,7 +11,7 @@ class: assassin
 icon: GLASS_BOTTLE
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

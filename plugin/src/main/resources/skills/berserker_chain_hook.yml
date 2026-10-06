@@ -9,7 +9,7 @@ class: berserker
 icon: CHAIN
 tier: 2
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

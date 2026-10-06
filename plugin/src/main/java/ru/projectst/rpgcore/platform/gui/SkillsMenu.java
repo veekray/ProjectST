@@ -91,7 +91,7 @@ public final class SkillsMenu extends Menu {
         List<Component> lore = new ArrayList<>();
         lore.add(grey("Ступень ").append(white(String.valueOf(skill.tier()))));
 
-        double cost = skill.manaCost().resolve(
+        double cost = skill.resourceCost().resolve(
                 contextBalance(skill), Math.max(1, level));
         double cooldown = skill.cooldown().resolve(
                 contextBalance(skill), Math.max(1, level));

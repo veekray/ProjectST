@@ -384,9 +384,17 @@ public final class BukkitSkillWorld implements SkillWorld {
     }
 
     @Override
-    public void dash(UUID entityId, double strength, double lift) {
+    public void dash(UUID entityId, double strength, double lift,
+                     ru.projectst.rpgcore.skill.Heading heading) {
         Entity entity = Bukkit.getEntity(entityId);
         if (entity == null) {
+            return;
+        }
+        if (heading != null) {
+            // Длина уже единичная: нормализует её сам Heading, чтобы рывок по
+            // диагонали не уносил дальше, чем рывок вперёд.
+            entity.setVelocity(new Vector(heading.x(), 0, heading.z())
+                    .multiply(strength).setY(lift));
             return;
         }
         Vector look = entity.getLocation().getDirection().setY(0);

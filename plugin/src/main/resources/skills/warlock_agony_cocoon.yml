@@ -15,7 +15,7 @@ class: warlock
 icon: WITHER_ROSE
 tier: 5
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

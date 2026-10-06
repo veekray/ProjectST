@@ -10,7 +10,7 @@ class: trickster
 icon: ENDER_PEARL
 tier: 4
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

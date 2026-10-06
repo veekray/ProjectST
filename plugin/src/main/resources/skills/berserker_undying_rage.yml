@@ -16,7 +16,7 @@ class: berserker
 icon: LAVA_BUCKET
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

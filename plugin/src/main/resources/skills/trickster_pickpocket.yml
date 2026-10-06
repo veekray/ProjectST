@@ -10,7 +10,7 @@ class: trickster
 icon: TRIPWIRE_HOOK
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

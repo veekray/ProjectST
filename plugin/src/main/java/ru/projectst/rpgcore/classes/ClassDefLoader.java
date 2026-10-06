@@ -83,7 +83,12 @@ public final class ClassDefLoader {
 
     /**
      * Ресурс класса. Без раздела — мана: самый частый случай не должен
-     * требовать строки, но плут объявляет выносливость явно.
+     * требовать строки, но воин объявляет силу духа явно.
+     *
+     * <p>Выносливостью платить нельзя, и это не вкусовое ограничение. Из неё
+     * платится врождённый рывок, который есть у каждого игрока; будь она ещё и
+     * ресурсом класса, движение покупалось бы уроном, а «нечем отступить»
+     * означало бы «нечем ударить».
      */
     private static ResourceSpec readResource(YmlMap root, ContentErrors errors) {
         Optional<YmlMap> section = root.mapOpt("resource");
@@ -97,6 +102,14 @@ public final class ClassDefLoader {
         if (display.isBlank() || max.isBlank() || regen.isBlank()) {
             errors.add(body.at(), "resource", "нужны name, max и regen");
             return ResourceSpec.MANA;
+        }
+        if (max.equals(ResourceSpec.STAMINA.maxStat())
+                || regen.equals(ResourceSpec.STAMINA.regenStat())) {
+            errors.add(body.at(), "resource",
+                    "выносливость — общий запас всех игроков, и из неё платится рывок;"
+                            + " класс не может ею платить, для этого есть "
+                            + ResourceSpec.SPIRIT.maxStat());
+            return ResourceSpec.SPIRIT;
         }
         return new ResourceSpec(display, max, regen);
     }

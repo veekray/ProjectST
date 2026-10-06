@@ -531,8 +531,14 @@ public final class CharacterScreen extends Screen {
             lines.add(Component.literal("Урон за попадание: до " + trim(skill.damage()))
                     .withStyle(style -> style.withColor(0xFFD94A3D)));
         }
-        if (skill.mana() > 0) {
-            lines.add(Component.literal("Стоимость: " + trim(skill.mana()))
+        if (skill.stamina() > 0) {
+            // Выносливость — другой запас, и называется своим словом: «цена» без
+            // уточнения означала бы, что платить можно чем-то одним.
+            lines.add(Component.literal("Выносливость: " + trim(skill.stamina()))
+                    .withStyle(style -> style.withColor(RpgStyle.STAMINA)));
+        }
+        if (skill.cost() > 0) {
+            lines.add(Component.literal("Стоимость: " + trim(skill.cost()))
                     .withStyle(style -> style.withColor(0xFF6FA8D9)));
         }
         if (skill.cooldown() > 0) {

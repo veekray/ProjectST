@@ -11,7 +11,7 @@ class: knight
 icon: GOLDEN_SWORD
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

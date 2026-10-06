@@ -13,7 +13,7 @@ class: warlock
 icon: GHAST_TEAR
 tier: 4
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

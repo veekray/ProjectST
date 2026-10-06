@@ -10,7 +10,7 @@ class: striker
 icon: RABBIT_FOOT
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

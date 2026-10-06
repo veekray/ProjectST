@@ -14,7 +14,10 @@ import java.util.Locale;
  * @param display     название для игрока
  * @param classId     класс, которому принадлежит навык
  * @param tier        ступень: с какой её можно открыть
- * @param manaCost    стоимость маны
+ * @param resourceCost стоимость ресурса класса: маны у магов, силы духа у
+     *                    остальных. Называется не «мана» именно поэтому: ключ,
+     *                    названный по одному из одиннадцати классов, читается как
+     *                    ложь в десяти остальных файлах
  * @param cooldown    перезарядка в секундах
  * @param steps       тело навыка
  * @param trigger     что его запускает
@@ -30,16 +33,35 @@ import java.util.Locale;
  *                    работает у всего класса. Нужен для отдач и тиков, которые
  *                    в старом стеке висели безымянными метаскиллами и из-за
  *                    этого попадали игроку в меню наравне с настоящими
+ * @param staminaCost стоимость выносливости: общего запаса, который есть у всех
+ *                    независимо от класса. Отдельно от ресурса класса, потому
+ *                    что это другой запас, а не другое его название
+ * @param charges     сколько раз навык можно применить, не дожидаясь
+ *                    перезарядки. Каждый заряд возвращается сам, через свою
+ *                    перезарядку
+ * @param innate      врождённый: есть у каждого игрока с первого уровня, его не
+ *                    изучают и не вешают на слот. Поэтому он не принадлежит
+ *                    классу — иначе «у всех» означало бы «у всех, кто выбрал
+ *                    класс», а до выбора игрок остался бы без движения
  */
 public record SkillDef(String id, String display, String classId, int tier,
-                       NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                       NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
                        SkillTrigger trigger, int intervalTicks, boolean internal, String icon,
-                       List<String> description) {
+                       List<String> description, NumberRef staminaCost, int charges,
+                       boolean innate) {
 
     public SkillDef(String id, String display, String classId, int tier,
-                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
+                    SkillTrigger trigger, int intervalTicks, boolean internal, String icon,
+                    List<String> description) {
+        this(id, display, classId, tier, resourceCost, cooldown, steps, trigger, intervalTicks,
+                internal, icon, description, new NumberRef.Literal(0), 1, false);
+    }
+
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
                     SkillTrigger trigger, int intervalTicks, boolean internal, String icon) {
-        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+        this(id, display, classId, tier, resourceCost, cooldown, steps, trigger, intervalTicks,
                 internal, icon, List.of());
     }
 
@@ -47,23 +69,23 @@ public record SkillDef(String id, String display, String classId, int tier,
     public static final String DEFAULT_ICON = "PAPER";
 
     public SkillDef(String id, String display, String classId, int tier,
-                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
                     SkillTrigger trigger, int intervalTicks) {
-        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+        this(id, display, classId, tier, resourceCost, cooldown, steps, trigger, intervalTicks,
                 false, DEFAULT_ICON);
     }
 
     public SkillDef(String id, String display, String classId, int tier,
-                    NumberRef manaCost, NumberRef cooldown, List<Step> steps,
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
                     SkillTrigger trigger, int intervalTicks, boolean internal) {
-        this(id, display, classId, tier, manaCost, cooldown, steps, trigger, intervalTicks,
+        this(id, display, classId, tier, resourceCost, cooldown, steps, trigger, intervalTicks,
                 internal, DEFAULT_ICON);
     }
 
     /** Навык, который применяют вручную: самый частый случай. */
     public SkillDef(String id, String display, String classId, int tier,
-                    NumberRef manaCost, NumberRef cooldown, List<Step> steps) {
-        this(id, display, classId, tier, manaCost, cooldown, steps, SkillTrigger.MANUAL, 0);
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps) {
+        this(id, display, classId, tier, resourceCost, cooldown, steps, SkillTrigger.MANUAL, 0);
     }
 
     public SkillDef {
@@ -77,9 +99,21 @@ public record SkillDef(String id, String display, String classId, int tier,
         trigger = trigger == null ? SkillTrigger.MANUAL : trigger;
         icon = icon == null || icon.isBlank() ? DEFAULT_ICON : icon.toUpperCase(Locale.ROOT);
         description = description == null ? List.of() : List.copyOf(description);
+        staminaCost = staminaCost == null ? new NumberRef.Literal(0) : staminaCost;
+        if (charges < 1) {
+            throw new IllegalArgumentException("зарядов у навыка не меньше одного: " + id);
+        }
         if (trigger == SkillTrigger.ON_INTERVAL && intervalTicks < 1) {
             throw new IllegalArgumentException(
                     "периодическому навыку нужен промежуток: " + id);
+        }
+        // Врождённый навык есть у всех, поэтому принадлежать классу он не может
+        // и срабатывать сам тоже: его применяет игрок нажатием.
+        if (innate && !classId.isBlank()) {
+            throw new IllegalArgumentException("врождённый навык без класса: " + id);
+        }
+        if (innate && trigger != SkillTrigger.MANUAL) {
+            throw new IllegalArgumentException("врождённый навык применяют вручную: " + id);
         }
     }
 
@@ -87,8 +121,29 @@ public record SkillDef(String id, String display, String classId, int tier,
         return trigger.passive();
     }
 
+    /**
+     * Двигает ли навык самого кастера.
+     *
+     * <p>Считается по телу навыка, а не объявляется ключом: ключ можно забыть
+     * поставить, и тогда навык молча стал бы работать под корнями. Три действия
+     * двигают кастера — рывок, телепорт и сближение, — и все три здесь, потому
+     * что обездвиженному всё равно, как именно его унесло.
+     */
+    public boolean movesCaster() {
+        for (Step step : steps) {
+            for (Action action : step.actions()) {
+                if (action instanceof Action.Dash
+                        || action instanceof Action.Teleport
+                        || action instanceof Action.Approach) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** Можно ли его изучить и повесить на слот. */
     public boolean selectable() {
-        return !internal && !passive();
+        return !internal && !innate && !passive();
     }
 }

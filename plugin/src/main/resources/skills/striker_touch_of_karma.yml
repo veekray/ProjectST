@@ -10,7 +10,7 @@ class: striker
 icon: ECHO_SHARD
 tier: 3
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

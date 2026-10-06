@@ -12,7 +12,7 @@ class: warlock
 icon: COAL
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

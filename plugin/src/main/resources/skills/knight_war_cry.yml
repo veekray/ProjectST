@@ -10,7 +10,7 @@ class: knight
 icon: GOAT_HORN
 tier: 1
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

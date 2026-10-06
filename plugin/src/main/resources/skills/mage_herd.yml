@@ -16,7 +16,7 @@ class: mage
 icon: LEAD
 tier: 3
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

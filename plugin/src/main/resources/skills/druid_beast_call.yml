@@ -17,7 +17,7 @@ class: druid
 icon: BONE
 tier: 4
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:

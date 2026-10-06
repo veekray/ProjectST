@@ -10,7 +10,7 @@ class: warrior
 icon: GOAT_HORN
 tier: 5
 
-mana: $stamina
+cost: $spirit
 cooldown: $cooldown
 
 description:

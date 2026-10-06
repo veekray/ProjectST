@@ -14,7 +14,7 @@ class: mage
 icon: HEART_OF_THE_SEA
 tier: 2
 
-mana: $mana
+cost: $mana
 cooldown: $cooldown
 
 description:
