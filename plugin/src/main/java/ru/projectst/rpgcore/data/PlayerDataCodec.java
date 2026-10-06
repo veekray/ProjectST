@@ -50,6 +50,12 @@ public final class PlayerDataCodec {
         }
         root.add("levels", levels);
 
+        JsonObject artifacts = new JsonObject();
+        for (Map.Entry<Integer, String> e : data.artifacts().entrySet()) {
+            artifacts.addProperty(String.valueOf(e.getKey()), e.getValue());
+        }
+        root.add("artifacts", artifacts);
+
         return GSON.toJson(root);
     }
 
@@ -108,6 +114,17 @@ public final class PlayerDataCodec {
                 data.setSkillLevel(e.getKey(), Math.max(1, e.getValue().getAsInt()));
             }
         }
+        if (root.has("artifacts")) {
+            for (Map.Entry<String, com.google.gson.JsonElement> e
+                    : root.getAsJsonObject("artifacts").entrySet()) {
+                try {
+                    data.setArtifact(Integer.parseInt(e.getKey()), e.getValue().getAsString());
+                } catch (NumberFormatException ignored) {
+                    throw new PlayerDataException("номер слота артефакта не число: "
+                            + e.getKey());
+                }
+            }
+        }
         return data;
     }
 
@@ -118,10 +135,16 @@ public final class PlayerDataCodec {
      * означает «все изученные на первом уровне» — ровно то, что они и были.
      * Запись здесь всё равно делается явной, чтобы миграция была видна, а не
      * спрятана в терпимости читателя к отсутствующему ключу.
+     *
+     * <p>2 → 3: появились слоты артефактов. Пустые у всех, кто играл до них, —
+     * и это единственное верное значение: артефактов тогда не было.
      */
     private static JsonObject migrate(JsonObject root, int fromSchema) {
         if (fromSchema < 2 && !root.has("levels")) {
             root.add("levels", new JsonObject());
+        }
+        if (fromSchema < 3 && !root.has("artifacts")) {
+            root.add("artifacts", new JsonObject());
         }
         return root;
     }

@@ -25,9 +25,12 @@ public final class MenuListener implements Listener {
         }
         event.setCancelled(true);
         // Щелчки по своему инвентарю при открытом экране тоже отменены выше, но
-        // в действие превращаются только те, что по самому экрану.
+        // экран о них узнаёт: так ячейки артефактов принимают вещи, не отдавая
+        // курсору ничего, что он мог бы потерять или удвоить.
         if (event.getClickedInventory() == event.getInventory()) {
             holder.menu().click(event.getSlot(), event.getClick());
+        } else if (event.getClickedInventory() != null) {
+            holder.menu().clickOwn(event.getSlot(), event.getClick());
         }
     }
 

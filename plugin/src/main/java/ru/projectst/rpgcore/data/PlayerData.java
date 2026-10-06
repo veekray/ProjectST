@@ -23,7 +23,7 @@ public final class PlayerData {
      * Версия схемы. Увеличивается при несовместимом изменении полей; старые
      * файлы поднимаются в {@link PlayerDataCodec}.
      */
-    public static final int SCHEMA_VERSION = 2;
+    public static final int SCHEMA_VERSION = 3;
 
     private final UUID uuid;
     private String classId;
@@ -33,6 +33,16 @@ public final class PlayerData {
     private final Set<String> unlockedSkills = new LinkedHashSet<>();
     private final Map<Integer, String> slotBindings = new LinkedHashMap<>();
     private final Map<String, Integer> skillLevels = new LinkedHashMap<>();
+
+    /**
+     * Артефакты в слотах: номер слота → предмет, записанный строкой.
+     *
+     * <p>Строкой, а не предметом, намеренно: этот слой про сохранение и про
+     * Bukkit не знает — иначе данные игрока нельзя было бы ни прочитать, ни
+     * проверить тестом без запущенного сервера. Что внутри строки, знает
+     * платформа, и только она.
+     */
+    private final Map<Integer, String> artifacts = new LinkedHashMap<>();
 
     public PlayerData(UUID uuid) {
         if (uuid == null) {
@@ -136,5 +146,63 @@ public final class PlayerData {
 
     public void unbind(int slot) {
         slotBindings.remove(slot);
+    }
+
+    // ------------------------------------------------------------------ артефакты
+
+    /** Артефакты по слотам: номер → запись предмета. */
+    public Map<Integer, String> artifacts() {
+        return artifacts;
+    }
+
+    /** Запись артефакта в слоте; {@code null} — слот пуст. */
+    public String artifact(int slot) {
+        return artifacts.get(slot);
+    }
+
+    /**
+     * Кладёт или убирает артефакт.
+     *
+     * <p>Пустая запись убирает: «слот есть, а в нём пустая строка» — состояние,
+     * которое потом приходится проверять в каждом чтении.
+     */
+    public void setArtifact(int slot, String encoded) {
+        if (slot < 1) {
+            throw new IllegalArgumentException("номер слота артефакта не меньше 1");
+        }
+        if (encoded == null || encoded.isBlank()) {
+            artifacts.remove(slot);
+        } else {
+            artifacts.put(slot, encoded);
+        }
+    }
+
+    /**
+     * Первый свободный слот артефакта из {@code count}; ноль — свободных нет.
+     *
+     * <p>Первый, а не последний: игрок кладёт артефакты слева направо, и «ушёл
+     * в пятый, потому что первый освободился» читается как ошибка.
+     */
+    public int firstFreeArtifactSlot(int count) {
+        for (int slot = 1; slot <= count; slot++) {
+            if (!artifacts.containsKey(slot)) {
+                return slot;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Слоты за пределами нынешнего числа слотов.
+     *
+     * <p>Бывает, когда число слотов на сервере уменьшили. Статов такие артефакты
+     * не дают — и пропадать тоже не должны: их нужно вернуть владельцу, а не
+     * потерять, поэтому они перечислимы.
+     */
+    public java.util.List<Integer> artifactsBeyond(int count) {
+        java.util.List<Integer> out = new java.util.ArrayList<>();
+        artifacts.keySet().stream().filter(slot -> slot > count).sorted()
+                .forEach(out::add);
+        return out;
     }
 }

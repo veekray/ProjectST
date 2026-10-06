@@ -31,8 +31,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
             "resource",
-            "progress", "xp", "give", "items", "forge", "mobs", "spawn", "convert",
-            "client", "reset");
+            "progress", "xp", "give", "items", "forge", "artifacts", "mobs", "spawn",
+            "convert", "client", "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
@@ -107,9 +107,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg resource §7— запасы и перезарядки");
             sender.sendMessage("§e/rpg §7— открыть интерфейс (или §f/rpg menu§7)");
             sender.sendMessage("§e/rpg skills §7— навыки своего класса");
+            sender.sendMessage("§e/rpg artifacts §7— ячейки артефактов: положить и забрать");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
-            sender.sendMessage("§e/rpg items §7— список предметов");
+            sender.sendMessage("§e/rpg items §7— предметы: окно у администратора,"
+                    + " список в чате у остальных");
             sender.sendMessage("§e/rpg give <предмет> [сколько] §7— выдать себе предмет");
             sender.sendMessage("§e/rpg forge §7— верстак: собрать предмет со статами"
                     + " и получить его в руки");
@@ -139,10 +141,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "resource", "mana" -> resource(sender);
             case "menu" -> openMenu(sender);
             case "skills" -> listSkills(sender);
+            case "artifacts" -> openArtifacts(sender);
             case "progress" -> progress(sender);
             case "xp" -> giveXp(sender, args);
             case "give" -> give(sender, args);
-            case "items" -> listItems(sender);
+            case "items" -> items(sender);
             case "forge" -> forge(sender);
             case "mobs" -> listMobs(sender);
             case "spawn" -> spawnMob(sender, args);
@@ -180,6 +183,22 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                 + "§7, рецептов: §f" + added
                 + "§7, мобов: §f" + content.mobs().size());
         return true;
+    }
+
+    /**
+     * Предметы: окно или список.
+     *
+     * <p>Окно открывается тому, кто может с предметами что-то сделать: из него
+     * предмет выдаётся и открывается в верстаке, а это права администратора.
+     * Остальным остаётся список в чате — он ничего не меняет и никому не вредит.
+     */
+    private boolean items(CommandSender sender) {
+        if (sender instanceof Player player && sender.hasPermission(PERMISSION_ADMIN)) {
+            new ru.projectst.rpgcore.platform.gui.ForgeItemsMenu(forgeMenus, player, 0)
+                    .open(player);
+            return true;
+        }
+        return listItems(sender);
     }
 
     /**
@@ -615,6 +634,21 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     }
 
     /** Интерфейс. Те же правила, что у команд: экран спрашивает те же сервисы. */
+    /**
+     * Ячейки артефактов.
+     *
+     * <p>Не админская: это свои вещи игрока. Открывается и отсюда, и кнопкой в
+     * окне персонажа — командой, потому что окно можно открыть не только мышью.
+     */
+    private boolean openArtifacts(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cКоманду выполняет игрок: ячейки — это окно");
+            return true;
+        }
+        new ru.projectst.rpgcore.platform.gui.ArtifactsMenu(menus, player).open(player);
+        return true;
+    }
+
     private boolean openMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("§cИнтерфейс открывает игрок");

@@ -18,8 +18,16 @@ import ru.projectst.rpgcore.item.ItemDef;
  * <p>Список берётся из {@code ContentService} каждый раз: после сохранения в
  * верстаке реестр заменяется целиком, и экран, запомнивший прежний, показывал бы
  * предмет, которого уже нет.
+ *
+ * <p>Выдача и правка — права администратора, и проверяются они здесь, при самом
+ * действии, а не только там, где окно открывают. Проверка «на входе» держится,
+ * пока окно нельзя открыть вторым способом, — а способов со временем становится
+ * больше.
  */
 public final class ForgeItemsMenu extends Menu {
+
+    /** То же право, что у админских подкоманд: два разных означали бы два ответа. */
+    private static final String ADMIN = "rpgcore.admin";
 
     private static final int[] GRID = {10, 11, 12, 13, 14, 15, 16,
                                        19, 20, 21, 22, 23, 24, 25,
@@ -72,6 +80,12 @@ public final class ForgeItemsMenu extends Menu {
                 icon.setItemMeta(meta);
             }
             onClick(GRID[i], icon, type -> {
+                if (!player.hasPermission(ADMIN)) {
+                    player.sendMessage(Component.text(
+                            "Выдавать и править предметы может администратор",
+                            NamedTextColor.RED));
+                    return;
+                }
                 if (type.isRightClick()) {
                     var leftover = player.getInventory()
                             .addItem(context.items().build(def, 1));
@@ -102,9 +116,16 @@ public final class ForgeItemsMenu extends Menu {
                     () -> new ForgeItemsMenu(context, player, page + 1).open(player));
         }
 
-        put(45, item(Material.ARROW, yellow("Назад в верстак"), List.of(
-                        grey("Предметов: " + all.size()),
+        boolean admin = player.hasPermission(ADMIN);
+        put(45, item(Material.ARROW, admin ? yellow("Назад в верстак") : yellow("Закрыть"),
+                        List.of(grey("Предметов: " + all.size()),
                         grey("Страница " + (Math.min(page, pages - 1) + 1) + " из " + pages))),
-                () -> new ForgeMenu(context, player).open(player));
+                () -> {
+                    if (admin) {
+                        new ForgeMenu(context, player).open(player);
+                    } else {
+                        player.closeInventory();
+                    }
+                });
     }
 }

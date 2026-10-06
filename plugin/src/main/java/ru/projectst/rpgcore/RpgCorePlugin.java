@@ -60,6 +60,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private PlayerDataStore data;
     private ClassService classService;
     private ResourcePool resources;
+    private ru.projectst.rpgcore.platform.ArtifactSlots artifactSlots;
     private ru.projectst.rpgcore.platform.ItemForge itemForge;
     private ru.projectst.rpgcore.platform.gui.ChatPrompt chatPrompt;
     private ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
@@ -78,6 +79,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        // Настройки сервера первыми: по ним собираются службы, и читать их
+        // посреди сборки значило бы помнить, что уже прочитано, а что ещё нет.
+        saveDefaultConfig();
         saveDefaultContent();
 
         content = new ContentService(getDataFolder().toPath());
@@ -126,12 +130,17 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // Реестр передаётся ссылкой на метод, а не значением: перечитывание
         // контента заменяет реестр целиком, и запомненный устарел бы молча.
         rpgItems = new RpgItems(this, content::items);
-        equipment = new EquipmentWatcher(rpgItems, stats, classService);
+        // Ячейки артефактов: число — настройка сервера, потому что это вопрос
+        // того, насколько снаряжение решает, а не правило одного класса.
+        artifactSlots = new ru.projectst.rpgcore.platform.ArtifactSlots(data, rpgItems,
+                getConfig().getInt("artifact-slots", 4), message -> getLogger().warning(message));
+        equipment = new EquipmentWatcher(rpgItems, stats, classService, artifactSlots);
         recipes = new RecipeRegistrar(this, rpgItems, content.items());
         int added = recipes.reload(content.recipes());
 
         MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
-                content.stats(), classService, casts, stats, statuses);
+                content.stats(), classService, casts, stats, statuses, artifactSlots,
+                rpgItems, equipment);
 
         // Верстак предметов: собранный в игре предмет становится файлом контента.
         // Нужен проверке навыков — статы снаряжения иначе не подобрать.
@@ -159,8 +168,6 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             getLogger().severe("команда rpg не объявлена в plugin.yml");
         }
 
-        // Настройки сервера: единственный файл, который не про контент.
-        saveDefaultConfig();
         modGate = new ModGate(this, clientLink, getConfig().getBoolean("require-mod", true),
                 getConfig().getInt("mod-grace-seconds", 12));
 
