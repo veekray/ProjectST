@@ -154,7 +154,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // игрока в любой момент, а отсутствие мода ничего не меняет — состояние
         // уходит только тем, кто поздоровался.
         clientLink = new ClientLink(this, classService, casts, statuses, content.statuses(),
-                content.playerClasses(), content.skills(), content.stats(), stats);
+                content.playerClasses(), content.skills(), content.stats(), stats,
+                artifactSlots, equipment, rpgItems);
         clientLink.register();
 
         var command = getCommand("rpg");

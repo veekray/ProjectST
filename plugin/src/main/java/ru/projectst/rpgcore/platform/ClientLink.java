@@ -59,6 +59,9 @@ public final class ClientLink implements PluginMessageListener {
     private final SkillRegistry skills;
     private final StatRegistry statDefs;
     private final StatService statValues;
+    private final ArtifactSlots artifacts;
+    private final EquipmentWatcher equipment;
+    private final RpgItems rpgItems;
 
     /** Кто поздоровался и с какой версией мода. */
     private final Map<UUID, String> connected = new ConcurrentHashMap<>();
@@ -69,7 +72,8 @@ public final class ClientLink implements PluginMessageListener {
     public ClientLink(Plugin plugin, ClassService classes, CastService casts,
                       StatusService statuses, StatusRegistry statusDefs,
                       ClassRegistry classDefs, SkillRegistry skills, StatRegistry statDefs,
-                      StatService statValues) {
+                      StatService statValues, ArtifactSlots artifacts,
+                      EquipmentWatcher equipment, RpgItems rpgItems) {
         this.plugin = plugin;
         this.classes = classes;
         this.casts = casts;
@@ -79,6 +83,9 @@ public final class ClientLink implements PluginMessageListener {
         this.skills = skills;
         this.statDefs = statDefs;
         this.statValues = statValues;
+        this.artifacts = artifacts;
+        this.equipment = equipment;
+        this.rpgItems = rpgItems;
     }
 
     /** Регистрирует каналы. Без этого Bukkit молча не доставит ни одного байта. */
@@ -214,6 +221,8 @@ public final class ClientLink implements PluginMessageListener {
                     player.sendActionBar(Component.text(outcome.toString(), NamedTextColor.RED));
                 }
             }
+            case ARTIFACT_TAKE -> takeArtifact(player, request.number());
+            case ARTIFACT_PUT -> putArtifact(player, request.number());
             case REFRESH_MENU -> {
                 // Ничего не меняет: ответ уйдёт ниже вместе со всеми остальными.
             }
@@ -229,6 +238,119 @@ public final class ClientLink implements PluginMessageListener {
                 && request.action() != Protocol.Action.CAST_DASH) {
             sendMenu(player);
         }
+    }
+
+    /**
+     * Забрать артефакт из ячейки.
+     *
+     * <p>Те же правила, что в окне инвентаря, и тот же порядок: ячейка не
+     * очищается, пока предмет не поместился в инвентарь целиком. Предмет,
+     * пропавший из-за полного инвентаря, — это потерянная вещь, а не неудобство.
+     */
+    private void takeArtifact(Player player, int slot) {
+        UUID id = player.getUniqueId();
+        var stored = artifacts.get(id, slot);
+        if (stored.isEmpty()) {
+            return;
+        }
+        if (!player.getInventory().addItem(stored.get()).isEmpty()) {
+            player.sendActionBar(Component.text("В инвентаре нет места для артефакта",
+                    NamedTextColor.RED));
+            return;
+        }
+        artifacts.set(id, slot, null);
+        equipment.apply(player);
+    }
+
+    /**
+     * Положить в ячейку то, что игрок держит в руке.
+     *
+     * <p>Из руки, а не по номеру в инвентаре: что в руке, сервер видит сам, и
+     * просьба не может указать на предмет, которого у игрока нет. Занятую ячейку
+     * не подменяем — сначала забрать: обмен одним нажатием означал бы предмет,
+     * который на мгновение не лежит нигде.
+     */
+    private void putArtifact(Player player, int slot) {
+        UUID id = player.getUniqueId();
+        if (slot < 1 || slot > artifacts.slotCount()) {
+            return;
+        }
+        if (artifacts.get(id, slot).isPresent()) {
+            player.sendActionBar(Component.text("Ячейка занята: сначала заберите артефакт",
+                    NamedTextColor.RED));
+            return;
+        }
+        var hand = player.getInventory().getItemInMainHand();
+        String refusal = artifacts.refusal(hand);
+        if (!refusal.isEmpty()) {
+            player.sendActionBar(Component.text(refusal, NamedTextColor.RED));
+            return;
+        }
+
+        // Ровно один предмет из стопки: в ячейке лежит артефакт, а не стопка.
+        var one = hand.clone();
+        one.setAmount(1);
+        hand.setAmount(hand.getAmount() - 1);
+        player.getInventory().setItemInMainHand(hand.getAmount() <= 0 ? null : hand);
+
+        artifacts.set(id, slot, one);
+        equipment.apply(player);
+    }
+
+    /**
+     * Ячейки артефактов для книги героя.
+     *
+     * <p>Записи есть и у пустых: мод рисует все ячейки, и отдельное число
+     * «сколько их» однажды разошлось бы со списком.
+     *
+     * <p>Строки надбавок собираются здесь, а не в моде: они обязаны быть теми
+     * же, которыми считает бой, а второй расчёт — хоть в моде, хоть рядом —
+     * однажды разойдётся.
+     */
+    private List<MenuData.ArtifactLine> artifactLines(Player player) {
+        UUID id = player.getUniqueId();
+        List<MenuData.ArtifactLine> lines = new ArrayList<>();
+        if (artifacts.slotCount() <= 0) {
+            return lines;
+        }
+        String playerClass = classes.classOf(id).map(ClassDef::id).orElse(null);
+        int level = classes.snapshot(id).level();
+        var worn = artifacts.all(id);
+
+        for (int slot = 1; slot <= artifacts.slotCount(); slot++) {
+            var stack = worn.get(slot);
+            var def = rpgItems.defOf(stack);
+            if (def.isEmpty()) {
+                lines.add(new MenuData.ArtifactLine(slot, "", "", "", "", List.of(), ""));
+                continue;
+            }
+            var item = def.get();
+            List<String> rows = new ArrayList<>();
+            item.stats().forEach((statId, line) -> rows.add(statLine(statId, line)));
+            lines.add(new MenuData.ArtifactLine(slot, item.id(), item.display(),
+                    item.material(), rpgItems.registry().rarity(item.rarityId()).color(),
+                    rows, item.requirement().refusal(playerClass, level)));
+        }
+        return lines;
+    }
+
+    /** Надбавка строкой: тем же видом, что в описании предмета. */
+    private static String statLine(String statId,
+                                   ru.projectst.rpgcore.item.ItemDef.ItemStatLine line) {
+        return switch (line.op()) {
+            case FLAT -> sign(line.value()) + number(line.value()) + " " + statId;
+            case PERCENT -> sign(line.value()) + number(line.value()) + "% " + statId;
+            case MULT -> "×" + number(line.value()) + " " + statId;
+        };
+    }
+
+    private static String sign(double value) {
+        return value >= 0 ? "+" : "";
+    }
+
+    private static String number(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value)
+                : String.valueOf(Math.round(value * 10) / 10.0);
     }
 
     // ------------------------------------------------------------------ отправка
@@ -316,7 +438,8 @@ public final class ClientLink implements PluginMessageListener {
 
         return new MenuData(own.map(ClassDef::id).orElse(""), data.level(), data.xp(),
                 classes.xpToNextLevel(id), data.unspentPoints(),
-                own.map(ClassDef::slots).orElse(0), classLines, skillLines, statLines);
+                own.map(ClassDef::slots).orElse(0), classLines, skillLines, statLines,
+                artifactLines(player));
     }
 
     /**

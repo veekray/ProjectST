@@ -69,11 +69,21 @@ class StateCodecTest {
                         List.of("Рывок по взгляду.", "Дёшево и быстро."))),
                 List.of(new MenuData.StatLine("physical_damage", "Физический урон", 12.5),
                         new MenuData.StatLine("physical_defense", "Физическая защита", 150,
-                                "режет 60% урона")));
+                                "режет 60% урона")),
+                List.of(new MenuData.ArtifactLine(1, "ring_of_dusk", "Перстень сумерек",
+                                "GOLD_INGOT", "LIGHT_PURPLE",
+                                List.of("+12 physical_damage", "×1.2 critical_strike_power"),
+                                ""),
+                        new MenuData.ArtifactLine(2, "", "", "", "", List.of(), ""),
+                        new MenuData.ArtifactLine(3, "seal_of_order", "Печать порядка",
+                                "PAPER", "GOLD", List.of("+40 max_mana"),
+                                "только для класса mage")));
 
         MenuData back = StateCodec.readMenu(StateCodec.writeMenu(menu));
 
         assertEquals(menu.classId(), back.classId());
+        assertEquals(menu.artifacts(), back.artifacts(),
+                "ячейки артефактов: и занятые, и пустые, и причина, по которой не действует");
         assertEquals(menu.level(), back.level());
         assertEquals(menu.points(), back.points());
         assertEquals(menu.slots(), back.slots());

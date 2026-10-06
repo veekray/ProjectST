@@ -152,6 +152,18 @@ public final class RpgStyle {
         }
     }
 
+    /**
+     * Гнездо артефакта: обводка и лёгкая тень под значком.
+     *
+     * <p>Красная обводка означает «лежит, но не действует»: не тот класс или
+     * мало уровня. Цветом, а не надписью, потому что надпись в двадцать четыре
+     * пиксела не влезает, а обводку видно боковым зрением.
+     */
+    public static void socket(GuiGraphics graphics, int x, int y, int size, boolean alarm) {
+        graphics.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0x33000000);
+        graphics.renderOutline(x, y, size, size, alarm ? INK_BAD : HAIR);
+    }
+
     /** Гнездо: только обводка. Заливка здесь спорила бы со значком внутри. */
     public static void slot(GuiGraphics graphics, int x, int y, int width, int height,
                             boolean hot) {

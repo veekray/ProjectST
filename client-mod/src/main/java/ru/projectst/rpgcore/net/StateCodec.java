@@ -227,6 +227,20 @@ public final class StateCodec {
                 out.writeFloat((float) line.value());
                 writeString(out, line.note());
             }
+
+            out.writeByte(Math.min(255, menu.artifacts().size()));
+            for (MenuData.ArtifactLine line : limit(menu.artifacts())) {
+                out.writeByte(line.slot());
+                writeString(out, line.itemId());
+                writeString(out, line.display());
+                writeString(out, line.material());
+                writeString(out, line.color());
+                writeString(out, line.refusal());
+                out.writeByte(Math.min(255, line.lines().size()));
+                for (String row : limit(line.lines())) {
+                    writeString(out, row);
+                }
+            }
         });
     }
 
@@ -282,8 +296,26 @@ public final class StateCodec {
                 stats.add(new MenuData.StatLine(readString(in), readString(in),
                         in.readFloat(), readString(in)));
             }
+
+            int artifactCount = in.readUnsignedByte();
+            List<MenuData.ArtifactLine> artifacts = new ArrayList<>(artifactCount);
+            for (int i = 0; i < artifactCount; i++) {
+                int slot = in.readUnsignedByte();
+                String itemId = readString(in);
+                String display = readString(in);
+                String material = readString(in);
+                String color = readString(in);
+                String refusal = readString(in);
+                int rows = in.readUnsignedByte();
+                List<String> lines = new ArrayList<>(rows);
+                for (int row = 0; row < rows; row++) {
+                    lines.add(readString(in));
+                }
+                artifacts.add(new MenuData.ArtifactLine(slot, itemId, display, material,
+                        color, lines, refusal));
+            }
             return new MenuData(classId, level, xp, xpToNext, points, slots, classes, skills,
-                    stats);
+                    stats, artifacts);
         });
     }
 

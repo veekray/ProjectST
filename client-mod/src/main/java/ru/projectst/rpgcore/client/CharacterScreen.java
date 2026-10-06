@@ -64,6 +64,11 @@ public final class CharacterScreen extends Screen {
     /** Ширина левой колонки вкладки героя. */
     private static final int HERO_COLUMN = 160;
 
+    /** Сторона гнезда артефакта: ванильный значок предмета плюс рамка. */
+    private static final int ARTIFACT_CELL = 24;
+    /** Шаг ряда гнёзд: гнёзда не должны слипаться. */
+    private static final int ARTIFACT_STEP = 28;
+
     /** Куда вернуться по Esc; null — закрыть совсем. */
     private final Screen parent;
 
@@ -180,12 +185,58 @@ public final class CharacterScreen extends Screen {
             case SKILLS -> renderSkills(graphics, menu, contentX(), contentY(), mouseX, mouseY);
         }
 
+        // Подсказка ячейки артефакта: тоже поверх страницы.
+        if (tab == Tab.HERO && !menu.classId().isEmpty()) {
+            artifactTooltip(graphics, menu, mouseX, mouseY);
+        }
+
         // Подпись закладки под курсором рисуется последней: поверх страницы.
         for (Tab value : Tab.values()) {
             if (RpgStyle.hit(mouseX, mouseY, tabX(value), tabY(), TAB_SIZE, TAB_SIZE)) {
                 graphics.renderTooltip(font, Component.literal(value.title()), mouseX, mouseY);
             }
         }
+    }
+
+    /** Подсказка над ячейкой артефакта: что лежит, что даёт и что с этим делать. */
+    private void artifactTooltip(GuiGraphics graphics, MenuData menu, int mouseX, int mouseY) {
+        MenuData.ArtifactLine line = artifactAt(menu, mouseX, mouseY);
+        if (line == null) {
+            return;
+        }
+        List<Component> about = new ArrayList<>();
+        if (line.empty()) {
+            about.add(Component.literal("Ячейка артефакта " + line.slot())
+                    .withStyle(style -> style.withColor(RpgStyle.INK_TITLE)));
+            about.add(Component.literal("Пусто")
+                    .withStyle(style -> style.withColor(RpgStyle.INK_DIM)));
+            about.add(Component.literal("Щелчок — вставить то, что в руке")
+                    .withStyle(style -> style.withColor(RpgStyle.INK)));
+        } else {
+            about.add(Component.literal(line.display())
+                    .withStyle(style -> style.withColor(
+                            RpgHud.colourOf(line.color(), "BUFF"))));
+            line.lines().forEach(row -> about.add(Component.literal(row)
+                    .withStyle(style -> style.withColor(RpgStyle.INK_GOOD))));
+            if (!line.refusal().isEmpty()) {
+                about.add(Component.literal("Не действует: " + line.refusal())
+                        .withStyle(style -> style.withColor(RpgStyle.INK_BAD)));
+            }
+            about.add(Component.literal("Щелчок — забрать в инвентарь")
+                    .withStyle(style -> style.withColor(RpgStyle.INK)));
+        }
+        graphics.renderComponentTooltip(font, about, mouseX, mouseY);
+    }
+
+    /** Ячейка под курсором или {@code null}. */
+    private MenuData.ArtifactLine artifactAt(MenuData menu, double mouseX, double mouseY) {
+        for (MenuData.ArtifactLine line : menu.artifacts()) {
+            if (RpgStyle.hit(mouseX, mouseY, artifactX(contentX(), line.slot()),
+                    artifactCellY(line.slot()), ARTIFACT_CELL, ARTIFACT_CELL)) {
+                return line;
+            }
+        }
+        return null;
     }
 
     /** Что написать золотом на планке: кто ты и какого уровня. */
@@ -230,9 +281,14 @@ public final class CharacterScreen extends Screen {
     /**
      * Герой и статы на одной странице.
      *
-     * <p>Слева то, что растёт со временем: опыт, очки, ресурс, ядро класса.
-     * Справа то, что растёт от снаряжения: статы. Между ними черта — две
-     * колонки без неё читаются как один сбившийся список.
+     * <p>Слева то, чем игрок распоряжается: очки, опыт и ячейки артефактов.
+     * Справа то, что из этого получается: статы. Между ними черта — две колонки
+     * без неё читаются как один сбившийся список.
+     *
+     * <p>Полос запаса и счётчиков ядра здесь нет намеренно. Они уже есть на
+     * экране, поверх мира, и смотрят на них в бою, а не в открытой книге. Одно и
+     * то же число в двух местах — это два места, где оно может разойтись, и
+     * лишний повод открыть книгу посреди драки.
      */
     private void renderHero(GuiGraphics graphics, MenuData menu, int x, int y,
                             int mouseX, int mouseY) {
@@ -277,7 +333,7 @@ public final class CharacterScreen extends Screen {
         }
     }
 
-    /** Левая колонка: опыт, очки, ресурс и ядро класса. */
+    /** Левая колонка: очки, опыт и ячейки артефактов. */
     private void renderProgress(GuiGraphics graphics, MenuData menu, int x, int y,
                                 int barWidth) {
         RpgStyle.caption(graphics, x, y, barWidth, "Герой");
@@ -304,44 +360,87 @@ public final class CharacterScreen extends Screen {
                     RpgStyle.INK_BAD, false);
         }
 
-        int resourceLine = line + 26;
-        ClientNetwork.state().ifPresent(state -> {
-            RpgStyle.bar(graphics, x, resourceLine, barWidth, 6,
-                    state.resourceMax() <= 0 ? 0 : state.resource() / state.resourceMax(),
-                    RpgStyle.RESOURCE);
-            graphics.drawString(font, Component.literal(state.resourceName() + ": "
-                            + Math.round(Math.floor(state.resource())) + " / "
-                            + Math.round(state.resourceMax())),
-                    x, resourceLine + 10, RpgStyle.INK_MANA, false);
+        renderArtifacts(graphics, menu, x, barWidth);
+    }
 
-            if (state.counters().isEmpty()) {
-                return;
-            }
-            RpgStyle.caption(graphics, x, resourceLine + 28, barWidth, "Ядро класса");
+    /**
+     * Ячейки артефактов.
+     *
+     * <p>Значок — настоящий ванильный предмет, а не нарисованный: артефакт в
+     * сумке и артефакт в ячейке должны выглядеть одинаково, иначе игрок не
+     * узнаёт свою вещь.
+     *
+     * <p>Пустая ячейка видна пустой рамкой. Ячейка, в которой артефакт лежит, но
+     * не действует — не тот класс, мало уровня, — обведена красным: предмет на
+     * месте, а статов нет, и причина должна быть видна, а не выясняться.
+     */
+    private void renderArtifacts(GuiGraphics graphics, MenuData menu, int x,
+                                 int barWidth) {
+        if (menu.artifacts().isEmpty()) {
+            return;
+        }
+        RpgStyle.caption(graphics, x, artifactCaptionY(), barWidth, "Артефакты");
 
-            int counterLine = resourceLine + 48;
-            for (var counter : state.counters()) {
-                graphics.drawString(font, Component.literal(counter.display()), x,
-                        counterLine, RpgStyle.INK, false);
-                int colour = RpgHud.colourOf(counter.color(), "BUFF");
-                int pips = Math.max(1, counter.maxStacks());
-                if (pips <= 10) {
-                    int pipX = x + barWidth - pips * 10;
-                    for (int i = 0; i < pips; i++) {
-                        RpgStyle.pip(graphics, pipX, counterLine - 1, 8,
-                                i < counter.stacks(), colour);
-                        pipX += 10;
-                    }
-                } else {
-                    RpgStyle.bar(graphics, x + barWidth - 74, counterLine, 50, 5,
-                            (double) counter.stacks() / pips, colour);
-                    graphics.drawString(font,
-                            Component.literal(counter.stacks() + "/" + pips),
-                            x + barWidth - 20, counterLine, RpgStyle.INK, false);
-                }
-                counterLine += 14;
+        for (MenuData.ArtifactLine line : menu.artifacts()) {
+            int cellX = artifactX(x, line.slot());
+            int cellY = artifactCellY(line.slot());
+            boolean bad = !line.empty() && !line.refusal().isEmpty();
+            RpgStyle.socket(graphics, cellX, cellY, ARTIFACT_CELL, bad);
+            if (!line.empty()) {
+                graphics.renderItem(itemOf(line.material()), cellX + 4, cellY + 4);
             }
-        });
+        }
+    }
+
+    /**
+     * Сколько гнёзд влезает в ряд левой колонки.
+     *
+     * <p>Считается из её ширины, а не задано числом: семь гнёзд подряд вылезли
+     * бы на колонку статов, и обнаружилось бы это только на сервере, где ячеек
+     * настроили семь.
+     */
+    private int artifactPerRow() {
+        return Math.max(1, HERO_COLUMN / ARTIFACT_STEP);
+    }
+
+    private int artifactX(int columnX, int slot) {
+        return columnX + ((slot - 1) % artifactPerRow()) * ARTIFACT_STEP;
+    }
+
+    private int artifactCellY(int slot) {
+        return artifactRowY() + ((slot - 1) / artifactPerRow()) * ARTIFACT_STEP;
+    }
+
+    /**
+     * Где стоит подпись «Артефакты» и где — сам ряд гнёзд.
+     *
+     * <p>Посчитано в одном месте: отрисовка и попадание курсора обязаны считать
+     * одинаково, а две копии одной арифметики расходятся на первой же правке
+     * отступа — и тогда щелчок попадает мимо того, что нарисовано.
+     */
+    private int artifactCaptionY() {
+        return contentY() + 66;
+    }
+
+    private int artifactRowY() {
+        return artifactCaptionY() + 20;
+    }
+
+    /**
+     * Предмет по имени материала.
+     *
+     * <p>Имена совпадают с ванильными: сервер присылает то, что написано в файле
+     * предмета. Неизвестное имя даёт воздух — пустое гнездо вместо значка, и это
+     * честнее подстановки чужого предмета.
+     */
+    private static net.minecraft.world.item.ItemStack itemOf(String material) {
+        var key = net.minecraft.resources.ResourceLocation.tryParse(
+                material.toLowerCase(java.util.Locale.ROOT));
+        if (key == null) {
+            return net.minecraft.world.item.ItemStack.EMPTY;
+        }
+        return new net.minecraft.world.item.ItemStack(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(key));
     }
 
     /**
@@ -642,6 +741,19 @@ public final class CharacterScreen extends Screen {
             if (row >= 0 && row < menu.classes().size()) {
                 ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0,
                         menu.classes().get(row).id());
+                return true;
+            }
+        }
+
+        if (tab == Tab.HERO && !menu.classId().isEmpty()) {
+            MenuData.ArtifactLine line = artifactAt(menu, mouseX, mouseY);
+            if (line != null) {
+                // Решает сервер: он проверит, артефакт ли это, свободна ли
+                // ячейка и есть ли место в инвентаре, — и ответит словами.
+                ActionPayload.send(line.empty()
+                                ? Protocol.Action.ARTIFACT_PUT
+                                : Protocol.Action.ARTIFACT_TAKE,
+                        line.slot(), "");
                 return true;
             }
         }
