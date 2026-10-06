@@ -19,7 +19,15 @@ import ru.projectst.rpgcore.loader.YmlMap;
  *     min: 0
  *     max: 10000
  *     rounding: none
+ *     effect:
+ *       cap: 200
+ *       text: "N% к урону навыков"
  * </pre>
+ *
+ * <p>Раздел {@code effect} означает «это рейтинг, а не проценты»: сколько
+ * процентов он даёт, считает кривая, а {@code text} — фраза, которую увидит
+ * игрок, с буквой N на месте числа. Нет раздела — стат не про проценты, и
+ * пояснять в меню нечего.
  *
  * <p>Схема нигде не объявляется отдельно: допустимые ключи — это ровно те,
  * которые читает этот метод, а всё остальное загрузчик пометит неизвестным сам.
@@ -67,11 +75,44 @@ public final class StatDefLoader {
         double min = body.number("min", -1_000_000, 1_000_000, 0);
         double max = body.number("max", -1_000_000, 1_000_000, 1_000_000);
         Rounding rounding = body.enumOf("rounding", Rounding.class, Rounding.NONE);
+        StatEffect effect = readEffect(id, body, errors);
 
         if (min > max) {
             errors.add(body.at(), "stats." + id, "min больше max");
             return Optional.empty();
         }
-        return Optional.of(new StatDef(id, display, base, min, max, rounding));
+        return Optional.of(new StatDef(id, display, base, min, max, rounding, effect));
+    }
+
+    /**
+     * Кривая рейтинга и фраза о ней.
+     *
+     * <p>Отсутствие раздела — не ошибка: запасу здоровья проценты не нужны.
+     * Ошибка — раздел, по которому нельзя ничего показать: без текста или с
+     * текстом, в котором негде поставить число.
+     */
+    private static StatEffect readEffect(String id, YmlMap body, ContentErrors errors) {
+        // mapOpt, а не map: отсутствие раздела — обычное дело, а не промах.
+        // map объявил бы «обязательный раздел отсутствует» у каждого запаса.
+        Optional<YmlMap> section = body.mapOpt("effect");
+        if (section.isEmpty()) {
+            return null;
+        }
+        YmlMap effect = section.get();
+        double cap = effect.number("cap", 0.1, 100_000, 100);
+        String text = effect.str("text", "");
+        boolean inverted = effect.bool("inverted", false);
+
+        if (text.isBlank()) {
+            errors.add(effect.at(), "stats." + id + ".effect.text",
+                    "нужна фраза для игрока, иначе показывать нечего");
+            return null;
+        }
+        if (!text.contains(StatEffect.MARK)) {
+            errors.add(effect.at(), "stats." + id + ".effect.text",
+                    "в фразе нет буквы " + StatEffect.MARK + ": некуда поставить процент");
+            return null;
+        }
+        return new StatEffect(cap, text, inverted);
     }
 }

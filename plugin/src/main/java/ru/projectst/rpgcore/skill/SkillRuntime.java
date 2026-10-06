@@ -646,27 +646,33 @@ public final class SkillRuntime {
         };
     }
 
-    /** Во сколько раз лечение доходит до цели: ноль и ниже — не доходит вовсе. */
+    /**
+     * Во сколько раз лечение доходит до цели: ноль и ниже — не доходит вовсе.
+     *
+     * <p>Доля спрашивается у службы статов, а не считается делением на сто:
+     * процентные статы — рейтинги, и кривая, применённая в одном месте и
+     * забытая в другом, означала бы, что меню обещает не то, что происходит.
+     */
     private double incomingScale(UUID target) {
-        return Math.max(0, 1 + stats.snapshot(target)
-                .getOrZero(ru.projectst.rpgcore.damage.StatIds.INCOMING_HEALING) / 100.0);
+        return Math.max(0, 1 + stats.share(target,
+                ru.projectst.rpgcore.damage.StatIds.INCOMING_HEALING));
     }
 
     /** Во сколько раз шире площадь навыка: ноль и ниже невозможны. */
     private double radiusScale(UUID caster) {
-        return Math.max(0.1, 1 + stats.snapshot(caster)
-                .getOrZero(ru.projectst.rpgcore.damage.StatIds.SKILL_RADIUS) / 100.0);
+        return Math.max(0.1, 1 + stats.share(caster,
+                ru.projectst.rpgcore.damage.StatIds.SKILL_RADIUS));
     }
 
     private double effectScale(UUID caster) {
-        return Math.max(0, 1 + stats.snapshot(caster)
-                .getOrZero(ru.projectst.rpgcore.damage.StatIds.EFFECT_POWER) / 100.0);
+        return Math.max(0, 1 + stats.share(caster,
+                ru.projectst.rpgcore.damage.StatIds.EFFECT_POWER));
     }
 
     /** Во сколько раз дольше держатся статусы от этого кастера. */
     private double durationScale(UUID caster) {
-        return Math.max(0, 1 + stats.snapshot(caster)
-                .getOrZero(ru.projectst.rpgcore.damage.StatIds.EFFECT_DURATION) / 100.0);
+        return Math.max(0, 1 + stats.share(caster,
+                ru.projectst.rpgcore.damage.StatIds.EFFECT_DURATION));
     }
 
     private Optional<Position> positionFor(CastContext context) {

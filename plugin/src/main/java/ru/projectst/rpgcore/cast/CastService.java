@@ -330,15 +330,16 @@ public final class CastService {
     /**
      * Перезарядка в тиках с учётом стата сокращения.
      *
-     * <p>Сокращение ограничено восемьюдесятью процентами. Без границы хватило
-     * бы набора снаряжения, чтобы перезарядка ушла в ноль, и навык стрелял бы
-     * каждый тик — проверять это на живом сервере слишком дорого.
+     * <p>Сколько процентов даёт рейтинг, решает кривая стата: до ста она не
+     * доходит ни при каком снаряжении, поэтому отдельный потолок больше не нужен.
+     * Нижняя граница всё равно оставлена — она про другое: про неверно
+     * настроенный контент, в котором кривой задали потолок больше ста. Навык,
+     * стреляющий каждый тик, проверять на живом сервере слишком дорого.
      */
     public long cooldownTicks(UUID player, SkillDef skill, int level) {
         double seconds = skill.cooldown().resolve(balance.table(skill.id()), level);
-        double reduction = Math.min(80, Math.max(0,
-                stats.snapshot(player).get(StatIds.COOLDOWN_REDUCTION)));
-        return Math.round(seconds * 20 * (1 - reduction / 100));
+        double left = Math.clamp(1 - stats.share(player, StatIds.COOLDOWN_REDUCTION), 0.1, 1);
+        return Math.round(seconds * 20 * left);
     }
 
     /** Навык в слоте: нужен, чтобы ответ игроку называл навык, а не номер. */

@@ -41,13 +41,12 @@ public final class VitalsSync {
      * войну за один атрибут с каждым соседним плагином.
      */
     private void applyAttackSpeed(Player player) {
-        double percent = stats.snapshot(player.getUniqueId())
-                .getOrZero(StatIds.ATTACK_SPEED);
+        double share = stats.share(player.getUniqueId(), StatIds.ATTACK_SPEED);
         AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
         if (attribute == null) {
             return;
         }
-        double wanted = 4.0 * Math.max(0.2, 1 + percent / 100.0);
+        double wanted = 4.0 * Math.max(0.2, 1 + share);
         if (Math.abs(attribute.getBaseValue() - wanted) < 0.0001) {
             return;
         }
@@ -63,13 +62,12 @@ public final class VitalsSync {
      * за один и тот же атрибут с каждым соседним плагином.
      */
     private void applySpeed(Player player) {
-        double percent = stats.snapshot(player.getUniqueId())
-                .getOrZero(StatIds.MOVEMENT_SPEED);
+        double share = stats.share(player.getUniqueId(), StatIds.MOVEMENT_SPEED);
         AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
         if (attribute == null) {
             return;
         }
-        double wanted = 0.1 * Math.max(0.2, 1 + percent / 100.0);
+        double wanted = 0.1 * Math.max(0.2, 1 + share);
         if (Math.abs(attribute.getBaseValue() - wanted) < 0.0001) {
             return;
         }

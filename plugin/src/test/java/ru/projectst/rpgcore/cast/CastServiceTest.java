@@ -333,7 +333,11 @@ class CastServiceTest {
                   cooldown_reduction:
                     base: 0
                     min: 0
-                    max: 90
+                    max: 10000
+                    effect:
+                      cap: 60
+                      text: "N% к времени перезарядки"
+                      inverted: true
                 """, errors).orElseThrow();
         stats = new StatService(new StatEngine(statRegistry));
 
@@ -655,16 +659,20 @@ class CastServiceTest {
     // ------------------------------------------------------------------ числа
 
     @Test
-    @DisplayName("сокращение перезарядки действует и ограничено сверху")
-    void cooldownReductionIsCapped() {
+    @DisplayName("сокращение перезарядки считается кривой и не доходит до потолка")
+    void cooldownReductionFollowsTheCurve() {
+        // Шестьдесят рейтинга при потолке шестьдесят — это тридцать процентов:
+        // 60 * 60 / 120. Перезарядка навыка — пять секунд, то есть сто тиков.
         stats.setSource(PLAYER, "test",
-                List.of(new StatModifier("cooldown_reduction", StatOp.FLAT, 50, "test")));
-        assertEquals(50, casts.cooldownTicks(PLAYER, skill, 1), "половина от 100 тиков");
+                List.of(new StatModifier("cooldown_reduction", StatOp.FLAT, 60, "test")));
+        assertEquals(70, casts.cooldownTicks(PLAYER, skill, 1), "сто тиков минус тридцать");
 
+        // Сколько бы рейтинга ни набрали, кривая к потолку только стремится:
+        // отдельный предел сверху не нужен, и навык не начнёт стрелять каждый тик.
         stats.setSource(PLAYER, "test",
-                List.of(new StatModifier("cooldown_reduction", StatOp.FLAT, 90, "test")));
-        assertEquals(20, casts.cooldownTicks(PLAYER, skill, 1),
-                "сокращение упирается в 80 процентов, иначе навык стрелял бы каждый тик");
+                List.of(new StatModifier("cooldown_reduction", StatOp.FLAT, 1_000_000, "test")));
+        long huge = casts.cooldownTicks(PLAYER, skill, 1);
+        assertEquals(40, huge, "шестьдесят процентов — предел, которого кривая не достигает");
     }
 
     @Test

@@ -246,9 +246,9 @@ public final class BukkitSkillWorld implements SkillWorld {
         if (dealt <= 0) {
             return;
         }
-        double percent = stats.snapshot(attackerId).getOrZero(StatIds.LIFESTEAL);
-        if (percent > 0) {
-            heal(attackerId, dealt * percent / 100.0);
+        double share = stats.share(attackerId, StatIds.LIFESTEAL);
+        if (share > 0) {
+            heal(attackerId, dealt * share);
         }
     }
 

@@ -9,19 +9,76 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import ru.projectst.rpgcore.loader.ContentErrors;
+import ru.projectst.rpgcore.stat.StatDefLoader;
+import ru.projectst.rpgcore.stat.StatRegistry;
 import ru.projectst.rpgcore.stat.StatSnapshot;
 
 /**
  * Порядок шагов конвейера проверяется случаями, которые при другом порядке
  * дали бы другое число. «Работает» тут ничего не доказывает.
+ *
+ * <p>Статы здесь — рейтинги, и кривые объявлены прямо в тесте тем же
+ * загрузчиком, что читает stats.yml. Числа в ожиданиях выводятся из этих
+ * кривых, поэтому их видно рядом: тест, берущий кривую из поставляемого файла,
+ * падал бы от правки баланса, а тест с кривой «из головы» проверял бы не ту
+ * арифметику, которая работает в игре. Потолки здесь те же, что в stats.yml, и
+ * что они там объявлены вообще, караулит DefaultContentTest.
  */
 class DamageEngineTest {
 
+    /** Те же потолки, что в поставляемом stats.yml. */
+    private static final StatRegistry STATS = registry();
+
     /** Крит никогда не срабатывает. */
-    private static final DamageEngine NO_CRIT = new DamageEngine(() -> 0.999);
+    private static final DamageEngine NO_CRIT = new DamageEngine(() -> 0.999, STATS);
 
     /** Крит срабатывает всегда, если шанс больше нуля. */
-    private static final DamageEngine ALWAYS_CRIT = new DamageEngine(() -> 0.0);
+    private static final DamageEngine ALWAYS_CRIT = new DamageEngine(() -> 0.0, STATS);
+
+    private static StatRegistry registry() {
+        ContentErrors errors = new ContentErrors();
+        StatRegistry registry = StatDefLoader.load("stats.yml", """
+                stats:
+                  skill_damage:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 200, text: "N% к урону навыков" }
+                  physical_damage:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 200, text: "N% к физическому урону" }
+                  magic_damage:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 200, text: "N% к магическому урону" }
+                  critical_strike_chance:
+                    max: 10000
+                    effect: { cap: 75, text: "N% ударов критические" }
+                  critical_strike_power:
+                    max: 10000
+                    effect: { cap: 300, text: "крит на N% сильнее" }
+                  physical_defense:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 100, text: "N% урона", inverted: true }
+                  magic_defense:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 100, text: "N% урона", inverted: true }
+                  general_defense:
+                    min: -90
+                    max: 10000
+                    effect: { cap: 100, text: "N% урона", inverted: true }
+                  dodge_rating:
+                    max: 10000
+                    effect: { cap: 50, text: "N% ударов мимо" }
+                """, errors).orElseThrow();
+        if (!errors.isEmpty()) {
+            throw new AssertionError(errors.all().toString());
+        }
+        return registry;
+    }
 
     private static StatSnapshot stats(Object... pairs) {
         Map<String, Double> map = new LinkedHashMap<>();
@@ -51,8 +108,9 @@ class DamageEngineTest {
                 stats(StatIds.MAGIC_DAMAGE, 50, StatIds.SKILL_DAMAGE, 50),
                 stats(), DefenderState.NONE);
 
-        // 100 * 1.5 * 1.5 = 225. При суммировании вышло бы 200.
-        assertEquals(225, r.applied(), 1e-9);
+        // Пятьдесят рейтинга при потолке 200 — это 40%: 200 * 50 / 250.
+        // 100 * 1.4 * 1.4 = 196. При суммировании вышло бы 180.
+        assertEquals(196, r.applied(), 1e-9);
     }
 
     @Test
@@ -106,10 +164,11 @@ class DamageEngineTest {
                 stats(StatIds.CRIT_CHANCE, 100, StatIds.CRIT_POWER, 100),
                 stats(StatIds.MAGIC_DEFENSE, 100), DefenderState.NONE);
 
-        // 100 * 2 (крит) * 0.5 (сто рейтинга — ровно половина) = 100
+        // Сто рейтинга силы крита при потолке 300 — это 75%: 300 * 100 / 400.
+        // 100 * 1.75 (крит) * 0.5 (сто рейтинга защиты — ровно половина) = 87.5.
         assertTrue(r.crit());
-        assertEquals(100, r.applied(), 1e-9);
-        assertEquals(200, r.afterScaling() * 2, 1e-9, "до снижения урон был удвоен");
+        assertEquals(87.5, r.applied(), 1e-9);
+        assertEquals(100, r.afterScaling(), 1e-9, "до крита и снижения — базовый урон");
     }
 
     @Test
@@ -244,8 +303,9 @@ class DamageEngineTest {
 
         assertEquals(0, r.applied(), 1e-9);
         assertEquals(DamageResult.Blocker.IMMUNITY, r.blockedBy());
-        assertEquals(200, r.afterScaling(), 1e-9,
-                "без неуязвимости урон был бы 200 — это должно быть видно в отладке");
+        // Сто рейтинга магического урона при потолке 200 — это две трети.
+        assertEquals(500.0 / 3, r.afterScaling(), 1e-9,
+                "без неуязвимости урон был бы виден здесь — это нужно в отладке");
     }
 
     @Test

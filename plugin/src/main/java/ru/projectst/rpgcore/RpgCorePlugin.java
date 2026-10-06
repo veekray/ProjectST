@@ -97,7 +97,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
         // Крит берёт случайность отсюда; в тестах подставляется детерминированная.
         DoubleSupplier random = Math::random;
-        DamageEngine damage = new DamageEngine(random);
+        DamageEngine damage = new DamageEngine(random, content.stats());
 
         zones = new ZoneService(clock);
         minions = new MinionService(clock);

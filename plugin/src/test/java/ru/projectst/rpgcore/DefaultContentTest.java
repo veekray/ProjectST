@@ -82,6 +82,69 @@ class DefaultContentTest {
     }
 
     @Test
+    @DisplayName("каждый процентный стат объявляет кривую: иначе он молча остался бы линейным")
+    void percentStatsDeclareCurves() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        StatRegistry registry = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
+
+        // Это те статы, которые движок читает как долю: урон, крит, защиты,
+        // уклонение, перезарядка, вампиризм, скорости, радиус, эффекты. Стат без
+        // кривой считается процентами напрямую — и тогда он упирается в потолок,
+        // после которого следующий пункт молча ничего не значит. Забыть кривую
+        // новому стату легко, поэтому список здесь, а не в чьей-то памяти.
+        for (String id : new String[] {
+                StatIds.SKILL_DAMAGE, StatIds.PHYSICAL_DAMAGE, StatIds.MAGIC_DAMAGE,
+                StatIds.CRIT_CHANCE, StatIds.CRIT_POWER,
+                StatIds.PHYSICAL_DEFENSE, StatIds.MAGIC_DEFENSE, StatIds.GENERAL_DEFENSE,
+                StatIds.EFFECT_POWER, StatIds.EFFECT_DURATION, StatIds.COOLDOWN_REDUCTION,
+                StatIds.DODGE_RATING, StatIds.INCOMING_HEALING, StatIds.ATTACK_SPEED,
+                StatIds.SKILL_RADIUS, StatIds.LIFESTEAL, StatIds.MOVEMENT_SPEED}) {
+            var def = registry.find(id).orElseThrow(() -> new AssertionError(
+                    "в stats.yml нет стата " + id));
+            assertTrue(def.effect() != null,
+                    "стат " + id + " читается как проценты, но кривой не объявил:"
+                            + " в меню он останется без пояснения, а в бою — без"
+                            + " убывающей отдачи");
+        }
+    }
+
+    @Test
+    @DisplayName("запасы кривой не объявляют: сто процентов маны — не величина")
+    void poolsHaveNoCurve() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        StatRegistry registry = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
+
+        for (String id : new String[] {
+                StatIds.MAX_HEALTH, StatIds.MAX_MANA, StatIds.MANA_REGEN,
+                StatIds.MAX_SPIRIT, StatIds.SPIRIT_REGEN,
+                StatIds.MAX_STAMINA, StatIds.STAMINA_REGEN}) {
+            assertEquals(null, registry.find(id).orElseThrow().effect(),
+                    "у стата " + id + " процентов не бывает, и подсказка о нём должна молчать");
+        }
+    }
+
+    @Test
+    @DisplayName("подсказка о статах читается как фраза, а не как набор чисел")
+    void notesReadLikeSentences() throws IOException {
+        ContentErrors errors = new ContentErrors();
+        StatRegistry registry = StatDefLoader
+                .load("stats.yml", resource("stats.yml"), errors).orElseThrow();
+
+        // Сто пятьдесят рейтинга защиты — это шестьдесят процентов, и сказано
+        // это должно быть со стороны игрока: урона он получает меньше.
+        assertEquals("-60% получаемого физического урона",
+                registry.find(StatIds.PHYSICAL_DEFENSE).orElseThrow().note(150));
+        // Отрицательная защита — уязвимость, и фраза разворачивается сама.
+        assertEquals("+25% получаемого физического урона",
+                registry.find(StatIds.PHYSICAL_DEFENSE).orElseThrow().note(-25));
+        assertEquals("+50% к физическому урону",
+                registry.find(StatIds.PHYSICAL_DAMAGE).orElseThrow().note(200 / 3.0));
+        assertEquals("", registry.find(StatIds.MAX_HEALTH).orElseThrow().note(24));
+    }
+
+    @Test
     @DisplayName("поставляемый statuses.yml грузится без ошибок, граф конфликтов цел")
     void defaultStatusesAreValid() throws IOException {
         ContentErrors errors = new ContentErrors();

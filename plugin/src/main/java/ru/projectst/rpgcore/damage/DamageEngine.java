@@ -1,6 +1,7 @@
 package ru.projectst.rpgcore.damage;
 
 import java.util.function.DoubleSupplier;
+import ru.projectst.rpgcore.stat.StatRegistry;
 import ru.projectst.rpgcore.stat.StatSnapshot;
 
 /**
@@ -28,16 +29,6 @@ import ru.projectst.rpgcore.stat.StatSnapshot;
  */
 public final class DamageEngine {
 
-    /** Снижение урона не может превысить этот предел, иначе цель станет бессмертной. */
-    /**
-     * Рейтинг, при котором защита режет ровно половину урона.
-     *
-     * <p>Он же задаёт всю кривую: доля равна {@code рейтинг / (рейтинг + это
-     * число)}. Сто — половина, двести — две трети, четыреста — четыре пятых.
-     * Каждый следующий пункт стоит столько же, а даёт меньше.
-     */
-    private static final double DEFENSE_SOFT_CAP = 100;
-
     /**
      * Сколько урона проходит всегда.
      *
@@ -49,13 +40,19 @@ public final class DamageEngine {
     private static final double MIN_TAKEN = 0.10;
 
     private final DoubleSupplier random;
+    private final StatRegistry stats;
 
     /**
      * @param random источник случайности в диапазоне [0, 1) для крита.
-     *               Вынесен параметром, чтобы тесты были детерминированными.
+     *               Вынесен параметром, чтобы тесты были детерминированными
+     * @param stats  реестр статов: в нём лежат кривые, по которым рейтинг
+     *               превращается в проценты. Конвейер обязан считать их тем же
+     *               способом, которым меню их показывает, — иначе подсказка
+     *               обещает одно, а бой делает другое
      */
-    public DamageEngine(DoubleSupplier random) {
+    public DamageEngine(DoubleSupplier random, StatRegistry stats) {
         this.random = random;
+        this.stats = stats;
     }
 
     public DamageResult compute(DamageRequest request, StatSnapshot attacker,
@@ -65,10 +62,10 @@ public final class DamageEngine {
         double value = request.base();
         DamageSchool school = request.school();
         if (school.offenseStat() != null && attacker != null) {
-            value *= 1 + percent(attacker, school.offenseStat());
+            value *= 1 + share(attacker, school.offenseStat());
         }
         if (attacker != null) {
-            value *= 1 + percent(attacker, StatIds.SKILL_DAMAGE);
+            value *= 1 + share(attacker, StatIds.SKILL_DAMAGE);
         }
         double afterScaling = value;
 
@@ -80,7 +77,7 @@ public final class DamageEngine {
         // вообще снижаемо: от урона по времени и от чистого урона — нет, иначе
         // яд переставал бы тикать по удачливой цели.
         if (defender != null && school.mitigable() && !request.hasTag("no_dodge")) {
-            double dodge = statOrZero(defender, StatIds.DODGE_RATING);
+            double dodge = percent(defender, StatIds.DODGE_RATING);
             if (dodge > 0 && random.getAsDouble() * 100 < dodge) {
                 return new DamageResult(0, 0, false, DamageResult.Blocker.DODGE,
                         afterScaling, afterScaling);
@@ -90,13 +87,13 @@ public final class DamageEngine {
         // 4. крит
         boolean crit = false;
         if (attacker != null && !request.hasTag("no_crit")) {
-            double chance = statOrZero(attacker, StatIds.CRIT_CHANCE);
+            double chance = percent(attacker, StatIds.CRIT_CHANCE);
             if (chance > 0 && random.getAsDouble() * 100 < chance) {
                 crit = true;
-                // Сила крита задаётся в процентных пунктах сверх обычного урона:
-                // 50 означает +50%. Ноль означает обычный двойной урон.
-                double power = statOrZero(attacker, StatIds.CRIT_POWER);
-                value *= power > 0 ? 1 + power / 100.0 : 2;
+                // Сила крита — проценты сверх обычного урона. Ноль означает
+                // обычный двойной урон: крит без стата всё равно крит.
+                double power = share(attacker, StatIds.CRIT_POWER);
+                value *= power > 0 ? 1 + power : 2;
             }
         }
 
@@ -108,8 +105,8 @@ public final class DamageEngine {
         // костыль, из-за которого в старом стеке было непонятно, работает
         // следующий пункт защиты или уже нет.
         if (defender != null && school.mitigable()) {
-            double taken = (1 - defenceShare(statOrZero(defender, school.defenseStat())))
-                    * (1 - defenceShare(statOrZero(defender, StatIds.GENERAL_DEFENSE)));
+            double taken = (1 - share(defender, school.defenseStat()))
+                    * (1 - share(defender, StatIds.GENERAL_DEFENSE));
             value *= Math.max(MIN_TAKEN, taken);
         }
         double afterMitigation = value;
@@ -139,31 +136,19 @@ public final class DamageEngine {
     }
 
     /**
-     * Какую долю урона снимает слой защиты.
+     * Доля, в которую превращается стат: 0.29 означает двадцать девять процентов.
      *
-     * <p>Кривая насыщения: чем больше рейтинга уже есть, тем меньше даёт
-     * следующий пункт. Ста процентов не бывает ни при каком значении, поэтому
-     * потолок сверху не нужен.
-     *
-     * <p>Отрицательная защита — это уязвимость, и считается она линейно: ниже
-     * нуля кривая обращается в деление на ноль, а ещё ниже меняет знак и
-     * начинает лечить. Предел — удвоенный урон: хуже, чем вдвое, не бывает.
-     *
-     * <p>Открыт наружу намеренно: меню показывает игроку, во что превращается
-     * его рейтинг, и спрашивает об этом здесь. Второй такой расчёт — хоть в
-     * моде, хоть в другом классе — однажды разошёлся бы с боем, и выяснилось бы
-     * это не на тесте.
+     * <p>Считает её кривая из файла стата, а не этот класс. Так у защиты,
+     * уклонения и урона одна и та же арифметика рейтинга, и меню показывает те же
+     * числа — потому что спрашивает тот же реестр.
      */
-    public static double defenceShare(double rating) {
-        if (rating >= 0) {
-            return rating / (rating + DEFENSE_SOFT_CAP);
-        }
-        return Math.max(-1, rating / DEFENSE_SOFT_CAP);
+    private double share(StatSnapshot snapshot, String statId) {
+        return stats.share(statId, statOrZero(snapshot, statId));
     }
 
-    /** Значение стата как доля: 25 процентных пунктов превращаются в 0.25. */
-    private static double percent(StatSnapshot snapshot, String statId) {
-        return statOrZero(snapshot, statId) / 100.0;
+    /** То же в процентах: для броска кости, где сравнивают с сотней. */
+    private double percent(StatSnapshot snapshot, String statId) {
+        return stats.percent(statId, statOrZero(snapshot, statId));
     }
 
     /**

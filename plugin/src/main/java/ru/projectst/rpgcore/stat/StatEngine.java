@@ -71,6 +71,16 @@ public final class StatEngine {
         return registry.has(statId);
     }
 
+    /** Доля, в которую превращается значение стата: см. {@link StatRegistry#share}. */
+    public double share(String statId, double value) {
+        return registry.share(statId, value);
+    }
+
+    /** Реестр статов: нужен тому, кто считает проценты сам, — конвейеру урона. */
+    public StatRegistry registry() {
+        return registry;
+    }
+
     /** Считает все объявленные статы сразу: снимок для игрока. */
     public StatSnapshot computeAll(Map<String, Double> bases, Collection<StatModifier> modifiers) {
         Map<String, Double> values = new LinkedHashMap<>();

@@ -49,6 +49,13 @@ public final class StatsMenu extends Menu {
             double value = snapshot.get(def.id());
             List<Component> lore = new ArrayList<>();
             lore.add(grey("Значение: ").append(white(number(value))));
+            // Во что превращается рейтинг, спрашивается у самого стата: кривая и
+            // фраза объявлены в его файле, и второй расчёт здесь однажды
+            // разошёлся бы с боем.
+            String note = def.note(value);
+            if (!note.isEmpty()) {
+                lore.add(green(note));
+            }
             lore.add(grey("База: ").append(white(number(def.base()))));
             lore.add(grey("Предел: ").append(white(number(def.min())
                     + " … " + number(def.max()))));

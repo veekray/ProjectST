@@ -44,6 +44,17 @@ public final class StatService {
      *
      * @param source имя источника: {@code item:main_hand}, {@code status:warlock_wither}
      */
+    /**
+     * Доля, в которую превращается стат игрока: 0.29 — двадцать девять процентов.
+     *
+     * <p>Ею пользуются все, кто читает процентные статы: перезарядка, вампиризм,
+     * скорость, радиус, сила эффектов. Считать их делением на сто по месту
+     * означало бы, что кривая рейтинга применяется где-то, а где-то нет.
+     */
+    public double share(UUID player, String statId) {
+        return engine.share(statId, snapshot(player).getOrZero(statId));
+    }
+
     /** Знает ли движок такой стат: см. {@link StatEngine#knows(String)}. */
     public boolean knows(String statId) {
         return engine.knows(statId);

@@ -457,27 +457,15 @@ public final class ClientLink implements PluginMessageListener {
     /**
      * Во что превращается значение стата.
      *
-     * <p>Пока только защиты: у них рейтинг и проценты — разные числа, и «150»
-     * в меню без пояснения не говорит игроку ничего. Считает ту же кривую, что
-     * и конвейер урона, и спрашивает её у него же: второй расчёт — хоть здесь,
-     * хоть в моде — однажды разошёлся бы с боем.
+     * <p>Спрашивается у самого стата: кривая и фраза объявлены в его файле, и
+     * второй расчёт — хоть здесь, хоть в моде — однажды разошёлся бы с боем.
+     * Стат без кривой возвращает пустую строку: запасу здоровья пояснять нечего.
      *
      * <p>Формулирует тоже сервер. Если бы число слал он, а слова подставлял
      * мод, они разъехались бы при первой же правке смысла.
      */
     private String noteFor(String statId, double value) {
-        if (!statId.equals(ru.projectst.rpgcore.damage.StatIds.PHYSICAL_DEFENSE)
-                && !statId.equals(ru.projectst.rpgcore.damage.StatIds.MAGIC_DEFENSE)
-                && !statId.equals(ru.projectst.rpgcore.damage.StatIds.GENERAL_DEFENSE)) {
-            return "";
-        }
-        double share = ru.projectst.rpgcore.damage.DamageEngine.defenceShare(value);
-        long percent = Math.round(Math.abs(share) * 100);
-        if (percent == 0) {
-            return "";
-        }
-        return share > 0 ? "режет " + percent + "% урона"
-                : "плюс " + percent + "% получаемого урона";
+        return statDefs.find(statId).map(def -> def.note(value)).orElse("");
     }
 
     private double damageOf(SkillDef skill, ru.projectst.rpgcore.balance.BalanceTable table,
