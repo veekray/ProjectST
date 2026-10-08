@@ -27,12 +27,12 @@ steps:
         stat: skill_damage
         op: flat
         value: $damage_bonus
-        duration: $duration
+        status: deadly_hunt
       - action: modify-stat
         stat: movement_speed
         op: flat
         value: $speed
-        duration: $duration
+        status: deadly_hunt
       - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.4 }
       - { action: particles, particle: flame, shape: ring, count: 40, size: 4.0 }
       - { action: message, text: "&6Смертельная Охота &7— началась" }

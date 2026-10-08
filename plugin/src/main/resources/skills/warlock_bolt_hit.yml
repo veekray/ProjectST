@@ -22,7 +22,7 @@ steps:
         stat: physical_damage
         op: percent
         value: $weaken
-        duration: $curse_duration
+        status: curse
       - { action: particles, particle: squid_ink, shape: point, count: 10 }
       - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.6 }
 

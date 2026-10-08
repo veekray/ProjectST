@@ -32,7 +32,7 @@ steps:
         stat: general_defense
         op: flat
         value: $reduction
-        duration: $duration
+        status: warrior_stance
       - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
       - { action: particles, particle: ash, shape: ring, count: 20, size: 2.0 }
 

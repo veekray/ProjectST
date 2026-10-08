@@ -27,6 +27,6 @@ steps:
         stat: lifesteal
         op: flat
         value: $lifesteal
-        duration: $duration
+        status: hunger
       - { action: sound, sound: entity_wolf_growl, volume: 1.0, pitch: 0.7 }
       - { action: particles, particle: heart, shape: sphere, count: 15, size: 0.5 }

@@ -156,13 +156,30 @@ public sealed interface Action {
      * <p>Замена {@code ml tempstat} из старого стека, но без строковой команды:
      * опечатка в имени стата здесь — ошибка связывания, а не молчаливое
      * бездействие.
+     *
+     * <p>Со {@code status} надбавка — часть статуса: живёт, пока статус лежит на
+     * цели, снимается вместе с ним и видна игроку на его значке. Своей
+     * длительности у неё тогда нет — два срока у одного эффекта однажды
+     * разошлись бы.
+     *
+     * @param statusId к какому статусу привязана; {@code null} — сама по себе,
+     *                 со своим сроком
      */
-    record ModifyStat(String statId, StatOp op, NumberRef value, NumberRef duration)
-            implements Action {
+    record ModifyStat(String statId, StatOp op, NumberRef value, NumberRef duration,
+                      String statusId) implements Action {
         public ModifyStat {
             if (statId == null || statId.isBlank()) {
                 throw new IllegalArgumentException("statId обязателен");
             }
+            statusId = statusId == null || statusId.isBlank() ? null : statusId;
+            if (statusId != null && duration != null) {
+                throw new IllegalArgumentException(
+                        "надбавка со статусом живёт его сроком: duration не нужен");
+            }
+        }
+
+        public ModifyStat(String statId, StatOp op, NumberRef value, NumberRef duration) {
+            this(statId, op, value, duration, null);
         }
 
         @Override

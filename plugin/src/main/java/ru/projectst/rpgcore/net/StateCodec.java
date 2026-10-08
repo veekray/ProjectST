@@ -81,6 +81,14 @@ public final class StateCodec {
                 out.writeInt(line.remaining());
                 writeString(out, line.category());
                 writeString(out, line.color());
+                out.writeInt(line.total());
+                writeString(out, line.description());
+                out.writeByte(Math.min(255, line.effects().size()));
+                for (ClientState.EffectLine effect : limit(line.effects())) {
+                    writeString(out, effect.statId());
+                    writeString(out, effect.text());
+                    out.writeBoolean(effect.good());
+                }
             }
 
             out.writeByte(Math.min(255, state.cooldowns().size()));
@@ -141,8 +149,22 @@ public final class StateCodec {
             int statusCount = in.readUnsignedByte();
             List<ClientState.StatusLine> statuses = new ArrayList<>(statusCount);
             for (int i = 0; i < statusCount; i++) {
-                statuses.add(new ClientState.StatusLine(readString(in), readString(in),
-                        in.readUnsignedByte(), in.readInt(), readString(in), readString(in)));
+                String id = readString(in);
+                String display = readString(in);
+                int stacks = in.readUnsignedByte();
+                int remaining = in.readInt();
+                String category = readString(in);
+                String color = readString(in);
+                int total = in.readInt();
+                String description = readString(in);
+                int effectCount = in.readUnsignedByte();
+                List<ClientState.EffectLine> effects = new ArrayList<>(effectCount);
+                for (int e = 0; e < effectCount; e++) {
+                    effects.add(new ClientState.EffectLine(readString(in), readString(in),
+                            in.readBoolean()));
+                }
+                statuses.add(new ClientState.StatusLine(id, display, stacks, remaining,
+                        category, color, total, description, effects));
             }
 
             int cooldownCount = in.readUnsignedByte();
@@ -226,18 +248,10 @@ public final class StateCodec {
                 writeString(out, line.note());
             }
 
-            out.writeByte(Math.min(255, menu.artifacts().size()));
-            for (MenuData.ArtifactLine line : limit(menu.artifacts())) {
-                out.writeByte(line.slot());
-                writeString(out, line.itemId());
-                writeString(out, line.display());
-                writeString(out, line.material());
-                writeString(out, line.color());
+            out.writeByte(Math.min(255, menu.gear().size()));
+            for (MenuData.GearLine line : limit(menu.gear())) {
+                writeString(out, line.cell());
                 writeString(out, line.refusal());
-                out.writeByte(Math.min(255, line.lines().size()));
-                for (String row : limit(line.lines())) {
-                    writeString(out, row);
-                }
             }
         });
     }
@@ -295,25 +309,13 @@ public final class StateCodec {
                         in.readFloat(), readString(in)));
             }
 
-            int artifactCount = in.readUnsignedByte();
-            List<MenuData.ArtifactLine> artifacts = new ArrayList<>(artifactCount);
-            for (int i = 0; i < artifactCount; i++) {
-                int slot = in.readUnsignedByte();
-                String itemId = readString(in);
-                String display = readString(in);
-                String material = readString(in);
-                String color = readString(in);
-                String refusal = readString(in);
-                int rows = in.readUnsignedByte();
-                List<String> lines = new ArrayList<>(rows);
-                for (int row = 0; row < rows; row++) {
-                    lines.add(readString(in));
-                }
-                artifacts.add(new MenuData.ArtifactLine(slot, itemId, display, material,
-                        color, lines, refusal));
+            int gearCount = in.readUnsignedByte();
+            List<MenuData.GearLine> gear = new ArrayList<>(gearCount);
+            for (int i = 0; i < gearCount; i++) {
+                gear.add(new MenuData.GearLine(readString(in), readString(in)));
             }
             return new MenuData(classId, level, xp, xpToNext, points, slots, classes, skills,
-                    stats, artifacts);
+                    stats, gear);
         });
     }
 

@@ -33,11 +33,11 @@ steps:
         stat: movement_speed
         op: flat
         value: $speed
-        duration: $duration
+        status: undying
       - action: modify-stat
         stat: skill_damage
         op: flat
         value: $damage_bonus
-        duration: $duration
+        status: undying
       - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 0.5 }
       - { action: particles, particle: lava, shape: sphere, count: 40, size: 1.0 }

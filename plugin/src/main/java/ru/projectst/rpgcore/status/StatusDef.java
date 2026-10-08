@@ -26,11 +26,23 @@ import java.util.Set;
  * @param tags           произвольные метки для условий навыков
  * @param display        имя для показа игроку; пусто — показывается id
  * @param color          цвет для показа; пусто — цвет по категории
+ * @param description    что статус делает, в два-три слова: «без навыков»,
+ *                       «гасит удар». Пишется под значком, когда числа
+ *                       показать нечем; пусто — не пишется ничего
  */
 public record StatusDef(String id, StatusCategory category, int duration, int maxStacks,
                         Stacking stacking, int priority, StatusCategory exclusiveWith,
                         Set<String> suppresses, Set<String> removes, Set<String> blocks,
-                        Set<String> tags, String display, String color) {
+                        Set<String> tags, String display, String color, String description) {
+
+    /** Статус без описания. */
+    public StatusDef(String id, StatusCategory category, int duration, int maxStacks,
+                     Stacking stacking, int priority, StatusCategory exclusiveWith,
+                     Set<String> suppresses, Set<String> removes, Set<String> blocks,
+                     Set<String> tags, String display, String color) {
+        this(id, category, duration, maxStacks, stacking, priority, exclusiveWith,
+                suppresses, removes, blocks, tags, display, color, null);
+    }
 
     /** Статус, у которого нет своего имени и цвета: показывается по id. */
     public StatusDef(String id, StatusCategory category, int duration, int maxStacks,
@@ -62,6 +74,18 @@ public record StatusDef(String id, StatusCategory category, int duration, int ma
         // «по категории»: заставлять писать их у каждого стана было бы шумом.
         display = display == null || display.isBlank() ? id : display;
         color = color == null || color.isBlank() ? null : color.toUpperCase(Locale.ROOT);
+        description = description == null ? "" : description.strip();
+    }
+
+    /**
+     * Есть ли у статуса имя для игрока.
+     *
+     * <p>Без имени статус служебный — замок, отметка «уже сработало», счёт
+     * ударов. Игроку его не показывают: строка «vuln_cd» ему ничего не скажет,
+     * а место на экране займёт.
+     */
+    public boolean named() {
+        return !display.equals(id);
     }
 
     public boolean hasTag(String tag) {

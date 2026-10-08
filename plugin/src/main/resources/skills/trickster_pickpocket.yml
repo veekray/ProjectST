@@ -23,24 +23,26 @@ steps:
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
       - { action: remove-status, tag: buff }
+      - { action: status, id: weakened, duration: $duration }
       - action: modify-stat
         stat: skill_damage
         op: flat
         value: $stolen_damage_loss
-        duration: $duration
+        status: weakened
       - { action: particles, particle: totem, shape: point, count: 25, size: 0.3 }
       - { action: sound, sound: entity_item_pickup, volume: 1.0, pitch: 0.8 }
 
   - target: { type: self }
     do:
+      - { action: status, id: stolen_power, duration: $duration }
       - action: modify-stat
         stat: skill_damage
         op: flat
         value: $stolen_damage
-        duration: $duration
+        status: stolen_power
       - action: modify-stat
         stat: general_defense
         op: flat
         value: $stolen_defense
-        duration: $duration
+        status: stolen_power
       - { action: message, text: "&dКарманник &7— обчистил" }

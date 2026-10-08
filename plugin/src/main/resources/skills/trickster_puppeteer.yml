@@ -38,9 +38,10 @@ steps:
       - { target: is-player }
     do:
       - { action: potion, effect: blindness, duration: $duration, amplifier: 0 }
+      - { action: status, id: weakened, duration: $duration }
       - action: modify-stat
         stat: physical_damage
         op: percent
         value: $weaken
-        duration: $duration
+        status: weakened
       - { action: particles, particle: portal, shape: point, count: 15, size: 0.3 }

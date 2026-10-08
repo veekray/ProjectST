@@ -31,7 +31,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUB = List.of("validate", "reload", "debug", "why",
             "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
             "resource",
-            "progress", "xp", "give", "items", "forge", "artifacts", "mobs", "spawn",
+            "progress", "xp", "give", "items", "forge", "mobs", "spawn",
             "convert", "client", "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
@@ -107,7 +107,6 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg resource §7— запасы и перезарядки");
             sender.sendMessage("§e/rpg §7— открыть интерфейс (или §f/rpg menu§7)");
             sender.sendMessage("§e/rpg skills §7— навыки своего класса");
-            sender.sendMessage("§e/rpg artifacts §7— ячейки артефактов: положить и забрать");
             sender.sendMessage("§e/rpg progress §7— уровень, опыт и очки");
             sender.sendMessage("§e/rpg xp <сколько> §7— выдать себе опыт для проверки");
             sender.sendMessage("§e/rpg items §7— предметы: окно у администратора,"
@@ -141,7 +140,6 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "resource", "mana" -> resource(sender);
             case "menu" -> openMenu(sender);
             case "skills" -> listSkills(sender);
-            case "artifacts" -> openArtifacts(sender);
             case "progress" -> progress(sender);
             case "xp" -> giveXp(sender, args);
             case "give" -> give(sender, args);
@@ -634,21 +632,6 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     }
 
     /** Интерфейс. Те же правила, что у команд: экран спрашивает те же сервисы. */
-    /**
-     * Ячейки артефактов.
-     *
-     * <p>Не админская: это свои вещи игрока. Открывается и отсюда, и кнопкой в
-     * окне персонажа — командой, потому что окно можно открыть не только мышью.
-     */
-    private boolean openArtifacts(CommandSender sender) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cКоманду выполняет игрок: ячейки — это окно");
-            return true;
-        }
-        new ru.projectst.rpgcore.platform.gui.ArtifactsMenu(menus, player).open(player);
-        return true;
-    }
-
     private boolean openMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("§cИнтерфейс открывает игрок");

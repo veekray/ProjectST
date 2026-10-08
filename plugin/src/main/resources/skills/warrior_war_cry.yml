@@ -33,10 +33,10 @@ steps:
         stat: physical_damage
         op: flat
         value: $damage_bonus
-        duration: $duration
+        status: unshakable
       - action: modify-stat
         stat: movement_speed
         op: flat
         value: $speed
-        duration: $duration
+        status: unshakable
       - { action: particles, particle: end_rod, shape: point, count: 10, size: 0.4 }

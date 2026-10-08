@@ -60,7 +60,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private PlayerDataStore data;
     private ClassService classService;
     private ResourcePool resources;
-    private ru.projectst.rpgcore.platform.ArtifactSlots artifactSlots;
+    private ru.projectst.rpgcore.platform.GearSlots gearSlots;
+    private ru.projectst.rpgcore.status.StatusStats statusStats;
     private ru.projectst.rpgcore.platform.ItemForge itemForge;
     private ru.projectst.rpgcore.platform.gui.ChatPrompt chatPrompt;
     private ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
@@ -130,17 +131,15 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // Реестр передаётся ссылкой на метод, а не значением: перечитывание
         // контента заменяет реестр целиком, и запомненный устарел бы молча.
         rpgItems = new RpgItems(this, content::items);
-        // Ячейки артефактов: число — настройка сервера, потому что это вопрос
-        // того, насколько снаряжение решает, а не правило одного класса.
-        artifactSlots = new ru.projectst.rpgcore.platform.ArtifactSlots(data, rpgItems,
-                getConfig().getInt("artifact-slots", 4), message -> getLogger().warning(message));
-        equipment = new EquipmentWatcher(rpgItems, stats, classService, artifactSlots);
+        // Ячейки снаряжения: броня — на игроке, кольца и артефакты — в его данных.
+        gearSlots = new ru.projectst.rpgcore.platform.GearSlots(data, rpgItems,
+                message -> getLogger().warning(message));
+        equipment = new EquipmentWatcher(rpgItems, stats, classService, gearSlots);
         recipes = new RecipeRegistrar(this, rpgItems, content.items());
         int added = recipes.reload(content.recipes());
 
         MenuContext menus = new MenuContext(content.playerClasses(), content.skills(),
-                content.stats(), classService, casts, stats, statuses, artifactSlots,
-                rpgItems, equipment);
+                content.stats(), classService, casts, stats, statuses);
 
         // Верстак предметов: собранный в игре предмет становится файлом контента.
         // Нужен проверке навыков — статы снаряжения иначе не подобрать.
@@ -155,7 +154,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // уходит только тем, кто поздоровался.
         clientLink = new ClientLink(this, classService, casts, statuses, content.statuses(),
                 content.playerClasses(), content.skills(), content.stats(), stats,
-                artifactSlots, equipment, rpgItems);
+                gearSlots, equipment, runtime.statusStats());
         clientLink.register();
 
         var command = getCommand("rpg");
@@ -177,6 +176,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new TriggerListener(casts, minions), this);
         Bukkit.getPluginManager().registerEvents(new MinionListener(minions), this);
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
+        // Окно снаряжения: настоящий контейнер, каждый щелчок в нём решает сервер.
+        Bukkit.getPluginManager().registerEvents(
+                new ru.projectst.rpgcore.platform.gui.GearListener(this), this);
         // Ввод строки для верстака: материал и имя из ячеек не выбираются.
         Bukkit.getPluginManager().registerEvents(chatPrompt, this);
         // Обычный урон через тот же конвейер, что и урон навыков: иначе
@@ -208,6 +210,12 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 // Снаряжение сверяется до здоровья: шлем с запасом здоровья
                 // должен успеть прибавить его до того, как здоровье применится.
                 equipment.apply(online);
+                // Открытое окно снаряжения — тоже: прочность шлема тратится и
+                // при открытом окне, и витрина не должна показывать прежнюю.
+                if (online.getOpenInventory().getTopInventory().getHolder()
+                        instanceof ru.projectst.rpgcore.platform.gui.GearView view) {
+                    view.refresh();
+                }
                 // Здоровье сверяется здесь же: стат, которого не видно в мире,
                 // хуже отсутствия стата.
                 vitals.apply(online);
@@ -235,6 +243,13 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // расходятся во времени из-за того, что появились в разные тики.
         Bukkit.getScheduler().runTaskTimer(this,
                 () -> mobService.tick(Bukkit.getCurrentTick()), 20L, 1L);
+
+        // Надбавки, привязанные к статусам, сверяются со статусами каждый тик:
+        // статус истекает в свой тик, и скорость от развеянной Пелены не должна
+        // жить до следующей проверки. Дёшево — статы трогаются, только когда
+        // что-то изменилось.
+        statusStats = runtime.statusStats();
+        Bukkit.getScheduler().runTaskTimer(this, () -> statusStats.syncAll(), 1L, 1L);
 
         // Периодические навыки. Шаг задачи — секунда, а частоту каждого навыка
         // держит его собственный промежуток через перезарядку: иначе «каждые
@@ -283,6 +298,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
             // Полный запас при входе: ноль выглядел бы как поломка.
             resources.fill(event.getPlayer().getUniqueId());
             vitals.apply(event.getPlayer());
+            // Вещи из исчезнувших ячеек — владельцу, при первом же входе.
+            gearSlots.deliverReturns(event.getPlayer());
             // Проверка мода ставится последней: к этому времени данные игрока
             // уже прочитаны, и если он выйдет, выйдет с целым файлом.
             modGate.watch(event.getPlayer());
@@ -302,6 +319,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         data.unload(uuid);
         stats.forget(uuid);
         statuses.forget(uuid);
+        statusStats.forget(uuid);
         // Статусы ушли — обездвиженность снимется сверкой, но игрока уже нет;
         // скорость ходьбы вернём сразу, иначе она приедет с ним в следующий вход.
         statusEffects.release(event.getPlayer());

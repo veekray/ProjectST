@@ -13,11 +13,12 @@ steps:
       - { action: damage, amount: $damage, school: physical }
       - { action: glow, duration: $glow }
       - { action: potion, effect: blindness, duration: $blind, amplifier: 0 }
+      - { action: status, id: exposed, duration: $glow }
       - action: modify-stat
         stat: physical_defense
         op: flat
         value: $defense_down
-        duration: $glow
+        status: exposed
       - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0 }
 
   - target: { type: self }

@@ -59,9 +59,9 @@ steps:
         stat: dodge_rating
         op: flat
         value: $dodge
-        duration: $life
+        status: doubles
       - action: modify-stat
         stat: skill_damage
         op: flat
         value: $damage_bonus
-        duration: $life
+        status: doubles

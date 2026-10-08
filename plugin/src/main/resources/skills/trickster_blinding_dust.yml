@@ -24,18 +24,20 @@ steps:
     do:
       - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.7 }
       - { action: particles, particle: smoke, shape: sphere, count: 60, size: 2.0 }
+      - { action: status, id: dust_cover, duration: $duration }
       - action: modify-stat
         stat: dodge_rating
         op: flat
         value: $dodge
-        duration: $duration
+        status: dust_cover
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: potion, effect: blindness, duration: $duration, amplifier: 0 }
+      - { action: status, id: weakened, duration: $duration }
       - action: modify-stat
         stat: physical_damage
         op: percent
         value: $weaken
-        duration: $duration
+        status: weakened
       - { action: particles, particle: smoke, shape: point, count: 15, size: 0.4 }

@@ -15,10 +15,22 @@ public final class ActiveStatus {
     private long expiresAtTick;
     private double amount;
 
-    ActiveStatus(StatusDef def, String source, int stacks, long expiresAtTick, double amount) {
+    /** Когда статус лёг впервые: по этому ряды значков держат порядок. */
+    private final long appliedAtTick;
+
+    /**
+     * С какого тика идёт нынешний срок. Обновление и новый стак начинают срок
+     * заново, продление — нет: продлённый статус тянет прежний срок дальше.
+     */
+    private long renewedAtTick;
+
+    ActiveStatus(StatusDef def, String source, int stacks, long now, long expiresAtTick,
+                 double amount) {
         this.def = def;
         this.source = source;
         this.stacks = stacks;
+        this.appliedAtTick = now;
+        this.renewedAtTick = now;
         this.expiresAtTick = expiresAtTick;
         this.amount = amount;
     }
@@ -55,11 +67,27 @@ public final class ActiveStatus {
         return Math.max(0, expiresAtTick - now);
     }
 
+    public long appliedAtTick() {
+        return appliedAtTick;
+    }
+
+    /**
+     * Полный нынешний срок в тиках: от начала до конца.
+     *
+     * <p>Нужен показу убывания: «осталось 3 из 10». Брать длительность из
+     * объявления статуса нельзя — навык накладывает его на свою длительность,
+     * а продление растягивает срок.
+     */
+    public long total() {
+        return Math.max(1, expiresAtTick - renewedAtTick);
+    }
+
     public boolean expired(long now) {
         return now >= expiresAtTick;
     }
 
-    void refresh(long newExpiry) {
+    void refresh(long now, long newExpiry) {
+        this.renewedAtTick = now;
         this.expiresAtTick = newExpiry;
     }
 
@@ -67,8 +95,9 @@ public final class ActiveStatus {
         this.expiresAtTick += ticks;
     }
 
-    void addStack(long newExpiry) {
+    void addStack(long now, long newExpiry) {
         this.stacks = Math.min(def.maxStacks(), stacks + 1);
+        this.renewedAtTick = now;
         this.expiresAtTick = newExpiry;
     }
 

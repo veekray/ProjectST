@@ -28,8 +28,9 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: 0.1, lift: 1.1 }
+      - { action: status, id: slowed, duration: $slow_duration }
       - action: modify-stat
         stat: movement_speed
         op: flat
         value: $slow
-        duration: $slow_duration
+        status: slowed

@@ -32,7 +32,7 @@ steps:
         stat: skill_damage
         op: flat
         value: "$heat_power * @heat"
-        duration: $heat_duration
+        status: heat
       - { action: particles, particle: flame, shape: point, count: 6, size: 0.3 }
 
   # Полный Жар — Перегрев: короткое окно, ради которого всё и платилось.
@@ -47,12 +47,12 @@ steps:
         stat: lifesteal
         op: flat
         value: $overheat_lifesteal
-        duration: $overheat_duration
+        status: overheat
       - action: modify-stat
         stat: physical_damage
         op: flat
         value: $overheat_damage
-        duration: $overheat_duration
+        status: overheat
       - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.6 }
       - { action: particles, particle: lava, shape: ring, count: 30, size: 3.0 }
       - { action: message, text: "&cПерегрев &7— кровь кипит" }

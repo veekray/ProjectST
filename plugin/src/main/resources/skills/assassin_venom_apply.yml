@@ -19,7 +19,7 @@ steps:
         stat: incoming_healing
         op: flat
         value: $heal_cut
-        duration: $venom_duration
+        status: venom
       - { action: particles, particle: squid_ink, shape: point, count: 10, size: 0.3 }
 
   - target: { type: trigger }

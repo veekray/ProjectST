@@ -100,7 +100,7 @@ public final class StatusService {
         }
 
         // 6. вставка и подавление
-        active.put(def.id(), new ActiveStatus(def, application.source(), 1, expiry,
+        active.put(def.id(), new ActiveStatus(def, application.source(), 1, now, expiry,
                 application.amount()));
         Optional<String> suppressor = suppressedBy(active, def.id());
         if (suppressor.isPresent()) {
@@ -128,10 +128,11 @@ public final class StatusService {
                 existing.setAmount(application.amount());
             }
         }
+        long now = expiry - duration;
         StatusOutcome.Kind kind = switch (def.stacking()) {
             case NONE -> StatusOutcome.Kind.IGNORED;
             case REFRESH -> {
-                existing.refresh(expiry);
+                existing.refresh(now, expiry);
                 yield StatusOutcome.Kind.REFRESHED;
             }
             case EXTEND -> {
@@ -140,10 +141,10 @@ public final class StatusService {
             }
             case STACKS -> {
                 if (existing.stacks() >= def.maxStacks()) {
-                    existing.refresh(expiry);
+                    existing.refresh(now, expiry);
                     yield StatusOutcome.Kind.IGNORED;
                 }
-                existing.addStack(expiry);
+                existing.addStack(now, expiry);
                 yield StatusOutcome.Kind.STACKED;
             }
         };

@@ -84,13 +84,6 @@ public final class MainMenu extends Menu {
                         grey("Клавиши назначаются в моде."))),
                 () -> new SlotsMenu(context, player).open(player));
 
-        put(31, item(Material.AMETHYST_SHARD, yellow("Артефакты"),
-                List.of(grey("Ячейки для артефактов."),
-                        grey("Пока лежат в них — статы работают."),
-                        grey("Ячеек: ").append(white(
-                                String.valueOf(context.artifacts().slotCount()))))),
-                () -> new ArtifactsMenu(context, player).open(player));
-
         put(33, item(Material.IRON_SWORD, yellow("Статы"),
                 List.of(grey("Снимок всех значений."))),
                 () -> new StatsMenu(context, player).open(player));

@@ -9,12 +9,17 @@ import ru.projectst.rpgcore.net.MenuData;
 import ru.projectst.rpgcore.net.Protocol;
 
 /**
- * Книга героя: герой со статами и навыки со слотами.
+ * Книга героя: герой со статами, навыки со слотами и снаряжение.
  *
- * <p>Вкладок две, а не четыре. Статы — это и есть описание героя, а слот без
- * навыка не имеет смысла: раньше, чтобы повесить изученный навык на клавишу,
- * нужно было уйти на соседнюю вкладку и вспомнить там его название. Теперь обе
- * половины видны разом и разделены не пустотой, а чертой с заголовком.
+ * <p>Статы — это и есть описание героя, а слот без навыка не имеет смысла:
+ * раньше, чтобы повесить изученный навык на клавишу, нужно было уйти на
+ * соседнюю вкладку и вспомнить там его название. Теперь обе половины видны разом
+ * и разделены не пустотой, а чертой с заголовком.
+ *
+ * <p>Третья закладка — снаряжение — открывает не страницу этой книги, а окно
+ * {@link GearScreen}: вещи в нём таскаются курсором, а курсор с вещью бывает
+ * только у контейнера, которым владеет сервер. Закладки у обоих окон общие и
+ * стоят на тех же местах, поэтому переход читается как перелистывание.
  *
  * <p>Вид — раскрытая книга: деревянная рама, закладки на планке, бумажное поле.
  * Тот же, что у окна инвентаря, из которого книга и открывается ({@link
@@ -28,10 +33,11 @@ import ru.projectst.rpgcore.net.Protocol;
  */
 public final class CharacterScreen extends Screen {
 
-    /** Вкладки: герой и навыки. Больше делить нечего. */
+    /** Закладки книги. Снаряжение — отдельное окно, но закладка у него общая. */
     public enum Tab {
         HERO("Герой"),
-        SKILLS("Навыки");
+        SKILLS("Навыки"),
+        GEAR("Снаряжение");
 
         private final String title;
 
@@ -44,8 +50,8 @@ public final class CharacterScreen extends Screen {
         }
     }
 
-    private static final int PANEL_WIDTH = 416;
-    private static final int PANEL_HEIGHT = 240;
+    static final int PANEL_WIDTH = 416;
+    static final int PANEL_HEIGHT = 240;
     private static final int TAB_SIZE = 26;
     private static final int TAB_STEP = 34;
     private static final int CLASS_ROW_HEIGHT = 26;
@@ -63,11 +69,6 @@ public final class CharacterScreen extends Screen {
 
     /** Ширина левой колонки вкладки героя. */
     private static final int HERO_COLUMN = 160;
-
-    /** Сторона гнезда артефакта: ванильный значок предмета плюс рамка. */
-    private static final int ARTIFACT_CELL = 24;
-    /** Шаг ряда гнёзд: гнёзда не должны слипаться. */
-    private static final int ARTIFACT_STEP = 28;
 
     /** Куда вернуться по Esc; null — закрыть совсем. */
     private final Screen parent;
@@ -94,8 +95,22 @@ public final class CharacterScreen extends Screen {
      *               закладкой в нём
      */
     public CharacterScreen(Screen parent) {
+        this(parent, Tab.HERO);
+    }
+
+    /**
+     * Книга, открытая на нужной закладке: так в неё возвращаются из окна
+     * снаряжения.
+     */
+    public CharacterScreen(Screen parent, Tab tab) {
         super(Component.literal("RpgCore"));
         this.parent = parent;
+        this.tab = tab == Tab.GEAR ? Tab.HERO : tab;
+    }
+
+    /** Куда вернуться по Esc: окно снаряжения уносит это с собой. */
+    Screen parent() {
+        return parent;
     }
 
     private int left() {
@@ -161,14 +176,7 @@ public final class CharacterScreen extends Screen {
 
         RpgStyle.book(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, bannerTitle(menu));
 
-        for (Tab value : Tab.values()) {
-            int tabX = tabX(value);
-            int tabY = tabY();
-            boolean hovered = RpgStyle.hit(mouseX, mouseY, tabX, tabY, TAB_SIZE, TAB_SIZE);
-            RpgStyle.tabPlate(graphics, tabX, tabY, TAB_SIZE, value == tab, hovered);
-            tabGlyph(graphics, value, tabX + TAB_SIZE / 2, tabY + TAB_SIZE / 2,
-                    value == tab || hovered);
-        }
+        renderTabs(graphics, x, y, tab, mouseX, mouseY);
 
         RpgStyle.inkButton(graphics, footerX(), footerY(), 128, 18, "Расставить интерфейс",
                 RpgStyle.hit(mouseX, mouseY, footerX(), footerY(), 128, 18));
@@ -185,74 +193,64 @@ public final class CharacterScreen extends Screen {
             case SKILLS -> renderSkills(graphics, menu, contentX(), contentY(), mouseX, mouseY);
         }
 
-        // Подсказка ячейки артефакта: тоже поверх страницы.
-        if (tab == Tab.HERO && !menu.classId().isEmpty()) {
-            artifactTooltip(graphics, menu, mouseX, mouseY);
-        }
-
         // Подпись закладки под курсором рисуется последней: поверх страницы.
-        for (Tab value : Tab.values()) {
-            if (RpgStyle.hit(mouseX, mouseY, tabX(value), tabY(), TAB_SIZE, TAB_SIZE)) {
-                graphics.renderTooltip(font, Component.literal(value.title()), mouseX, mouseY);
-            }
-        }
-    }
-
-    /** Подсказка над ячейкой артефакта: что лежит, что даёт и что с этим делать. */
-    private void artifactTooltip(GuiGraphics graphics, MenuData menu, int mouseX, int mouseY) {
-        MenuData.ArtifactLine line = artifactAt(menu, mouseX, mouseY);
-        if (line == null) {
-            return;
-        }
-        List<Component> about = new ArrayList<>();
-        if (line.empty()) {
-            about.add(Component.literal("Ячейка артефакта " + line.slot())
-                    .withStyle(style -> style.withColor(RpgStyle.INK_TITLE)));
-            about.add(Component.literal("Пусто")
-                    .withStyle(style -> style.withColor(RpgStyle.INK_DIM)));
-            about.add(Component.literal("Щелчок — вставить то, что в руке")
-                    .withStyle(style -> style.withColor(RpgStyle.INK)));
-        } else {
-            about.add(Component.literal(line.display())
-                    .withStyle(style -> style.withColor(
-                            RpgHud.colourOf(line.color(), "BUFF"))));
-            line.lines().forEach(row -> about.add(Component.literal(row)
-                    .withStyle(style -> style.withColor(RpgStyle.INK_GOOD))));
-            if (!line.refusal().isEmpty()) {
-                about.add(Component.literal("Не действует: " + line.refusal())
-                        .withStyle(style -> style.withColor(RpgStyle.INK_BAD)));
-            }
-            about.add(Component.literal("Щелчок — забрать в инвентарь")
-                    .withStyle(style -> style.withColor(RpgStyle.INK)));
-        }
-        graphics.renderComponentTooltip(font, about, mouseX, mouseY);
-    }
-
-    /** Ячейка под курсором или {@code null}. */
-    private MenuData.ArtifactLine artifactAt(MenuData menu, double mouseX, double mouseY) {
-        for (MenuData.ArtifactLine line : menu.artifacts()) {
-            if (RpgStyle.hit(mouseX, mouseY, artifactX(contentX(), line.slot()),
-                    artifactCellY(line.slot()), ARTIFACT_CELL, ARTIFACT_CELL)) {
-                return line;
-            }
-        }
-        return null;
+        renderTabTooltip(graphics, x, y, mouseX, mouseY);
     }
 
     /** Что написать золотом на планке: кто ты и какого уровня. */
-    private String bannerTitle(MenuData menu) {
+    static String bannerTitle(MenuData menu) {
         if (menu == null || menu.classId().isEmpty()) {
             return "Книга героя";
         }
         return strip(classDisplay(menu)) + "  ·  уровень " + menu.level();
     }
 
-    private int tabX(Tab value) {
-        return contentX() + value.ordinal() * TAB_STEP;
+    // ------------------------------------------------------------------ закладки
+
+    /*
+     * Закладки считаются от угла окна, а не от экрана: окно снаряжения рисует
+     * их тем же кодом, и стоят они у обоих окон на одних и тех же местах.
+     */
+
+    private static int tabX(int left, Tab value) {
+        return RpgStyle.fieldX(left) + value.ordinal() * TAB_STEP;
     }
 
-    private int tabY() {
-        return top() + (RpgStyle.HEAD - TAB_SIZE) / 2 - 2;
+    private static int tabY(int top) {
+        return top + (RpgStyle.HEAD - TAB_SIZE) / 2 - 2;
+    }
+
+    /** Закладки на планке окна с углом в (left, top). */
+    static void renderTabs(GuiGraphics graphics, int left, int top, Tab active,
+                           int mouseX, int mouseY) {
+        for (Tab value : Tab.values()) {
+            int tabX = tabX(left, value);
+            int tabY = tabY(top);
+            boolean hovered = RpgStyle.hit(mouseX, mouseY, tabX, tabY, TAB_SIZE, TAB_SIZE);
+            RpgStyle.tabPlate(graphics, tabX, tabY, TAB_SIZE, value == active, hovered);
+            tabGlyph(graphics, value, tabX + TAB_SIZE / 2, tabY + TAB_SIZE / 2,
+                    value == active || hovered);
+        }
+    }
+
+    /** Подпись закладки под курсором. Рисуется последней — поверх страницы. */
+    static void renderTabTooltip(GuiGraphics graphics, int left, int top,
+                                 int mouseX, int mouseY) {
+        Tab value = tabAt(left, top, mouseX, mouseY);
+        if (value != null) {
+            graphics.renderTooltip(net.minecraft.client.Minecraft.getInstance().font,
+                    Component.literal(value.title()), mouseX, mouseY);
+        }
+    }
+
+    /** Закладка под курсором или {@code null}. Один расчёт на показ и на щелчок. */
+    static Tab tabAt(int left, int top, double mouseX, double mouseY) {
+        for (Tab value : Tab.values()) {
+            if (RpgStyle.hit(mouseX, mouseY, tabX(left, value), tabY(top), TAB_SIZE, TAB_SIZE)) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private int footerX() {
@@ -264,15 +262,18 @@ public final class CharacterScreen extends Screen {
     }
 
     /** Значок закладки: рисуется, а не берётся предметом, — предмета для этого нет. */
-    private void tabGlyph(GuiGraphics graphics, Tab value, int centerX, int centerY,
-                          boolean lit) {
+    private static void tabGlyph(GuiGraphics graphics, Tab value, int centerX, int centerY,
+                                 boolean lit) {
         int ink = lit ? RpgStyle.INK_TITLE : RpgStyle.INK_DIM;
-        if (value == Tab.HERO) {
-            // Голова и плечи: самая короткая запись слова «персонаж».
-            graphics.fill(centerX - 3, centerY - 7, centerX + 3, centerY - 1, ink);
-            graphics.fill(centerX - 6, centerY + 1, centerX + 6, centerY + 7, ink);
-        } else {
-            RpgStyle.pip(graphics, centerX - 7, centerY - 7, 14, true, ink);
+        switch (value) {
+            case HERO -> {
+                // Голова и плечи: самая короткая запись слова «персонаж».
+                graphics.fill(centerX - 3, centerY - 7, centerX + 3, centerY - 1, ink);
+                graphics.fill(centerX - 6, centerY + 1, centerX + 6, centerY + 7, ink);
+            }
+            case SKILLS -> RpgStyle.pip(graphics, centerX - 7, centerY - 7, 14, true, ink);
+            // Нагрудник: тот же рисунок, что в пустой ячейке брони, одним цветом.
+            case GEAR -> GearIcons.drawMono(graphics, "chest", centerX - 6, centerY - 6, ink);
         }
     }
 
@@ -281,7 +282,7 @@ public final class CharacterScreen extends Screen {
     /**
      * Герой и статы на одной странице.
      *
-     * <p>Слева то, чем игрок распоряжается: очки, опыт и ячейки артефактов.
+     * <p>Слева то, чем игрок распоряжается: очки и опыт.
      * Справа то, что из этого получается: статы. Между ними черта — две колонки
      * без неё читаются как один сбившийся список.
      *
@@ -333,7 +334,7 @@ public final class CharacterScreen extends Screen {
         }
     }
 
-    /** Левая колонка: очки, опыт и ячейки артефактов. */
+    /** Левая колонка: очки и опыт. */
     private void renderProgress(GuiGraphics graphics, MenuData menu, int x, int y,
                                 int barWidth) {
         RpgStyle.caption(graphics, x, y, barWidth, "Герой");
@@ -359,88 +360,6 @@ public final class CharacterScreen extends Screen {
             graphics.drawString(font, Component.literal("Предел уровня"), x, line + 10,
                     RpgStyle.INK_BAD, false);
         }
-
-        renderArtifacts(graphics, menu, x, barWidth);
-    }
-
-    /**
-     * Ячейки артефактов.
-     *
-     * <p>Значок — настоящий ванильный предмет, а не нарисованный: артефакт в
-     * сумке и артефакт в ячейке должны выглядеть одинаково, иначе игрок не
-     * узнаёт свою вещь.
-     *
-     * <p>Пустая ячейка видна пустой рамкой. Ячейка, в которой артефакт лежит, но
-     * не действует — не тот класс, мало уровня, — обведена красным: предмет на
-     * месте, а статов нет, и причина должна быть видна, а не выясняться.
-     */
-    private void renderArtifacts(GuiGraphics graphics, MenuData menu, int x,
-                                 int barWidth) {
-        if (menu.artifacts().isEmpty()) {
-            return;
-        }
-        RpgStyle.caption(graphics, x, artifactCaptionY(), barWidth, "Артефакты");
-
-        for (MenuData.ArtifactLine line : menu.artifacts()) {
-            int cellX = artifactX(x, line.slot());
-            int cellY = artifactCellY(line.slot());
-            boolean bad = !line.empty() && !line.refusal().isEmpty();
-            RpgStyle.socket(graphics, cellX, cellY, ARTIFACT_CELL, bad);
-            if (!line.empty()) {
-                graphics.renderItem(itemOf(line.material()), cellX + 4, cellY + 4);
-            }
-        }
-    }
-
-    /**
-     * Сколько гнёзд влезает в ряд левой колонки.
-     *
-     * <p>Считается из её ширины, а не задано числом: семь гнёзд подряд вылезли
-     * бы на колонку статов, и обнаружилось бы это только на сервере, где ячеек
-     * настроили семь.
-     */
-    private int artifactPerRow() {
-        return Math.max(1, HERO_COLUMN / ARTIFACT_STEP);
-    }
-
-    private int artifactX(int columnX, int slot) {
-        return columnX + ((slot - 1) % artifactPerRow()) * ARTIFACT_STEP;
-    }
-
-    private int artifactCellY(int slot) {
-        return artifactRowY() + ((slot - 1) / artifactPerRow()) * ARTIFACT_STEP;
-    }
-
-    /**
-     * Где стоит подпись «Артефакты» и где — сам ряд гнёзд.
-     *
-     * <p>Посчитано в одном месте: отрисовка и попадание курсора обязаны считать
-     * одинаково, а две копии одной арифметики расходятся на первой же правке
-     * отступа — и тогда щелчок попадает мимо того, что нарисовано.
-     */
-    private int artifactCaptionY() {
-        return contentY() + 66;
-    }
-
-    private int artifactRowY() {
-        return artifactCaptionY() + 20;
-    }
-
-    /**
-     * Предмет по имени материала.
-     *
-     * <p>Имена совпадают с ванильными: сервер присылает то, что написано в файле
-     * предмета. Неизвестное имя даёт воздух — пустое гнездо вместо значка, и это
-     * честнее подстановки чужого предмета.
-     */
-    private static net.minecraft.world.item.ItemStack itemOf(String material) {
-        var key = net.minecraft.resources.ResourceLocation.tryParse(
-                material.toLowerCase(java.util.Locale.ROOT));
-        if (key == null) {
-            return net.minecraft.world.item.ItemStack.EMPTY;
-        }
-        return new net.minecraft.world.item.ItemStack(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(key));
     }
 
     /**
@@ -719,12 +638,17 @@ public final class CharacterScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        for (Tab value : Tab.values()) {
-            if (RpgStyle.hit(mouseX, mouseY, tabX(value), tabY(), TAB_SIZE, TAB_SIZE)) {
-                tab = value;
-                pendingSkill = "";
-                return true;
-            }
+        Tab clicked = tabAt(left(), top(), mouseX, mouseY);
+        if (clicked == Tab.GEAR) {
+            // Окно снаряжения открывает сервер: это его контейнер, и вещи в нём
+            // переносит он. Книга стоит, пока окно не придёт, — без мигания.
+            ActionPayload.send(Protocol.Action.OPEN_GEAR);
+            return true;
+        }
+        if (clicked != null) {
+            tab = clicked;
+            pendingSkill = "";
+            return true;
         }
         if (RpgStyle.hit(mouseX, mouseY, footerX(), footerY(), 128, 18)) {
             minecraft.setScreen(new HudEditScreen(this));
@@ -741,19 +665,6 @@ public final class CharacterScreen extends Screen {
             if (row >= 0 && row < menu.classes().size()) {
                 ActionPayload.send(Protocol.Action.CHOOSE_CLASS, 0,
                         menu.classes().get(row).id());
-                return true;
-            }
-        }
-
-        if (tab == Tab.HERO && !menu.classId().isEmpty()) {
-            MenuData.ArtifactLine line = artifactAt(menu, mouseX, mouseY);
-            if (line != null) {
-                // Решает сервер: он проверит, артефакт ли это, свободна ли
-                // ячейка и есть ли место в инвентаре, — и ответит словами.
-                ActionPayload.send(line.empty()
-                                ? Protocol.Action.ARTIFACT_PUT
-                                : Protocol.Action.ARTIFACT_TAKE,
-                        line.slot(), "");
                 return true;
             }
         }
@@ -838,7 +749,7 @@ public final class CharacterScreen extends Screen {
         return menu.points() > 0 ? "нажмите — уровень" : "нет очков";
     }
 
-    private String classDisplay(MenuData menu) {
+    private static String classDisplay(MenuData menu) {
         for (MenuData.ClassLine klass : menu.classes()) {
             if (klass.id().equals(menu.classId())) {
                 return klass.display();

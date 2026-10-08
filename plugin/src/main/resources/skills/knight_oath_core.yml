@@ -32,11 +32,12 @@ steps:
 
   - target: { type: self }
     do:
+      - { action: status, id: oath, duration: 40 }
       - action: modify-stat
         stat: general_defense
         op: flat
         value: "$defense_each * @oaths"
-        duration: 40
+        status: oath
 
   - target: { type: self }
     do:

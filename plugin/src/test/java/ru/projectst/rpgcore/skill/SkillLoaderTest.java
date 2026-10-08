@@ -378,6 +378,98 @@ class SkillLoaderTest {
         assertTrue(link.all().get(0).what().contains("необъявленный стат"));
     }
 
+    // ------------------------------------------------------------------ надбавка статуса
+
+    @Test
+    @DisplayName("надбавка со статусом и своим сроком — ошибка загрузки: два срока у одного эффекта")
+    void statusLinkRefusesDuration() {
+        Optional<SkillDef> skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: status, id: mark, duration: 40 }
+                      - { action: modify-stat, stat: magic_damage, value: 5, duration: 40, status: mark }
+                """);
+
+        assertTrue(skill.isEmpty() || errors.count() > 0);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("сроком статуса")),
+                () -> errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("надбавка со статусом читается и связывается, если статус кладётся раньше")
+    void statusLinkAccepted() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: status, id: mark, duration: 40 }
+                      - { action: modify-stat, stat: magic_damage, value: 5, status: mark }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(0, link.count(), () -> link.all().toString());
+        var action = (Action.ModifyStat) skill.steps().get(0).actions().get(1);
+        assertEquals("mark", action.statusId());
+    }
+
+    @Test
+    @DisplayName("статус ниже надбавки в том же шаге — ошибка: надбавка не ляжет")
+    void statusLinkOrderChecked() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: modify-stat, stat: magic_damage, value: 5, status: mark }
+                      - { action: status, id: mark, duration: 40 }
+                """).orElseThrow();
+        ContentErrors link = new ContentErrors();
+
+        SkillLinker.link(List.of(skill), BalanceBook.EMPTY, statuses(), List.of("mage"), link);
+
+        assertEquals(1, link.count(), () -> link.all().toString());
+        assertTrue(link.all().get(0).what().contains("позже надбавки"));
+    }
+
+    @Test
+    @DisplayName("статус, который никто не кладёт, — ошибка; кладущий вызывающий навык — нет")
+    void statusLinkNeedsSomeoneToApply() {
+        SkillDef orphan = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: modify-stat, stat: magic_damage, value: 5, status: mark }
+                """).orElseThrow();
+        ContentErrors alone = new ContentErrors();
+        SkillLinker.link(List.of(orphan), BalanceBook.EMPTY, statuses(), List.of("mage"), alone);
+        assertEquals(1, alone.count(), () -> alone.all().toString());
+        assertTrue(alone.all().get(0).what().contains("не ляжет никогда"));
+
+        SkillDef caller = load("""
+                id: caller
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: status, id: mark, duration: 40 }
+                      - { action: cast, skill: s }
+                """).orElseThrow();
+        ContentErrors together = new ContentErrors();
+        SkillLinker.link(List.of(orphan, caller), BalanceBook.EMPTY, statuses(),
+                List.of("mage"), together);
+        assertEquals(0, together.count(), () -> together.all().toString());
+    }
+
     @Test
     @DisplayName("число со счётчиком разбирается, а решётка вместо собаки — ошибка")
     void counterSyntax() {

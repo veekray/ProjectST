@@ -270,6 +270,32 @@ public final class RpgStyle {
         graphics.renderOutline(x - 1, y - 1, width + 2, height + 2, EDGE);
     }
 
+    /**
+     * Заливка ромба, вписанного в квадрат со стороной size, — только строки с
+     * from по to (не включая). Нужна значкам статусов: подложка, тень убывания
+     * срока, мигание — всё по форме ромба, а не квадрата поверх него.
+     */
+    public static void diamondRows(GuiGraphics graphics, int x, int y, int size, int from,
+                                   int to, int colour) {
+        int half = size / 2;
+        for (int row = Math.max(0, from); row < Math.min(size, to); row++) {
+            int spread = half - Math.abs(row - half);
+            graphics.fill(x + half - spread, y + row, x + half + spread + 1, y + row + 1, colour);
+        }
+    }
+
+    /** Край ромба в пиксель. */
+    public static void diamondEdge(GuiGraphics graphics, int x, int y, int size, int colour) {
+        int half = size / 2;
+        for (int row = 0; row < size; row++) {
+            int spread = half - Math.abs(row - half);
+            int from = x + half - spread;
+            int to = x + half + spread + 1;
+            graphics.fill(from, y + row, from + 1, y + row + 1, colour);
+            graphics.fill(to - 1, y + row, to, y + row + 1, colour);
+        }
+    }
+
     /** Значок-деление для счётчиков ядра: ромб заполнен или пуст. */
     public static void pip(GuiGraphics graphics, int x, int y, int size, boolean filled,
                            int colour) {

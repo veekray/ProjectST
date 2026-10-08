@@ -33,7 +33,8 @@ public final class HudLayout {
         DASH("Заряды рывка", 0.68f, 0.90f),
         COUNTERS("Счётчики ядра", 0.18f, 0.80f),
         SLOTS("Слоты навыков", 0.03f, 0.70f),
-        STATUSES("Статусы", 0.03f, 0.08f);
+        BUFFS("Бафы", 0.03f, 0.06f),
+        DEBUFFS("Дебафы", 0.03f, 0.20f);
 
         private final String title;
         private final float defaultX;
@@ -119,6 +120,13 @@ public final class HudLayout {
                     }.getType());
             if (saved == null) {
                 return;
+            }
+            // Прежний общий список статусов разделился на бафы и дебафы. Место,
+            // которое игрок выбрал ему, достаётся бафам — иначе после обновления
+            // его раскладка молча съехала бы на место по умолчанию.
+            float[] legacy = saved.get("STATUSES");
+            if (legacy != null && legacy.length == 2 && !saved.containsKey("BUFFS")) {
+                move(Element.BUFFS, legacy[0], legacy[1]);
             }
             saved.forEach((name, point) -> {
                 if (point == null || point.length != 2) {

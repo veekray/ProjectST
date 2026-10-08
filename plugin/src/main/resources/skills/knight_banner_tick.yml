@@ -15,11 +15,12 @@ steps:
 
   - target: { type: allies_near_origin, radius: $radius }
     do:
+      - { action: status, id: banner_guard, duration: 40 }
       - action: modify-stat
         stat: general_defense
         op: flat
         value: $guard
-        duration: 40
+        status: banner_guard
       - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3 }
 
   - target: { type: self }

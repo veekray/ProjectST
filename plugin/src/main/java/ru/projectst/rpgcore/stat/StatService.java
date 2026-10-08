@@ -102,6 +102,27 @@ public final class StatService {
         return fresh;
     }
 
+    /**
+     * Значение стата так, будто одного источника нет.
+     *
+     * <p>Нужно показу вклада: «сколько даёт именно эта Пелена» — это разница
+     * между итогом и итогом без неё, посчитанная тем же движком в том же
+     * порядке. Вычитать надбавку из итога по месту нельзя: проценты и множители
+     * применяются после сложения, и простая разница соврала бы.
+     */
+    public double valueWithout(UUID player, String statId, String source) {
+        List<StatModifier> rest = new ArrayList<>();
+        Map<String, List<StatModifier>> bySource = modifiers.get(player);
+        if (bySource != null) {
+            bySource.forEach((name, list) -> {
+                if (!name.equals(source)) {
+                    rest.addAll(list);
+                }
+            });
+        }
+        return engine.computeAll(bases.getOrDefault(player, Map.of()), rest).getOrZero(statId);
+    }
+
     /** Единственный путь сброса кеша. Публичный: его зовут внешние события. */
     public void invalidate(UUID player) {
         cache.remove(player);

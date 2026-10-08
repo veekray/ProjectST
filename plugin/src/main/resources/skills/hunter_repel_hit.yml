@@ -43,11 +43,12 @@ steps:
   - target: { type: trigger }
     do:
       - { action: push, strength: $push, lift: 0.45 }
+      - { action: status, id: slowed, duration: $slow_duration }
       - action: modify-stat
         stat: movement_speed
         op: flat
         value: $slow
-        duration: $slow_duration
+        status: slowed
       - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4 }
       - { action: sound, sound: entity_breeze_wind_burst, volume: 1.0, pitch: 0.9 }
 

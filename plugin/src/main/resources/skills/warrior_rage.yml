@@ -32,6 +32,6 @@ steps:
         stat: physical_damage
         op: flat
         value: $damage_bonus
-        duration: $duration
+        status: rage
       - { action: sound, sound: entity_ravager_roar, volume: 1.0, pitch: 1.1 }
       - { action: particles, particle: damage_indicator, shape: sphere, count: 20, size: 0.5 }

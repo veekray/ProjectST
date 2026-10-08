@@ -18,8 +18,9 @@ steps:
 
   - target: { type: self }
     do:
+      - { action: status, id: oath, duration: 40 }
       - action: modify-stat
         stat: physical_damage
         op: flat
         value: "$damage_each * @oaths"
-        duration: 40
+        status: oath

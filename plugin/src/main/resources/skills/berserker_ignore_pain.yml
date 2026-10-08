@@ -31,7 +31,7 @@ steps:
         stat: general_defense
         op: flat
         value: $reduction
-        duration: $duration
+        status: ignore_pain
       - { action: sound, sound: entity_iron_golem_hurt, volume: 1.0, pitch: 0.6 }
       - { action: particles, particle: ash, shape: sphere, count: 25, size: 0.5 }
 

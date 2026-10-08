@@ -410,11 +410,19 @@ public final class SkillLoader {
                 StatOp op = b.enumOf("op", StatOp.class, StatOp.FLAT);
                 NumberRef value = number(b, "value", errors, path, null);
                 NumberRef duration = number(b, "duration", errors, path, null);
+                String statusId = b.str("status", "");
                 if (statId.isBlank() || value == null) {
                     errors.add(b.at(), path, "нужны ключи stat и value");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.ModifyStat(statId, op, value, duration));
+                if (!statusId.isBlank() && duration != null) {
+                    // Два срока у одного эффекта: какой из них верный, не скажет
+                    // никто, и однажды они разойдутся.
+                    errors.add(b.at(), path + ".duration",
+                            "надбавка со status живёт сроком статуса: уберите duration");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.ModifyStat(statId, op, value, duration, statusId));
             }
 
             case "clear-potion" -> {

@@ -36,6 +36,9 @@ public final class SkillRuntime {
     private final MinionService minions;
     private final DoubleSupplier random;
 
+    /** Надбавки, привязанные к статусам: {@code modify-stat} со {@code status}. */
+    private final ru.projectst.rpgcore.status.StatusStats statusStats;
+
     /**
      * Куда возвращать ресурс. Исполнитель не знает, мана это или выносливость:
      * чей ресурс и как он называется, решает класс игрока.
@@ -62,6 +65,18 @@ public final class SkillRuntime {
         this.zones = zones;
         this.minions = minions;
         this.random = random;
+        this.statusStats = new ru.projectst.rpgcore.status.StatusStats(statuses, stats);
+    }
+
+    /**
+     * Надбавки, привязанные к статусам.
+     *
+     * <p>Отдаётся наружу, потому что сверять их со статусами нужно каждый тик, а
+     * показывать — в интерфейсе. Экземпляр один: два учёта одних и тех же
+     * надбавок разошлись бы на первом же снятии.
+     */
+    public ru.projectst.rpgcore.status.StatusStats statusStats() {
+        return statusStats;
     }
 
     /**
@@ -339,6 +354,14 @@ public final class SkillRuntime {
                     statuses.remove(t, id);
                 }
             });
+
+            case Action.ModifyStat a when a.statusId() != null -> {
+                // Надбавка — часть статуса: живёт, пока он лежит, и не ложится
+                // вовсе, если статус не лёг. Числа — по-прежнему из баланса навыка.
+                double value = a.value().resolve(table, level, context.counters());
+                forEach(targets, t -> statusStats.attach(t, a.statusId(), a.statId(), a.op(),
+                        value));
+            }
 
             case Action.ModifyStat a -> {
                 double value = a.value().resolve(table, level, context.counters());

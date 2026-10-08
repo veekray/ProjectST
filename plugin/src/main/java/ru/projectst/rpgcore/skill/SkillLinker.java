@@ -74,6 +74,26 @@ public final class SkillLinker {
                 }
             }
         }
+        // Кто какие статусы накладывает и кто кого вызывает: надбавке, привязанной
+        // к статусу, нужен навык, который этот статус кладёт, — иначе она не ляжет
+        // никогда, и выглядело бы это как «бонус не работает».
+        java.util.Map<String, java.util.Set<String>> applies = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Set<String>> callers = new java.util.HashMap<>();
+        for (SkillDef skill : skills) {
+            for (Step step : skill.steps()) {
+                for (Action action : step.actions()) {
+                    if (action instanceof Action.ApplyStatus s) {
+                        applies.computeIfAbsent(skill.id(), k -> new java.util.HashSet<>())
+                                .add(s.statusId());
+                    }
+                    if (action instanceof Action.Cast c) {
+                        callers.computeIfAbsent(c.skillId(), k -> new java.util.HashSet<>())
+                                .add(skill.id());
+                    }
+                }
+            }
+        }
+
         for (SkillDef skill : skills) {
             SourceRef where = SourceRef.ofFile(skill.id() + ".yml");
             BalanceTable table = balance.table(skill.id());
@@ -116,6 +136,9 @@ public final class SkillLinker {
                     String path = stepPath + ".do[" + a + "]";
                     checkAction(skill, where, table, statuses, stats, skillIds, action, path, errors);
                     checkCounters(where, action, path, writtenCounters, errors);
+                    if (action instanceof Action.ModifyStat m && m.statusId() != null) {
+                        checkStatusLink(skill, step, a, m, applies, callers, where, path, errors);
+                    }
                 }
             }
         }
@@ -215,6 +238,43 @@ public final class SkillLinker {
         return out;
     }
 
+    /**
+     * Надбавка, привязанная к статусу, должна иметь шанс лечь.
+     *
+     * <p>Статус кладёт этот же навык — в любом шаге — или навык, который этот
+     * вызывает: так устроены Жар берсерка (статус в первом шаге, надбавка во
+     * втором) и прибавка Глухой Обороны (статус кладёт вызывающий навык). Если
+     * статус кладётся в том же шаге, то раньше надбавки: иначе в момент надбавки
+     * статуса ещё нет, и она не ляжет.
+     */
+    private static void checkStatusLink(SkillDef skill, Step step, int index,
+                                        Action.ModifyStat m,
+                                        java.util.Map<String, java.util.Set<String>> applies,
+                                        java.util.Map<String, java.util.Set<String>> callers,
+                                        SourceRef where, String path, ContentErrors errors) {
+        String statusId = m.statusId();
+        for (int later = index + 1; later < step.actions().size(); later++) {
+            if (step.actions().get(later) instanceof Action.ApplyStatus s
+                    && s.statusId().equals(statusId)) {
+                errors.add(where, path + ".status", "статус \"" + statusId
+                        + "\" накладывается в этом шаге позже надбавки: в момент надбавки"
+                        + " его ещё нет, и она не ляжет. Поставьте status выше");
+                return;
+            }
+        }
+        if (applies.getOrDefault(skill.id(), java.util.Set.of()).contains(statusId)) {
+            return;
+        }
+        for (String caller : callers.getOrDefault(skill.id(), java.util.Set.of())) {
+            if (applies.getOrDefault(caller, java.util.Set.of()).contains(statusId)) {
+                return;
+            }
+        }
+        errors.add(where, path + ".status", "надбавка привязана к статусу \"" + statusId
+                + "\", но ни этот навык, ни вызывающие его этот статус не накладывают:"
+                + " надбавка не ляжет никогда");
+    }
+
     private static void checkAction(SkillDef skill, SourceRef where, BalanceTable table,
                                     StatusRegistry statuses, StatRegistry stats,
                                     java.util.Set<String> skillIds, Action action, String path,
@@ -242,6 +302,9 @@ public final class SkillLinker {
             case Action.ModifyStat m -> {
                 checkBalance(skill, where, table, path + ".value", m.value(), errors);
                 checkBalance(skill, where, table, path + ".duration", m.duration(), errors);
+                if (m.statusId() != null) {
+                    checkStatus(statuses, m.statusId(), where, path + ".status", errors);
+                }
                 if (stats != null && !stats.has(m.statId())) {
                     errors.add(where, path + ".stat",
                             "ссылка на необъявленный стат \"" + m.statId() + "\"");

@@ -15,6 +15,9 @@
 #   removes     наложение снимает перечисленные
 #   blocks      пока активен, перечисленные не наложить
 #   tags        метки для условий навыков; blocks-cast запрещает касты
+#   display     имя для игрока; без него статус служебный и на экране не виден
+#   description что статус делает, в два-три слова: пишется под значком, когда
+#               числами показать нечего — «без навыков», «гасит удар»
 #
 # Взаимное подавление запрещено: исход зависел бы от порядка наложения.
 # Взаимная блокировка разрешена: кто успел первым, тот и стоит.
@@ -26,6 +29,7 @@ statuses:
   # одновременных контроля — это и есть то самое наложение механик.
   stun:
     display: "Оглушение"
+    description: "без действий"
     color: RED
     category: control
     duration: 40
@@ -38,6 +42,7 @@ statuses:
 
   root:
     display: "Корни"
+    description: "обездвижен"
     color: DARK_GREEN
     category: control
     duration: 60
@@ -51,6 +56,7 @@ statuses:
   # иначе новый контроль молча оказался бы кастуемым.
   silence:
     display: "Тишина"
+    description: "без навыков"
     color: DARK_PURPLE
     category: debuff
     duration: 60
@@ -61,6 +67,7 @@ statuses:
   # подавляет их и попутно не даёт наложить новые.
   banish:
     display: "Изъятие"
+    description: "вне боя"
     color: YELLOW
     category: immunity
     duration: 80
@@ -79,6 +86,7 @@ statuses:
   # щиты любого размера.
   shield:
     display: "Щит"
+    description: "поглощает"
     color: BLUE
     category: shield
     duration: 200
@@ -104,6 +112,7 @@ statuses:
     duration: 20
     stacking: refresh
     display: "Печать съедена"
+    description: "сильный каст"
     color: AQUA
     tags: [soft]
   # ---------------------------------------------------------------- друид
@@ -132,6 +141,7 @@ statuses:
   # Заряды ответа коры: обычная держит один, усиленная два.
   bark_guard:
     display: "Кора"
+    description: "гасит удар"
     color: GOLD
     category: buff
     duration: 200
@@ -162,6 +172,7 @@ statuses:
   # Иссушение: по нему тикает урон и считается дань Переливания.
   curse:
     display: "Иссушение"
+    description: "тикает урон"
     color: DARK_PURPLE
     category: debuff
     duration: 100
@@ -183,6 +194,7 @@ statuses:
   # Метка Шага призрака: держится до первого удара, поэтому крит ровно один.
   ambush:
     display: "Из тени"
+    description: "верный крит"
     color: GRAY
     category: buff
     duration: 60
@@ -223,6 +235,7 @@ statuses:
   # «таймер тишины», отдельного счётчика нет.
   combat_mark:
     display: "В бою"
+    description: "Тень стоит"
     color: GRAY
     category: debuff
     duration: 60
@@ -237,6 +250,7 @@ statuses:
 
   bleed:
     display: "Кровотечение"
+    description: "тикает урон"
     color: DARK_RED
     category: debuff
     duration: 100
@@ -244,6 +258,7 @@ statuses:
 
   venom:
     display: "Трупный Яд"
+    description: "тикает урон"
     color: DARK_GREEN
     category: debuff
     duration: 120
@@ -254,6 +269,7 @@ statuses:
   # Заряды яда на клинках: каждый удар снимает один стак.
   venom_coat:
     display: "Яд на клинках"
+    description: "яд в ударах"
     color: GREEN
     category: buff
     duration: 200
@@ -263,6 +279,7 @@ statuses:
 
   reaper_brand:
     display: "Клеймо Жнеца"
+    description: "клеймо"
     color: DARK_PURPLE
     category: mark
     duration: 160
@@ -270,6 +287,7 @@ statuses:
 
   veil:
     display: "Покров"
+    description: "в тени"
     color: DARK_GRAY
     category: buff
     duration: 60
@@ -277,6 +295,7 @@ statuses:
 
   riposte_window:
     display: "Готов к ответу"
+    description: "контрудар"
     color: YELLOW
     category: buff
     duration: 16
@@ -284,6 +303,7 @@ statuses:
 
   executioner:
     display: "Час Палача"
+    description: "сила крита"
     color: RED
     category: buff
     duration: 160
@@ -319,6 +339,7 @@ statuses:
 
   carnival:
     display: "Карнавал"
+    description: "двойники"
     color: LIGHT_PURPLE
     category: buff
     duration: 200
@@ -329,6 +350,7 @@ statuses:
   # которую видно в отладке.
   feigned:
     display: "Ложная смерть"
+    description: "неуязвим"
     color: DARK_GRAY
     category: immunity
     duration: 40
@@ -340,6 +362,7 @@ statuses:
   # самой цели.
   quarry:
     display: "Добыча"
+    description: "цель охоты"
     color: GOLD
     category: mark
     duration: 400
@@ -347,6 +370,7 @@ statuses:
 
   rot:
     display: "Гниющая рана"
+    description: "хуже лечится"
     color: DARK_GREEN
     category: debuff
     duration: 120
@@ -367,6 +391,7 @@ statuses:
   # следующем попадании и за десяток выстрелов раздула бы статы до абсурда.
   rush_full:
     display: "Разгон"
+    description: "разгон"
     color: RED
     category: buff
     duration: 300
@@ -374,6 +399,7 @@ statuses:
 
   sense:
     display: "Чутьё"
+    description: "видит врагов"
     color: AQUA
     category: buff
     duration: 160
@@ -381,6 +407,7 @@ statuses:
 
   deadly_hunt:
     display: "Смертельная Охота"
+    description: "охота"
     color: GOLD
     category: buff
     duration: 200
@@ -389,6 +416,7 @@ statuses:
   # ---------------------------------------------------------------- плут
   eagle_eye:
     display: "Орлиное Зрение"
+    description: "точность"
     color: AQUA
     category: buff
     duration: 200
@@ -396,6 +424,7 @@ statuses:
 
   thrill:
     display: "Кураж"
+    description: "кураж"
     color: YELLOW
     category: buff
     duration: 200
@@ -417,6 +446,7 @@ statuses:
   # Перегрев: короткое окно на полном Жаре, ради которого всё и платилось.
   overheat:
     display: "Перегрев"
+    description: "перегрев"
     color: DARK_RED
     category: buff
     duration: 120
@@ -424,6 +454,7 @@ statuses:
 
   berserk_bleed:
     display: "Кровоточащая рана"
+    description: "тикает урон"
     color: DARK_RED
     category: debuff
     duration: 100
@@ -431,6 +462,7 @@ statuses:
 
   ignore_pain:
     display: "Боль отложена"
+    description: "боль позже"
     color: GRAY
     category: buff
     duration: 100
@@ -452,6 +484,7 @@ statuses:
   # быть такой же, чтобы конфликт был виден.
   unshakable:
     display: "Непоколебимость"
+    description: "не оглушить"
     color: GOLD
     category: immunity
     duration: 60
@@ -461,6 +494,7 @@ statuses:
 
   hunger:
     display: "Неутолимый Голод"
+    description: "вампиризм"
     color: RED
     category: buff
     duration: 100
@@ -468,6 +502,7 @@ statuses:
 
   undying:
     display: "Бессмертная Ярость"
+    description: "не умирает"
     color: DARK_RED
     category: immunity
     priority: 90
@@ -480,6 +515,7 @@ statuses:
   # «ровно один» было бы договорённостью, которую однажды нарушили бы.
   stance_press:
     display: "Напор"
+    description: "след: напор"
     color: RED
     category: buff
     duration: 100
@@ -488,6 +524,7 @@ statuses:
 
   stance_breach:
     display: "Брешь"
+    description: "след: брешь"
     color: GOLD
     category: buff
     duration: 100
@@ -496,6 +533,7 @@ statuses:
 
   stance_calm:
     display: "Покой"
+    description: "след: покой"
     color: AQUA
     category: buff
     duration: 100
@@ -504,6 +542,7 @@ statuses:
 
   karma_mark:
     display: "Карма"
+    description: "взорвётся"
     color: DARK_PURPLE
     category: mark
     duration: 60
@@ -511,6 +550,7 @@ statuses:
 
   phantom:
     display: "Уклонение"
+    description: "уклоняется"
     color: WHITE
     category: immunity
     priority: 80
@@ -519,6 +559,7 @@ statuses:
 
   asura:
     display: "Режим Асуры"
+    description: "удар по всем"
     color: DARK_RED
     category: buff
     duration: 200
@@ -531,6 +572,7 @@ statuses:
   # ульта доводит его до сотни, ничего не переписывая в коде.
   challenge:
     display: "Вызван"
+    description: "бьёт слабее"
     color: RED
     category: debuff
     duration: 240
@@ -538,6 +580,7 @@ statuses:
 
   guarded:
     display: "Под защитой"
+    description: "под защитой"
     color: AQUA
     category: buff
     duration: 100
@@ -545,6 +588,7 @@ statuses:
 
   shield_wall:
     display: "Глухая Оборона"
+    description: "оборона"
     color: GRAY
     category: buff
     duration: 80
@@ -552,6 +596,7 @@ statuses:
 
   retribution:
     display: "Возмездие"
+    description: "ответ x3"
     color: GOLD
     category: buff
     duration: 30
@@ -559,6 +604,7 @@ statuses:
 
   fortress:
     display: "Абсолютная Фортеция"
+    description: "крепость"
     color: GOLD
     category: buff
     duration: 160
@@ -569,6 +615,7 @@ statuses:
   # навыку и живёт ровно столько, сколько тот работает.
   shield_up:
     display: "Щит поднят"
+    description: "щит поднят"
     color: GRAY
     category: buff
     duration: 40
@@ -576,6 +623,7 @@ statuses:
 
   rage:
     display: "Ярость"
+    description: "ярость"
     color: RED
     category: buff
     duration: 100
@@ -593,6 +641,7 @@ statuses:
 
   warrior_stance:
     display: "Стойка"
+    description: "стойка"
     color: GRAY
     category: buff
     duration: 40
@@ -609,3 +658,86 @@ statuses:
     stacking: stacks
     max-stacks: 20
     tags: [counter]
+
+  # ---------------------------------------------------------------- общие
+  # Общие дебафы навыков, у которых своего статуса нет: замедление, просевшая
+  # защита, ослабленный урон. Числа к ним привязывает навык (modify-stat со
+  # status), поэтому статус один, а насколько он режет, решает тот, кто его
+  # наложил. Общие, а не по навыку: игроку важно «меня замедлили», а не каким
+  # именно умением, — и два замедления от разных навыков не складываются,
+  # действует последнее.
+  slowed:
+    display: "Замедление"
+    description: "медленнее"
+    color: AQUA
+    category: debuff
+    duration: 40
+    tags: [soft]
+
+  exposed:
+    display: "Уязвимость"
+    description: "защита ниже"
+    color: GOLD
+    category: debuff
+    duration: 40
+    tags: [soft]
+
+  weakened:
+    display: "Ослабление"
+    description: "урон ниже"
+    color: DARK_PURPLE
+    category: debuff
+    duration: 40
+    tags: [soft]
+
+  # Замирание на прицеливании Смертельного выстрела. Дебаф, а не контроль: его
+  # кладёт себе сам стрелок, и снимать его чужими очищениями незачем.
+  aiming:
+    display: "Прицеливание"
+    description: "не двигается"
+    color: GRAY
+    category: debuff
+    duration: 40
+
+  # Бафы навыков, у которых своего статуса не было: надбавки к ним привязаны
+  # через modify-stat со status. Без метки buff — их не крадёт Карманник, как
+  # не крал и до того, как они стали статусами.
+  banner_guard:
+    display: "Под знаменем"
+    description: "защита"
+    color: GOLD
+    category: buff
+    duration: 40
+    tags: [soft]
+
+  oath:
+    display: "Присяга"
+    description: "присяга"
+    color: GOLD
+    category: buff
+    duration: 40
+    tags: [soft]
+
+  meditation:
+    display: "Медитация"
+    description: "покой"
+    color: AQUA
+    category: buff
+    duration: 40
+    tags: [soft]
+
+  dust_cover:
+    display: "Пыльная завеса"
+    description: "уклонение"
+    color: GRAY
+    category: buff
+    duration: 40
+    tags: [soft]
+
+  stolen_power:
+    display: "Украденная сила"
+    description: "чужая сила"
+    color: LIGHT_PURPLE
+    category: buff
+    duration: 40
+    tags: [soft]

@@ -11,9 +11,10 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: potion, effect: blindness, duration: $blind_duration, amplifier: 1 }
+      - { action: status, id: weakened, duration: $blind_duration }
       - action: modify-stat
         stat: physical_damage
         op: percent
         value: $weaken
-        duration: $blind_duration
+        status: weakened
       - { action: particles, particle: squid_ink, shape: point, count: 6 }

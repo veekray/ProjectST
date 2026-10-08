@@ -30,7 +30,7 @@ steps:
         stat: movement_speed
         op: flat
         value: $speed
-        duration: $duration
+        status: veil
       - action: summon
         mob: assassin_afterimage
         count: 1

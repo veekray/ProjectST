@@ -57,15 +57,47 @@ public record ClientState(String resourceName, double resource, double resourceM
     /**
      * Действующий статус.
      *
-     * @param id        идентификатор: по нему мод выбирает значок
-     * @param display   имя для показа
-     * @param stacks    стаки
-     * @param remaining сколько тиков осталось
-     * @param category  категория: по ней мод выбирает цвет, если своего нет
-     * @param color     цвет из файла статуса; пусто — по категории
+     * <p>Список приходит в порядке наложения: первым — тот, что лёг раньше.
+     * Значок, прыгающий по ряду при каждом обновлении, не найти взглядом.
+     *
+     * @param id          идентификатор: по нему мод выбирает значок
+     * @param display     имя для показа
+     * @param stacks      стаки
+     * @param remaining   сколько тиков осталось
+     * @param category    категория: по ней мод выбирает ряд и цвет, если своего нет
+     * @param color       цвет из файла статуса; пусто — по категории
+     * @param total       полный нынешний срок в тиках: без него не нарисовать
+     *                    убывание
+     * @param description что статус делает, в два-три слова; пишется под
+     *                    значком, когда чисел нет
+     * @param effects     что статус даёт статам, самое заметное первым
      */
     public record StatusLine(String id, String display, int stacks, int remaining,
-                             String category, String color) {
+                             String category, String color, int total, String description,
+                             List<EffectLine> effects) {
+
+        public StatusLine(String id, String display, int stacks, int remaining,
+                          String category, String color) {
+            this(id, display, stacks, remaining, category, color, remaining, "", List.of());
+        }
+
+        public StatusLine {
+            description = description == null ? "" : description;
+            effects = effects == null ? List.of() : List.copyOf(effects);
+        }
+    }
+
+    /**
+     * Что статус даёт одному стату.
+     *
+     * <p>Число готовое: «+12%», «-8%». Мод его не считает — кривая рейтинга живёт
+     * на сервере, и второй её расчёт однажды показал бы не то, что в бою.
+     *
+     * @param statId по нему мод рисует значок стата
+     * @param text   число для показа
+     * @param good   хорошо ли это игроку: зелёным или красным
+     */
+    public record EffectLine(String statId, String text, boolean good) {
     }
 
     /**

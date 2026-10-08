@@ -1,6 +1,10 @@
 package ru.projectst.rpgcore.client;
 
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
@@ -34,6 +38,19 @@ public final class RpgHud {
     /** Шаг ряда слотов: ромб плюс кольцо вокруг него. */
     private static final int STEP = ICON + 7;
     private static final int BAR_HEIGHT = 7;
+
+    /** Сторона ромба значка статуса: крупнее квадрата, потому что ромб срезает углы. */
+    private static final int AURA = 24;
+    /** Воздух между значками в ряду. */
+    private static final int AURA_GAP = 4;
+    /** Сколько значков в строке ряда, дальше — перенос. */
+    private static final int AURA_PER_LINE = 10;
+    /** Высота строки подписи под значком: мелкий шрифт и пиксель воздуха. */
+    private static final int AURA_TEXT = 8;
+    /** Масштаб подписей под значком: полный шрифт растащил бы ряд вдвое. */
+    private static final float SMALL = 0.75f;
+    /** С какого остатка значок начинает мигать: три секунды. */
+    private static final int ENDING_TICKS = 60;
 
     private RpgHud() {
     }
@@ -77,7 +94,7 @@ public final class RpgHud {
         drawDash(graphics, client, state, width, height);
         drawCounters(graphics, client, state, width, height);
         drawSlots(graphics, client, state, width, height);
-        drawStatuses(graphics, client, state, width, height);
+        drawAuras(graphics, client, state, width, height);
     }
 
     // ------------------------------------------------------------------ полосы
@@ -272,22 +289,183 @@ public final class RpgHud {
         }
     }
 
-    private static void drawStatuses(GuiGraphics graphics, Minecraft client,
-                                     ClientState state, int width, int height) {
-        if (state.statuses().isEmpty()) {
-            return;
+    /**
+     * Бафы и дебафы: два ряда значков.
+     *
+     * <p>Значками, а не списком строк: в бою на ряд смотрят боковым зрением, и
+     * узнаётся рисунок, а не слово. Ряда два, потому что вопросов два: «что мне
+     * помогает» и «что мне мешает», — и в общем списке ответ на второй терялся
+     * среди первого. Щит и неуязвимость — к бафам, контроль и метки — к дебафам:
+     * делит польза для игрока, а не устройство статуса.
+     */
+    private static void drawAuras(GuiGraphics graphics, Minecraft client, ClientState state,
+                                  int width, int height) {
+        List<ClientState.StatusLine> buffs = new ArrayList<>();
+        List<ClientState.StatusLine> debuffs = new ArrayList<>();
+        for (ClientState.StatusLine line : state.statuses()) {
+            (helps(line.category()) ? buffs : debuffs).add(line);
         }
-        int x = HudLayout.screenX(HudLayout.Element.STATUSES, width);
-        int y = HudLayout.screenY(HudLayout.Element.STATUSES, height);
+        drawAuraRow(graphics, client.font, buffs,
+                HudLayout.screenX(HudLayout.Element.BUFFS, width),
+                HudLayout.screenY(HudLayout.Element.BUFFS, height));
+        drawAuraRow(graphics, client.font, debuffs,
+                HudLayout.screenX(HudLayout.Element.DEBUFFS, width),
+                HudLayout.screenY(HudLayout.Element.DEBUFFS, height));
+    }
 
-        for (ClientState.StatusLine status : state.statuses()) {
-            String text = status.display()
-                    + (status.stacks() > 1 ? " ×" + status.stacks() : "")
-                    + "  " + seconds(status.remaining());
-            graphics.drawString(client.font, Component.literal(text), x, y,
-                    colourOf(status.color(), status.category()), true);
-            y += 11;
+    /** Помогает ли статус своей категории игроку: баф, щит, неуязвимость. */
+    static boolean helps(String category) {
+        return category.equals("BUFF") || category.equals("SHIELD")
+                || category.equals("IMMUNITY");
+    }
+
+    /**
+     * Один ряд. Порядок — как прислал сервер, то есть по времени наложения:
+     * значок, прыгающий по ряду при каждом обновлении, не найти взглядом.
+     */
+    private static void drawAuraRow(GuiGraphics graphics, Font font,
+                                    List<ClientState.StatusLine> row, int x, int y) {
+        int cursorX = x;
+        int cursorY = y;
+        int inLine = 0;
+        // Строка ряда высотой с самый высокий значок в ней: у статуса с тремя
+        // надбавками три строки подписи, и следующая строка ряда не должна
+        // наехать на них.
+        int tallest = 0;
+        for (ClientState.StatusLine line : row) {
+            if (inLine == AURA_PER_LINE) {
+                cursorX = x;
+                cursorY += tallest + AURA_GAP;
+                inLine = 0;
+                tallest = 0;
+            }
+            cursorX += drawAura(graphics, font, line, cursorX, cursorY) + AURA_GAP;
+            tallest = Math.max(tallest, auraHeight(line));
+            inLine++;
         }
+    }
+
+    /**
+     * Значок статуса и то, что он даёт.
+     *
+     * <p>Под значком — всё, что статус делает со статами, по строке на стат:
+     * значок стата и вклад в процентах, зелёным или красным. Число готовое, с сервера:
+     * кривая рейтинга живёт там, и второй её расчёт здесь однажды показал бы не
+     * то, что в бою. У статуса без чисел вместо них — описание в два-три слова.
+     * Ниже — сколько осталось.
+     *
+     * @return ширина ячейки: подпись бывает шире значка, и ряд раздвигается под неё
+     */
+    private static int drawAura(GuiGraphics graphics, Font font, ClientState.StatusLine line,
+                                int x, int y) {
+        int cell = Math.max(AURA, labelWidth(font, line));
+        int boxX = x + (cell - AURA) / 2;
+        int colour = colourOf(line.color(), line.category());
+        boolean ending = line.remaining() <= ENDING_TICKS;
+
+        // Ромб, как у навыков: значок статуса и значок навыка — одна семья, и
+        // глаз ищет их по одной форме.
+        RpgStyle.diamondRows(graphics, boxX, y, AURA, 0, AURA, 0xE0120E0A);
+        StatusIcons.draw(graphics, line.id(), line.display(), boxX, y, AURA, colour);
+
+        // Часы: сколько срока уже прошло, затемняется сверху вниз. Убывание
+        // видно краем глаза, не читая числа.
+        double left = line.total() <= 0 ? 1
+                : Math.clamp((double) line.remaining() / line.total(), 0, 1);
+        int shade = (int) Math.round(AURA * (1 - left));
+        if (shade > 0) {
+            RpgStyle.diamondRows(graphics, boxX, y, AURA, 0, shade, 0x99000000);
+        }
+        // Последние секунды — мигание: кончающийся баф пора обновлять, и
+        // заметить это надо до того, как он кончится.
+        if (ending && (Util.getMillis() / 250) % 2 == 0) {
+            RpgStyle.diamondRows(graphics, boxX, y, AURA, 0, AURA, 0x66000000);
+        }
+
+        // Контроль — двойной красной рамкой: оглушение надо заметить сразу.
+        if (line.category().equals("CONTROL")) {
+            RpgStyle.diamondEdge(graphics, boxX, y, AURA, RpgStyle.INK_BAD);
+            RpgStyle.diamondEdge(graphics, boxX + 1, y + 1, AURA - 2, RpgStyle.INK_BAD);
+        } else {
+            RpgStyle.diamondEdge(graphics, boxX, y, AURA, colour);
+        }
+
+        if (line.stacks() > 1) {
+            String stacks = String.valueOf(line.stacks());
+            // В правом нижнем углу квадрата, за краем ромба: там рисунка нет,
+            // и число не закрывает значок.
+            small(graphics, font, stacks, boxX + AURA - scaled(font.width(stacks)),
+                    y + AURA - 6, RpgStyle.TEXT);
+        }
+
+        // Все надбавки, по строке на стат: игрок должен видеть всё, что даёт
+        // статус, а не первое и многоточие. Самая заметная — первой: так её
+        // прислал сервер.
+        int labelY = y + AURA + 2;
+        if (line.effects().isEmpty()) {
+            if (!line.description().isEmpty()) {
+                int width = scaled(font.width(line.description()));
+                small(graphics, font, line.description(), x + (cell - width) / 2, labelY,
+                        RpgStyle.TEXT_DIM);
+                labelY += AURA_TEXT;
+            }
+        } else {
+            for (ClientState.EffectLine effect : line.effects()) {
+                int width = StatIcons.SIZE + 1 + scaled(font.width(effect.text()));
+                int effectX = x + (cell - width) / 2;
+                StatIcons.draw(graphics, effect.statId(), effectX, labelY - 1);
+                small(graphics, font, effect.text(), effectX + StatIcons.SIZE + 1, labelY,
+                        effect.good() ? RpgStyle.INK_GOOD : RpgStyle.INK_BAD);
+                labelY += AURA_TEXT;
+            }
+        }
+
+        String time = timeLeft(line.remaining());
+        small(graphics, font, time, x + (cell - scaled(font.width(time))) / 2, labelY,
+                ending ? RpgStyle.INK_BAD : RpgStyle.TEXT);
+        return cell;
+    }
+
+    /** Ширина подписи под значком: самая длинная строка надбавок или описание. */
+    private static int labelWidth(Font font, ClientState.StatusLine line) {
+        if (line.effects().isEmpty()) {
+            return line.description().isEmpty() ? 0 : scaled(font.width(line.description()));
+        }
+        int widest = 0;
+        for (ClientState.EffectLine effect : line.effects()) {
+            widest = Math.max(widest, StatIcons.SIZE + 1 + scaled(font.width(effect.text())));
+        }
+        return widest;
+    }
+
+    /** Полная высота значка с подписью: ромб, строки надбавок и время. */
+    private static int auraHeight(ClientState.StatusLine line) {
+        int rows = line.effects().isEmpty() ? (line.description().isEmpty() ? 0 : 1)
+                : line.effects().size();
+        return AURA + 2 + (rows + 1) * AURA_TEXT;
+    }
+
+    /** Подпись мелким шрифтом: под значком полный шрифт растащил бы ряд вдвое. */
+    private static void small(GuiGraphics graphics, Font font, String text, int x, int y,
+                              int colour) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0);
+        graphics.pose().scale(SMALL, SMALL, 1);
+        graphics.drawString(font, Component.literal(text), 0, 0, colour, true);
+        graphics.pose().popPose();
+    }
+
+    private static int scaled(int width) {
+        return Math.round(width * SMALL);
+    }
+
+    /** Сколько осталось: минуты — минутами, последние десять секунд — с десятыми. */
+    private static String timeLeft(int ticks) {
+        int secondsLeft = ticks / 20;
+        if (secondsLeft >= 60) {
+            return (secondsLeft / 60) + "м";
+        }
+        return seconds(ticks);
     }
 
     // ------------------------------------------------------------------ мелочи

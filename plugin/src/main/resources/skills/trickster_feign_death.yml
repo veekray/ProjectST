@@ -29,7 +29,7 @@ steps:
         stat: movement_speed
         op: flat
         value: $speed
-        duration: $duration
+        status: feigned
       - action: summon
         mob: trickster_corpse
         count: 1

@@ -26,7 +26,7 @@ steps:
         stat: general_defense
         op: flat
         value: $base
-        duration: $duration
+        status: shield_wall
       - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
       - { action: particles, particle: end_rod, shape: ring, count: 24, size: 1.5 }
       - { action: cast, skill: knight_shield_wall_bonus, at-targets: true }

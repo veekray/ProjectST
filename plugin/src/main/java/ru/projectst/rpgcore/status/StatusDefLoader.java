@@ -87,6 +87,7 @@ public final class StatusDefLoader {
         Set<String> tags = Set.copyOf(body.strings("tags"));
         String display = body.str("display", "");
         String color = body.str("color", "");
+        String description = body.str("description", "");
 
         boolean ok = true;
         if (!id.equals(id.toLowerCase(Locale.ROOT))) {
@@ -108,6 +109,7 @@ public final class StatusDefLoader {
         }
 
         return Optional.of(new StatusDef(id, category, duration, maxStacks, stacking,
-                priority, exclusive, suppresses, removes, blocks, tags, display, color));
+                priority, exclusive, suppresses, removes, blocks, tags, display, color,
+                description));
     }
 }

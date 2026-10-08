@@ -14,11 +14,12 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: potion, effect: blindness, duration: $duration, amplifier: 1 }
+      - { action: status, id: exposed, duration: $duration }
       - action: modify-stat
         stat: general_defense
         op: flat
         value: $vulnerability
-        duration: $duration
+        status: exposed
       - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1 }
 
   - target: { type: self }

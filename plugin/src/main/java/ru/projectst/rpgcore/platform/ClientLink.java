@@ -59,9 +59,9 @@ public final class ClientLink implements PluginMessageListener {
     private final SkillRegistry skills;
     private final StatRegistry statDefs;
     private final StatService statValues;
-    private final ArtifactSlots artifacts;
+    private final GearSlots gear;
     private final EquipmentWatcher equipment;
-    private final RpgItems rpgItems;
+    private final ru.projectst.rpgcore.status.StatusStats statusStats;
 
     /** Кто поздоровался и с какой версией мода. */
     private final Map<UUID, String> connected = new ConcurrentHashMap<>();
@@ -72,8 +72,9 @@ public final class ClientLink implements PluginMessageListener {
     public ClientLink(Plugin plugin, ClassService classes, CastService casts,
                       StatusService statuses, StatusRegistry statusDefs,
                       ClassRegistry classDefs, SkillRegistry skills, StatRegistry statDefs,
-                      StatService statValues, ArtifactSlots artifacts,
-                      EquipmentWatcher equipment, RpgItems rpgItems) {
+                      StatService statValues, GearSlots gear,
+                      EquipmentWatcher equipment,
+                      ru.projectst.rpgcore.status.StatusStats statusStats) {
         this.plugin = plugin;
         this.classes = classes;
         this.casts = casts;
@@ -83,9 +84,9 @@ public final class ClientLink implements PluginMessageListener {
         this.skills = skills;
         this.statDefs = statDefs;
         this.statValues = statValues;
-        this.artifacts = artifacts;
+        this.gear = gear;
         this.equipment = equipment;
-        this.rpgItems = rpgItems;
+        this.statusStats = statusStats;
     }
 
     /** Регистрирует каналы. Без этого Bukkit молча не доставит ни одного байта. */
@@ -221,8 +222,12 @@ public final class ClientLink implements PluginMessageListener {
                     player.sendActionBar(Component.text(outcome.toString(), NamedTextColor.RED));
                 }
             }
-            case ARTIFACT_TAKE -> takeArtifact(player, request.number());
-            case ARTIFACT_PUT -> putArtifact(player, request.number());
+            case OPEN_GEAR -> new ru.projectst.rpgcore.platform.gui.GearView(player, gear,
+                    () -> {
+                        equipment.apply(player);
+                        refreshMenu(player);
+                    },
+                    warning -> plugin.getLogger().warning(warning)).open();
             case REFRESH_MENU -> {
                 // Ничего не меняет: ответ уйдёт ниже вместе со всеми остальными.
             }
@@ -241,116 +246,16 @@ public final class ClientLink implements PluginMessageListener {
     }
 
     /**
-     * Забрать артефакт из ячейки.
+     * Ячейки снаряжения, в которых вещь не действует.
      *
-     * <p>Те же правила, что в окне инвентаря, и тот же порядок: ячейка не
-     * очищается, пока предмет не поместился в инвентарь целиком. Предмет,
-     * пропавший из-за полного инвентаря, — это потерянная вещь, а не неудобство.
+     * <p>Из той же сверки, что считает статы: окно, обещающее одно, когда бой
+     * считает другое, хуже окна без обещаний.
      */
-    private void takeArtifact(Player player, int slot) {
-        UUID id = player.getUniqueId();
-        var stored = artifacts.get(id, slot);
-        if (stored.isEmpty()) {
-            return;
-        }
-        if (!player.getInventory().addItem(stored.get()).isEmpty()) {
-            player.sendActionBar(Component.text("В инвентаре нет места для артефакта",
-                    NamedTextColor.RED));
-            return;
-        }
-        artifacts.set(id, slot, null);
-        equipment.apply(player);
-    }
-
-    /**
-     * Положить в ячейку то, что игрок держит в руке.
-     *
-     * <p>Из руки, а не по номеру в инвентаре: что в руке, сервер видит сам, и
-     * просьба не может указать на предмет, которого у игрока нет. Занятую ячейку
-     * не подменяем — сначала забрать: обмен одним нажатием означал бы предмет,
-     * который на мгновение не лежит нигде.
-     */
-    private void putArtifact(Player player, int slot) {
-        UUID id = player.getUniqueId();
-        if (slot < 1 || slot > artifacts.slotCount()) {
-            return;
-        }
-        if (artifacts.get(id, slot).isPresent()) {
-            player.sendActionBar(Component.text("Ячейка занята: сначала заберите артефакт",
-                    NamedTextColor.RED));
-            return;
-        }
-        var hand = player.getInventory().getItemInMainHand();
-        String refusal = artifacts.refusal(hand);
-        if (!refusal.isEmpty()) {
-            player.sendActionBar(Component.text(refusal, NamedTextColor.RED));
-            return;
-        }
-
-        // Ровно один предмет из стопки: в ячейке лежит артефакт, а не стопка.
-        var one = hand.clone();
-        one.setAmount(1);
-        hand.setAmount(hand.getAmount() - 1);
-        player.getInventory().setItemInMainHand(hand.getAmount() <= 0 ? null : hand);
-
-        artifacts.set(id, slot, one);
-        equipment.apply(player);
-    }
-
-    /**
-     * Ячейки артефактов для книги героя.
-     *
-     * <p>Записи есть и у пустых: мод рисует все ячейки, и отдельное число
-     * «сколько их» однажды разошлось бы со списком.
-     *
-     * <p>Строки надбавок собираются здесь, а не в моде: они обязаны быть теми
-     * же, которыми считает бой, а второй расчёт — хоть в моде, хоть рядом —
-     * однажды разойдётся.
-     */
-    private List<MenuData.ArtifactLine> artifactLines(Player player) {
-        UUID id = player.getUniqueId();
-        List<MenuData.ArtifactLine> lines = new ArrayList<>();
-        if (artifacts.slotCount() <= 0) {
-            return lines;
-        }
-        String playerClass = classes.classOf(id).map(ClassDef::id).orElse(null);
-        int level = classes.snapshot(id).level();
-        var worn = artifacts.all(id);
-
-        for (int slot = 1; slot <= artifacts.slotCount(); slot++) {
-            var stack = worn.get(slot);
-            var def = rpgItems.defOf(stack);
-            if (def.isEmpty()) {
-                lines.add(new MenuData.ArtifactLine(slot, "", "", "", "", List.of(), ""));
-                continue;
-            }
-            var item = def.get();
-            List<String> rows = new ArrayList<>();
-            item.stats().forEach((statId, line) -> rows.add(statLine(statId, line)));
-            lines.add(new MenuData.ArtifactLine(slot, item.id(), item.display(),
-                    item.material(), rpgItems.registry().rarity(item.rarityId()).color(),
-                    rows, item.requirement().refusal(playerClass, level)));
-        }
+    private List<MenuData.GearLine> gearLines(Player player) {
+        List<MenuData.GearLine> lines = new ArrayList<>();
+        equipment.refusals(player).forEach((cell, refusal) ->
+                lines.add(new MenuData.GearLine(cell.key(), refusal)));
         return lines;
-    }
-
-    /** Надбавка строкой: тем же видом, что в описании предмета. */
-    private static String statLine(String statId,
-                                   ru.projectst.rpgcore.item.ItemDef.ItemStatLine line) {
-        return switch (line.op()) {
-            case FLAT -> sign(line.value()) + number(line.value()) + " " + statId;
-            case PERCENT -> sign(line.value()) + number(line.value()) + "% " + statId;
-            case MULT -> "×" + number(line.value()) + " " + statId;
-        };
-    }
-
-    private static String sign(double value) {
-        return value >= 0 ? "+" : "";
-    }
-
-    private static String number(double value) {
-        return value == Math.rint(value) ? String.valueOf((long) value)
-                : String.valueOf(Math.round(value * 10) / 10.0);
     }
 
     // ------------------------------------------------------------------ отправка
@@ -372,6 +277,19 @@ public final class ClientLink implements PluginMessageListener {
         }
         lastSent.put(player.getUniqueId(), state);
         player.sendPluginMessage(plugin, Protocol.CHANNEL_STATE, StateCodec.writeState(state));
+    }
+
+    /**
+     * Шлёт данные меню, если у игрока стоит мод.
+     *
+     * <p>Для изменений, пришедших не из канала: вещь надели в окне снаряжения,
+     * и красная рамка у ячейки должна появиться сразу, а не при следующем
+     * действии.
+     */
+    public void refreshMenu(Player player) {
+        if (connected.containsKey(player.getUniqueId())) {
+            sendMenu(player);
+        }
     }
 
     /** Шлёт данные меню: по запросу и после каждого действия, а не постоянно. */
@@ -439,7 +357,7 @@ public final class ClientLink implements PluginMessageListener {
         return new MenuData(own.map(ClassDef::id).orElse(""), data.level(), data.xp(),
                 classes.xpToNextLevel(id), data.unspentPoints(),
                 own.map(ClassDef::slots).orElse(0), classLines, skillLines, statLines,
-                artifactLines(player));
+                gearLines(player));
     }
 
     /**
@@ -481,6 +399,41 @@ public final class ClientLink implements PluginMessageListener {
         return most;
     }
 
+    /**
+     * Что статус даёт статам игрока, самое заметное первым.
+     *
+     * <p>Вклад считается как разница итога с надбавкой статуса и без неё — тем же
+     * движком и той же кривой, что и бой. Число в процентах эффекта: «+40 к
+     * скорости» игроку не скажет ничего, а «+12% к скорости» — то, что он
+     * чувствует.
+     */
+    private List<ClientState.EffectLine> effects(UUID player, String statusId) {
+        List<ru.projectst.rpgcore.stat.StatContribution> found = new ArrayList<>();
+        var snapshot = statValues.snapshot(player);
+        for (var modifier : statusStats.of(player, statusId)) {
+            var def = statDefs.find(modifier.statId());
+            if (def.isEmpty()) {
+                continue;
+            }
+            double with = snapshot.getOrZero(modifier.statId());
+            double without = statValues.valueWithout(player, modifier.statId(),
+                    modifier.source());
+            var contribution = ru.projectst.rpgcore.stat.StatContribution.of(def.get(), with,
+                    without);
+            if (!contribution.text().isEmpty()) {
+                found.add(contribution);
+            }
+        }
+        found.sort(java.util.Comparator.comparingDouble(
+                (ru.projectst.rpgcore.stat.StatContribution c) -> Math.abs(c.amount())).reversed());
+        List<ClientState.EffectLine> out = new ArrayList<>();
+        for (var contribution : found) {
+            out.add(new ClientState.EffectLine(contribution.statId(), contribution.text(),
+                    contribution.good()));
+        }
+        return out;
+    }
+
     /** Собирает состояние из тех же сервисов, что отвечают командам и интерфейсу. */
     private ClientState snapshot(Player player) {
         UUID id = player.getUniqueId();
@@ -491,7 +444,12 @@ public final class ClientLink implements PluginMessageListener {
         List<ClientState.StatusLine> statusLines = new ArrayList<>();
         List<ClientState.CounterLine> counterLines = new ArrayList<>();
         long now = plugin.getServer().getCurrentTick();
-        for (ActiveStatus status : statuses.acting(id)) {
+        // Порядок наложения: значок, прыгающий по ряду при каждом обновлении, не
+        // найти взглядом.
+        List<ActiveStatus> acting = new ArrayList<>(statuses.acting(id));
+        acting.sort(java.util.Comparator.comparingLong(ActiveStatus::appliedAtTick)
+                .thenComparing(ActiveStatus::id));
+        for (ActiveStatus status : acting) {
             var statusDef = statusDefs.find(status.id());
             String display = statusDef.map(d -> d.display()).orElse(status.id());
             String colour = statusDef.map(d -> d.color()).orElse(null);
@@ -505,9 +463,15 @@ public final class ClientLink implements PluginMessageListener {
                         colour == null ? "" : colour));
                 continue;
             }
+            // Служебный статус — замок, отметка «уже сработало» — игроку не
+            // показывается: его идентификатор ничего не скажет, а место займёт.
+            if (statusDef.isEmpty() || !statusDef.get().named()) {
+                continue;
+            }
             statusLines.add(new ClientState.StatusLine(status.id(), display, status.stacks(),
                     (int) status.remaining(now), status.category().name(),
-                    colour == null ? "" : colour));
+                    colour == null ? "" : colour, (int) Math.min(Integer.MAX_VALUE,
+                    status.total()), statusDef.get().description(), effects(id, status.id())));
         }
 
         // Врождённый рывок: не на слоте и слотов не занимает, поэтому идёт

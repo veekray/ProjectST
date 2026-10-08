@@ -21,7 +21,12 @@ class StateCodecTest {
     private static final ClientState SAMPLE = new ClientState(
             "Выносливость", 73.5, 120, 17, "&8Плут",
             List.of(new ClientState.StatusLine("ambush", "Из тени", 1, 40, "BUFF", "GRAY"),
-                    new ClientState.StatusLine("stun", "Оглушение", 1, 20, "CONTROL", "RED")),
+                    new ClientState.StatusLine("stun", "Оглушение", 1, 20, "CONTROL", "RED"),
+                    new ClientState.StatusLine("veil", "Покров", 2, 30, "BUFF", "", 100,
+                            "в тени", List.of(
+                                    new ClientState.EffectLine("movement_speed", "+12%", true),
+                                    new ClientState.EffectLine("general_defense", "-4%",
+                                            false)))),
             List.of(new ClientState.CooldownLine("rogue_dash", 35, 120)),
             List.of(new ClientState.SlotLine(1, "rogue_dash", "Рывок", "SUGAR"),
                     new ClientState.SlotLine(2, "", "", "")),
@@ -70,20 +75,14 @@ class StateCodecTest {
                 List.of(new MenuData.StatLine("physical_damage", "Физический урон", 12.5),
                         new MenuData.StatLine("physical_defense", "Физическая защита", 150,
                                 "режет 60% урона")),
-                List.of(new MenuData.ArtifactLine(1, "ring_of_dusk", "Перстень сумерек",
-                                "GOLD_INGOT", "LIGHT_PURPLE",
-                                List.of("+12 physical_damage", "×1.2 critical_strike_power"),
-                                ""),
-                        new MenuData.ArtifactLine(2, "", "", "", "", List.of(), ""),
-                        new MenuData.ArtifactLine(3, "seal_of_order", "Печать порядка",
-                                "PAPER", "GOLD", List.of("+40 max_mana"),
-                                "только для класса mage")));
+                List.of(new MenuData.GearLine("ring_left", "нужен уровень 20"),
+                        new MenuData.GearLine("artifact_3", "только для класса mage")));
 
         MenuData back = StateCodec.readMenu(StateCodec.writeMenu(menu));
 
         assertEquals(menu.classId(), back.classId());
-        assertEquals(menu.artifacts(), back.artifacts(),
-                "ячейки артефактов: и занятые, и пустые, и причина, по которой не действует");
+        assertEquals(menu.gear(), back.gear(),
+                "ячейка и причина, по которой вещь в ней не действует");
         assertEquals(menu.level(), back.level());
         assertEquals(menu.points(), back.points());
         assertEquals(menu.slots(), back.slots());

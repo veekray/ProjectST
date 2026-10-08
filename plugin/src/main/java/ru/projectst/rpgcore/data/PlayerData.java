@@ -1,7 +1,9 @@
 package ru.projectst.rpgcore.data;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -23,7 +25,7 @@ public final class PlayerData {
      * Версия схемы. Увеличивается при несовместимом изменении полей; старые
      * файлы поднимаются в {@link PlayerDataCodec}.
      */
-    public static final int SCHEMA_VERSION = 3;
+    public static final int SCHEMA_VERSION = 4;
 
     private final UUID uuid;
     private String classId;
@@ -35,14 +37,24 @@ public final class PlayerData {
     private final Map<String, Integer> skillLevels = new LinkedHashMap<>();
 
     /**
-     * Артефакты в слотах: номер слота → предмет, записанный строкой.
+     * Снаряжение в своих ячейках: имя ячейки → предмет, записанный строкой.
      *
      * <p>Строкой, а не предметом, намеренно: этот слой про сохранение и про
      * Bukkit не знает — иначе данные игрока нельзя было бы ни прочитать, ни
      * проверить тестом без запущенного сервера. Что внутри строки, знает
-     * платформа, и только она.
+     * платформа, и только она. По той же причине имя ячейки здесь просто
+     * строка: какие ячейки бывают, решает не хранилище.
      */
-    private final Map<Integer, String> artifacts = new LinkedHashMap<>();
+    private final Map<String, String> gear = new LinkedHashMap<>();
+
+    /**
+     * Вещи, которые нужно вернуть владельцу при входе.
+     *
+     * <p>Появляются, когда ячейка исчезла: так было с четвёртым слотом
+     * артефактов, которого больше нет. Лежат здесь, пока не отданы, — молча
+     * пропасть вещь не может, а отдать её можно только игроку в игре.
+     */
+    private final List<String> returns = new ArrayList<>();
 
     public PlayerData(UUID uuid) {
         if (uuid == null) {
@@ -148,61 +160,44 @@ public final class PlayerData {
         slotBindings.remove(slot);
     }
 
-    // ------------------------------------------------------------------ артефакты
+    // ------------------------------------------------------------------ снаряжение
 
-    /** Артефакты по слотам: номер → запись предмета. */
-    public Map<Integer, String> artifacts() {
-        return artifacts;
+    /** Снаряжение по ячейкам: имя ячейки → запись предмета. */
+    public Map<String, String> gear() {
+        return gear;
     }
 
-    /** Запись артефакта в слоте; {@code null} — слот пуст. */
-    public String artifact(int slot) {
-        return artifacts.get(slot);
+    /** Запись предмета в ячейке; {@code null} — ячейка пуста. */
+    public String gearItem(String cell) {
+        return gear.get(cell);
     }
 
     /**
-     * Кладёт или убирает артефакт.
+     * Кладёт или убирает предмет.
      *
-     * <p>Пустая запись убирает: «слот есть, а в нём пустая строка» — состояние,
+     * <p>Пустая запись убирает: «ячейка есть, а в ней пустая строка» — состояние,
      * которое потом приходится проверять в каждом чтении.
      */
-    public void setArtifact(int slot, String encoded) {
-        if (slot < 1) {
-            throw new IllegalArgumentException("номер слота артефакта не меньше 1");
+    public void setGear(String cell, String encoded) {
+        if (cell == null || cell.isBlank()) {
+            throw new IllegalArgumentException("имя ячейки обязательно");
         }
         if (encoded == null || encoded.isBlank()) {
-            artifacts.remove(slot);
+            gear.remove(cell);
         } else {
-            artifacts.put(slot, encoded);
+            gear.put(cell, encoded);
         }
     }
 
-    /**
-     * Первый свободный слот артефакта из {@code count}; ноль — свободных нет.
-     *
-     * <p>Первый, а не последний: игрок кладёт артефакты слева направо, и «ушёл
-     * в пятый, потому что первый освободился» читается как ошибка.
-     */
-    public int firstFreeArtifactSlot(int count) {
-        for (int slot = 1; slot <= count; slot++) {
-            if (!artifacts.containsKey(slot)) {
-                return slot;
-            }
-        }
-        return 0;
+    /** Вещи, ждущие возврата владельцу. */
+    public List<String> returns() {
+        return returns;
     }
 
-    /**
-     * Слоты за пределами нынешнего числа слотов.
-     *
-     * <p>Бывает, когда число слотов на сервере уменьшили. Статов такие артефакты
-     * не дают — и пропадать тоже не должны: их нужно вернуть владельцу, а не
-     * потерять, поэтому они перечислимы.
-     */
-    public java.util.List<Integer> artifactsBeyond(int count) {
-        java.util.List<Integer> out = new java.util.ArrayList<>();
-        artifacts.keySet().stream().filter(slot -> slot > count).sorted()
-                .forEach(out::add);
-        return out;
+    /** Ставит вещь в очередь на возврат. Пустая запись — не вещь. */
+    public void addReturn(String encoded) {
+        if (encoded != null && !encoded.isBlank()) {
+            returns.add(encoded);
+        }
     }
 }

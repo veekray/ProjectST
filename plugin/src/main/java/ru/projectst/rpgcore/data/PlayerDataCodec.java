@@ -20,6 +20,14 @@ public final class PlayerDataCodec {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    /**
+     * Сколько ячеек артефактов осталось после перехода на окно снаряжения.
+     *
+     * <p>Число записано здесь, а не взято у ячеек: миграция описывает, как было
+     * и как стало в тот день, и не должна меняться, если ячеек потом добавят.
+     */
+    static final int ARTIFACT_CELLS = 3;
+
     private PlayerDataCodec() {
     }
 
@@ -50,11 +58,15 @@ public final class PlayerDataCodec {
         }
         root.add("levels", levels);
 
-        JsonObject artifacts = new JsonObject();
-        for (Map.Entry<Integer, String> e : data.artifacts().entrySet()) {
-            artifacts.addProperty(String.valueOf(e.getKey()), e.getValue());
+        JsonObject gear = new JsonObject();
+        for (Map.Entry<String, String> e : data.gear().entrySet()) {
+            gear.addProperty(e.getKey(), e.getValue());
         }
-        root.add("artifacts", artifacts);
+        root.add("gear", gear);
+
+        var returns = new com.google.gson.JsonArray();
+        data.returns().forEach(returns::add);
+        root.add("returns", returns);
 
         return GSON.toJson(root);
     }
@@ -114,16 +126,14 @@ public final class PlayerDataCodec {
                 data.setSkillLevel(e.getKey(), Math.max(1, e.getValue().getAsInt()));
             }
         }
-        if (root.has("artifacts")) {
+        if (root.has("gear")) {
             for (Map.Entry<String, com.google.gson.JsonElement> e
-                    : root.getAsJsonObject("artifacts").entrySet()) {
-                try {
-                    data.setArtifact(Integer.parseInt(e.getKey()), e.getValue().getAsString());
-                } catch (NumberFormatException ignored) {
-                    throw new PlayerDataException("номер слота артефакта не число: "
-                            + e.getKey());
-                }
+                    : root.getAsJsonObject("gear").entrySet()) {
+                data.setGear(e.getKey(), e.getValue().getAsString());
             }
+        }
+        if (root.has("returns")) {
+            root.getAsJsonArray("returns").forEach(el -> data.addReturn(el.getAsString()));
         }
         return data;
     }
@@ -138,6 +148,11 @@ public final class PlayerDataCodec {
      *
      * <p>2 → 3: появились слоты артефактов. Пустые у всех, кто играл до них, —
      * и это единственное верное значение: артефактов тогда не было.
+     *
+     * <p>3 → 4: слоты артефактов по номерам стали ячейками снаряжения по именам.
+     * Первые {@link #ARTIFACT_CELLS} номера переезжают в {@code artifact_1..3};
+     * всё, что лежало дальше, — в очередь возврата: таких ячеек больше нет, и
+     * вещь из них отдаётся владельцу при входе, а не пропадает молча.
      */
     private static JsonObject migrate(JsonObject root, int fromSchema) {
         if (fromSchema < 2 && !root.has("levels")) {
@@ -145,6 +160,30 @@ public final class PlayerDataCodec {
         }
         if (fromSchema < 3 && !root.has("artifacts")) {
             root.add("artifacts", new JsonObject());
+        }
+        if (fromSchema < 4) {
+            JsonObject gear = root.has("gear") ? root.getAsJsonObject("gear") : new JsonObject();
+            var returns = root.has("returns") ? root.getAsJsonArray("returns")
+                    : new com.google.gson.JsonArray();
+            JsonObject artifacts = root.has("artifacts") ? root.getAsJsonObject("artifacts")
+                    : new JsonObject();
+            for (Map.Entry<String, com.google.gson.JsonElement> e : artifacts.entrySet()) {
+                int slot;
+                try {
+                    slot = Integer.parseInt(e.getKey());
+                } catch (NumberFormatException ignored) {
+                    throw new PlayerDataException("номер слота артефакта не число: "
+                            + e.getKey());
+                }
+                if (slot >= 1 && slot <= ARTIFACT_CELLS) {
+                    gear.add("artifact_" + slot, e.getValue());
+                } else {
+                    returns.add(e.getValue());
+                }
+            }
+            root.remove("artifacts");
+            root.add("gear", gear);
+            root.add("returns", returns);
         }
         return root;
     }

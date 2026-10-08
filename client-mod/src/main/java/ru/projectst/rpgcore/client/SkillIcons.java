@@ -1176,6 +1176,18 @@ public final class SkillIcons {
      */
     public static void draw(GuiGraphics graphics, String skillId, int x, int y, int size,
                             boolean bright) {
+        // Рисованная картинка, если она есть: ромб в ней уже вырезан, сверху —
+        // только край цветом класса. Неизученный навык гасится тенью, а не
+        // перекраской: узнаваться он должен и тусклым.
+        var texture = IconTextures.find("skills", skillId);
+        if (texture != null) {
+            IconTextures.draw(graphics, texture, x, y, size, IconTextures.SKILL);
+            if (!bright) {
+                shadeDiamond(graphics, x, y, size);
+            }
+            drawEdge(graphics, x, y, size, bright ? classColour(skillId) : 0xFF4A4036);
+            return;
+        }
         drawFrame(graphics, x, y, size, bright, classColour(skillId));
 
         Icon icon = ICONS.get(skillId);
@@ -1241,6 +1253,28 @@ public final class SkillIcons {
             int colour = row >= from ? on : off;
             graphics.fill(leftEdge - 1, originY + row, leftEdge + 2, originY + row + 1, colour);
             graphics.fill(rightEdge - 2, originY + row, rightEdge + 1, originY + row + 1, colour);
+        }
+    }
+
+    /** Тень поверх ромба: неизученный навык виден, но явно не включён. */
+    private static void shadeDiamond(GuiGraphics graphics, int x, int y, int size) {
+        int half = size / 2;
+        for (int row = 0; row < size; row++) {
+            int spread = half - Math.abs(row - half);
+            graphics.fill(x + half - spread, y + row, x + half + spread + 1, y + row + 1,
+                    0xA0080604);
+        }
+    }
+
+    /** Только край ромба, без заливки: поверх рисованной картинки. */
+    private static void drawEdge(GuiGraphics graphics, int x, int y, int size, int colour) {
+        int half = size / 2;
+        for (int row = 0; row < size; row++) {
+            int spread = half - Math.abs(row - half);
+            int from = x + half - spread;
+            int to = x + half + spread + 1;
+            graphics.fill(from, y + row, from + 1, y + row + 1, colour);
+            graphics.fill(to - 1, y + row, to, y + row + 1, colour);
         }
     }
 

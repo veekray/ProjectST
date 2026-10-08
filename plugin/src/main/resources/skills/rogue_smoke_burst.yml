@@ -12,11 +12,12 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: potion, effect: darkness, duration: $duration, amplifier: 1 }
+      - { action: status, id: slowed, duration: $duration }
       - action: modify-stat
         stat: movement_speed
         op: flat
         value: $slow
-        duration: $duration
+        status: slowed
       - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4 }
 
   - target: { type: self }

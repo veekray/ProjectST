@@ -451,4 +451,27 @@ class StatusServiceTest {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
                 () -> new StatusApplication("stun", 0, 0, " "));
     }
+
+    @Test
+    @DisplayName("полный срок: обновление начинает его заново, продление растягивает")
+    void totalFollowsRenewal() {
+        StatusService s = service(def("haste", StatusCategory.BUFF),
+                new StatusDef("rite", StatusCategory.BUFF, 40, 1, Stacking.EXTEND, 0, null,
+                        Set.of(), Set.of(), Set.of(), Set.of()));
+        s.apply(TARGET, StatusApplication.of("haste", 40, "test"));
+        s.apply(TARGET, StatusApplication.of("rite", 40, "test"));
+
+        tick = 30;
+        s.apply(TARGET, StatusApplication.of("haste", 40, "test"));
+        s.apply(TARGET, StatusApplication.of("rite", 40, "test"));
+
+        var haste = s.all(TARGET).stream().filter(x -> x.id().equals("haste")).findFirst()
+                .orElseThrow();
+        var rite = s.all(TARGET).stream().filter(x -> x.id().equals("rite")).findFirst()
+                .orElseThrow();
+        assertEquals(40, haste.total(), "обновлённый срок — снова полные 40");
+        assertEquals(40, haste.remaining(tick));
+        assertEquals(80, rite.total(), "продлённый срок тянется от начала");
+        assertEquals(0, haste.appliedAtTick(), "порядок — по первому наложению");
+    }
 }

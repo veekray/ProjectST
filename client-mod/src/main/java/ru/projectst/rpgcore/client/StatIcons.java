@@ -221,6 +221,57 @@ public final class StatIcons {
                 "...b...",
                 "..bbb..",
                 ".b.b.b."}));
+
+        // Статы, которые чаще всего дают бафы и дебафы: под значком статуса
+        // безликий ромб не говорил бы, скорость это или защита.
+        ICONS.put("movement_speed", new Icon(0xFF1A3A4A, 0xFF4A9EB0, 0xFFBFE8F0, new String[] {
+                "...bb..",
+                "...bb..",
+                "..bbb..",
+                "..bbbcc",
+                ".bbbbb.",
+                "bbbbbb.",
+                "aaaaaa."}));
+        ICONS.put("dodge_rating", new Icon(0xFF3A3A4A, 0xFF8A8AA0, 0xFFE0E0F0, new String[] {
+                "....cc.",
+                "...cbb.",
+                "..cbb..",
+                ".cbb...",
+                ".bb....",
+                "bb.....",
+                "a......"}));
+        ICONS.put("incoming_healing", new Icon(0xFF1E3A1E, 0xFF4F9E4A, 0xFFBFF0A0, new String[] {
+                "..bbb..",
+                "..bcb..",
+                "bbbcbbb",
+                "bcccccb",
+                "bbbcbbb",
+                "..bcb..",
+                "..bbb.."}));
+        ICONS.put("attack_speed", new Icon(0xFF5A4A2A, 0xFFB9B2A0, 0xFFF0ECE0, new String[] {
+                "c...c..",
+                ".b...b.",
+                "..b...b",
+                ".b...b.",
+                "b...b..",
+                ".......",
+                "......."}));
+        ICONS.put("lifesteal", new Icon(0xFF4A0E0E, 0xFFA82020, 0xFFE07068, new String[] {
+                "...b...",
+                "..bbb..",
+                ".bbcbb.",
+                ".bcbbb.",
+                ".bbbbb.",
+                "..aaa..",
+                "......."}));
+        ICONS.put("skill_radius", new Icon(0xFF3A2A5A, 0xFF7B52B0, 0xFFD8C0F0, new String[] {
+                "..bbb..",
+                ".b...b.",
+                "b..c..b",
+                "b.ccc.b",
+                "b..c..b",
+                ".b...b.",
+                "..bbb.."}));
     }
 
     /** Короткое имя для списка; если своего нет — полное, как прислал сервер. */

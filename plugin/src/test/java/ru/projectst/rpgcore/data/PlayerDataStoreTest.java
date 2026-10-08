@@ -166,82 +166,81 @@ class PlayerDataStoreTest {
                 "файл первой схемы — все изученные на первом уровне");
     }
 
-    // ------------------------------------------------------------------ артефакты
+    // ------------------------------------------------------------------ снаряжение
 
     @Test
-    @DisplayName("артефакты переживают запись, а файл старой схемы читается без них")
-    void artifactsRoundTrip() {
+    @DisplayName("снаряжение и очередь возврата переживают запись")
+    void gearRoundTrip() {
         PlayerData data = sample();
         // Что внутри записи, слой данных не знает: для него это строка, и
         // проверяется именно это — что строка доходит до диска и обратно целой.
-        data.setArtifact(1, "cGVyc3Rlbg==");
-        data.setArtifact(3, "a29sJ2Nv");
+        data.setGear("ring_left", "cGVyc3Rlbg==");
+        data.setGear("artifact_3", "a29sJ2Nv");
+        data.addReturn("c3RhcnlqIGFydGVmYWt0");
 
         PlayerData back = PlayerDataCodec.fromJson(ID, PlayerDataCodec.toJson(data));
 
-        assertEquals(Map.of(1, "cGVyc3Rlbg==", 3, "a29sJ2Nv"), back.artifacts());
+        assertEquals(Map.of("ring_left", "cGVyc3Rlbg==", "artifact_3", "a29sJ2Nv"), back.gear());
+        assertEquals(java.util.List.of("c3RhcnlqIGFydGVmYWt0"), back.returns());
+    }
 
+    @Test
+    @DisplayName("файл до ячеек артефактов читается с пустым снаряжением")
+    void schemaTwoHasNoGear() {
         PlayerData old = PlayerDataCodec.fromJson(ID, """
                 {"schema":2,"uuid":"11111111-2222-3333-4444-555555555555",
                  "class":"mage","level":9,"xp":0,"points":0,
                  "unlocked":[],"slots":{},"levels":{}}
                 """);
-        assertTrue(old.artifacts().isEmpty(),
-                "до появления ячеек артефактов не было — пусто это и значит");
+        assertTrue(old.gear().isEmpty(),
+                "до появления ячеек снаряжения не было — пусто это и значит");
+        assertTrue(old.returns().isEmpty());
     }
 
     @Test
-    @DisplayName("пустая запись убирает артефакт, а не кладёт пустоту")
-    void blankArtifactClearsTheSlot() {
-        PlayerData data = new PlayerData(ID);
-        data.setArtifact(2, "zzz");
+    @DisplayName("артефакты по номерам переезжают в ячейки, лишние — в возврат, а не в никуда")
+    void numberedArtifactsMigrate() {
+        PlayerData old = PlayerDataCodec.fromJson(ID, """
+                {"schema":3,"uuid":"11111111-2222-3333-4444-555555555555",
+                 "class":"mage","level":9,"xp":0,"points":0,
+                 "unlocked":[],"slots":{},"levels":{},
+                 "artifacts":{"1":"b2Rpbg==","3":"dHJp","4":"Y2hldHlyZQ==","7":"c2VtJw=="}}
+                """);
 
-        data.setArtifact(2, "");
-
-        assertTrue(data.artifacts().isEmpty(), "иначе каждое чтение проверяло бы пустую строку");
-        assertEquals(null, data.artifact(2));
+        assertEquals(Map.of("artifact_1", "b2Rpbg==", "artifact_3", "dHJp"), old.gear());
+        assertEquals(java.util.List.of("Y2hldHlyZQ==", "c2VtJw=="), old.returns(),
+                "четвёртой ячейки больше нет: вещь из неё обязана вернуться владельцу");
     }
 
     @Test
-    @DisplayName("свободная ячейка ищется слева, и ноль означает «нет свободных»")
-    void firstFreeArtifactSlot() {
-        PlayerData data = new PlayerData(ID);
-
-        assertEquals(1, data.firstFreeArtifactSlot(4));
-
-        data.setArtifact(1, "a");
-        data.setArtifact(2, "b");
-        assertEquals(3, data.firstFreeArtifactSlot(4), "слева направо, а не в любую щель");
-
-        data.setArtifact(1, null);
-        assertEquals(1, data.firstFreeArtifactSlot(4), "освободившаяся первая снова первая");
-
-        data.setArtifact(1, "a");
-        data.setArtifact(3, "c");
-        data.setArtifact(4, "d");
-        assertEquals(0, data.firstFreeArtifactSlot(4));
-        assertEquals(0, data.firstFreeArtifactSlot(0), "ячеек нет — свободных тоже");
+    @DisplayName("испорченный номер старого артефакта — отказ, а не тихая потеря")
+    void brokenArtifactNumberRefuses() {
+        assertThrows(PlayerDataException.class, () -> PlayerDataCodec.fromJson(ID, """
+                {"schema":3,"uuid":"11111111-2222-3333-4444-555555555555",
+                 "class":"mage","level":9,"xp":0,"points":0,
+                 "unlocked":[],"slots":{},"levels":{},
+                 "artifacts":{"первый":"b2Rpbg=="}}
+                """));
     }
 
     @Test
-    @DisplayName("артефакты из исчезнувших ячеек перечислимы: их нужно вернуть, а не потерять")
-    void artifactsBeyondSlots() {
+    @DisplayName("пустая запись убирает предмет из ячейки, а не кладёт пустоту")
+    void blankGearClearsTheCell() {
         PlayerData data = new PlayerData(ID);
-        data.setArtifact(1, "a");
-        data.setArtifact(5, "b");
-        data.setArtifact(7, "c");
+        data.setGear("amulet", "zzz");
 
-        assertEquals(java.util.List.of(5, 7), data.artifactsBeyond(4));
-        assertTrue(data.artifactsBeyond(7).isEmpty());
+        data.setGear("amulet", "");
+
+        assertTrue(data.gear().isEmpty(), "иначе каждое чтение проверяло бы пустую строку");
+        assertEquals(null, data.gearItem("amulet"));
     }
 
     @Test
-    @DisplayName("ячейка артефакта нумеруется с единицы: ноль — не ячейка")
-    void artifactSlotNumbersStartAtOne() {
+    @DisplayName("у ячейки есть имя: без имени положить некуда")
+    void gearCellNeedsName() {
         PlayerData data = new PlayerData(ID);
 
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> data.setArtifact(0, "a"));
+        assertThrows(IllegalArgumentException.class, () -> data.setGear(" ", "a"));
     }
 
     @Test

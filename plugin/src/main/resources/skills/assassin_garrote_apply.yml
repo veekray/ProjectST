@@ -20,7 +20,7 @@ steps:
         stat: incoming_healing
         op: flat
         value: $heal_block
-        duration: $hold_duration
+        status: stun
       - { action: damage, amount: $damage, school: physical }
       - { action: sound, sound: entity_player_attack_strong, volume: 1.0, pitch: 0.6 }
       - { action: particles, particle: crit, shape: point, count: 20, size: 0.3 }

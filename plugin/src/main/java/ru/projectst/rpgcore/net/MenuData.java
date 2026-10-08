@@ -22,12 +22,12 @@ import java.util.List;
  * @param classes   все классы, какие есть
  * @param skills    навыки выбранного класса
  * @param stats     снимок статов
- * @param artifacts ячейки артефактов: по записи на ячейку, включая пустые.
- *                  Пустой список — на сервере артефактов нет вовсе
+ * @param gear      ячейки снаряжения, в которых вещь лежит, но не действует.
+ *                  Только они: что лежит в ячейке, мод и так видит в контейнере
  */
 public record MenuData(String classId, int level, double xp, double xpToNext, int points,
                        int slots, List<ClassLine> classes, List<SkillLine> skills,
-                       List<StatLine> stats, List<ArtifactLine> artifacts) {
+                       List<StatLine> stats, List<GearLine> gear) {
 
     public MenuData(String classId, int level, double xp, double xpToNext, int points,
                     int slots, List<ClassLine> classes, List<SkillLine> skills,
@@ -40,44 +40,24 @@ public record MenuData(String classId, int level, double xp, double xpToNext, in
         classes = classes == null ? List.of() : List.copyOf(classes);
         skills = skills == null ? List.of() : List.copyOf(skills);
         stats = stats == null ? List.of() : List.copyOf(stats);
-        artifacts = artifacts == null ? List.of() : List.copyOf(artifacts);
+        gear = gear == null ? List.of() : List.copyOf(gear);
     }
 
     /**
-     * Ячейка артефакта.
+     * Ячейка снаряжения, в которой вещь не действует.
      *
-     * <p>Записи есть и у пустых ячеек: мод рисует их все, и «сколько ячеек»
-     * иначе пришлось бы передавать отдельным числом, которое однажды разошлось
-     * бы со списком.
+     * <p>Предмет на месте, а статов нет — не тот класс, мало уровня, не та
+     * ячейка. Мод обводит такую ячейку красным и пишет причину в подсказке:
+     * без этого игрок видит надетую вещь и не понимает, куда делись числа.
      *
-     * <p>Строки надбавок приходят готовыми. Их собирает сервер теми же числами,
-     * которыми считает бой: мод, пересчитывающий проценты, однажды показал бы
-     * не то, что происходит.
-     *
-     * @param slot     номер ячейки, с единицы
-     * @param itemId   что лежит; пусто — ячейка свободна
-     * @param display  имя предмета для показа
-     * @param material ванильный предмет: по нему мод рисует настоящий значок,
-     *                 а не придуманный свой
-     * @param color    цвет редкости именем, как в файле редкостей
-     * @param lines    надбавки готовыми строками
-     * @param refusal  почему не действует: не тот класс, мало уровня. Пусто —
-     *                 действует
+     * @param cell    имя ячейки из {@link Protocol#GEAR_CELLS}
+     * @param refusal почему не действует, словами сервера
      */
-    public record ArtifactLine(int slot, String itemId, String display, String material,
-                               String color, List<String> lines, String refusal) {
+    public record GearLine(String cell, String refusal) {
 
-        public ArtifactLine {
-            itemId = itemId == null ? "" : itemId;
-            display = display == null ? "" : display;
-            material = material == null ? "" : material;
-            color = color == null ? "" : color;
-            lines = lines == null ? List.of() : List.copyOf(lines);
+        public GearLine {
+            cell = cell == null ? "" : cell;
             refusal = refusal == null ? "" : refusal;
-        }
-
-        public boolean empty() {
-            return itemId.isEmpty();
         }
     }
 

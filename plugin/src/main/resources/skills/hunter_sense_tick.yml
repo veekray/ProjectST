@@ -22,9 +22,10 @@ steps:
       - { caster: has-status, value: sense }
       - { target: has-status, value: quarry }
     do:
+      - { action: status, id: exposed, duration: $glow }
       - action: modify-stat
         stat: physical_defense
         op: flat
         value: $defense_down
-        duration: $glow
+        status: exposed
       - { action: particles, particle: crit, shape: point, count: 4, size: 0.3 }
