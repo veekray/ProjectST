@@ -151,7 +151,7 @@ final class FxStatuses {
                     FxSolids.Tube root = new FxSolids.Tube(FxGeometry.rootAroundLegs(
                             entity.getX(), entity.getY(), entity.getZ(), angle, 0.85,
                             thick ? 1.25 : 0.95, 0.6 + 0.2 * (i % 2)),
-                            thick ? 0.13 : 0.085, "rpgcore:block/druid_root", 0xFFFFFFFF,
+                            thick ? 0.13 : 0.085, "block/mangrove_log", 0xFFD8C8B0,
                             8, 0, 6);
                     root.holding = () -> has(id, "root");
                     root.decor = false;
@@ -161,7 +161,7 @@ final class FxStatuses {
                         FxSolids.Tube thorn = new FxSolids.Tube(FxGeometry.rootSpike(
                                 new java.util.Random(), entity.getX() + Math.cos(angle) * 0.6,
                                 entity.getY(), entity.getZ() + Math.sin(angle) * 0.6, 0.7),
-                                0.05, "rpgcore:block/druid_root", 0xFFE8F0D8, 6, 0, 6);
+                                0.05, "block/mangrove_roots_side", 0xFFB0D890, 6, 0, 6);
                         thorn.holding = () -> has(id, "root");
                         state.solids.add(thorn);
                         FxSolids.add(thorn);
@@ -187,7 +187,7 @@ final class FxStatuses {
                     for (int i = 0; i < 2; i++) {
                         FxSolids.Tube liana = new FxSolids.Tube(
                                 FxGeometry.vineCoil(base + Math.PI * i, radius, height, turns),
-                                layer == 0 ? 0.09 : 0.075, "rpgcore:block/druid_liana",
+                                layer == 0 ? 0.09 : 0.075, "block/oak_log",
                                 0xFFFFFFFF, 12, 0, 8).follow(entity);
                         liana.spin = layer % 2 == 0 ? 0.012 : -0.015;
                         liana.segments = 22;

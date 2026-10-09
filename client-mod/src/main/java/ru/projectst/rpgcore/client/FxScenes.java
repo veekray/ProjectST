@@ -157,7 +157,7 @@ final class FxScenes {
             double height = 0.6 + RANDOM.nextDouble() * (strong ? 1.1 : 0.8);
             FxSolids.Tube spike = new FxSolids.Tube(
                     FxGeometry.rootSpike(RANDOM, p[0], gy, p[2], height),
-                    strong ? 0.11 : 0.08, "rpgcore:block/druid_root", 0xFFFFFFFF,
+                    strong ? 0.11 : 0.08, "block/mangrove_log", 0xFFD8C8B0,
                     3 + RANDOM.nextInt(4), 6 + RANDOM.nextInt(6), 8)
                     .bound(e.x(), e.z(), r);
             FxSolids.add(spike);
@@ -185,8 +185,8 @@ final class FxScenes {
             double[][] arc = FxGeometry.clampAll(e.x(), e.z(), r, FxGeometry.lashArc(
                     e.x() + Math.cos(a) * 0.5, ground(e.x(), e.z(), e.y()), e.z() + Math.sin(a) * 0.5,
                     tx, ground(tx, tz, e.y()), tz));
-            int tint = i % 3 == 0 ? 0xFFD8B0E8 : 0xFFFFFFFF;
-            FxSolids.add(new FxSolids.Tube(arc, 0.07, "rpgcore:block/druid_vine", tint, 3, 5, 10)
+            int tint = i % 3 == 0 ? 0xFFA070C0 : 0xFF7FB050;
+            FxSolids.add(new FxSolids.Tube(arc, 0.07, "block/vine", tint, 3, 5, 10)
                     .bound(e.x(), e.z(), r));
         }
         if (strong) {
@@ -197,7 +197,7 @@ final class FxScenes {
                 double px = e.x() + Math.cos(a) * (r - 0.35);
                 double pz = e.z() + Math.sin(a) * (r - 0.35);
                 FxSolids.add(new FxSolids.Tube(FxGeometry.rootSpike(RANDOM, px,
-                        ground(px, pz, e.y()), pz, 0.9), 0.06, "rpgcore:block/druid_vine", 0xFFFFFFFF,
+                        ground(px, pz, e.y()), pz, 0.9), 0.06, "block/vine", 0xFF7FB050,
                         4, 20, 10).bound(e.x(), e.z(), r));
             }
         }
@@ -211,7 +211,7 @@ final class FxScenes {
         double fz = source != null ? source.getZ() : e.z();
         double fy = ground(fx, fz, source != null ? source.getY() : e.y());
         double[][] arc = FxGeometry.lashArc(fx, fy, fz, e.x(), e.y() + 1.0, e.z());
-        FxSolids.add(new FxSolids.Tube(arc, 0.075, "rpgcore:block/druid_vine", 0xFFFFFFFF, 3, 4, 10));
+        FxSolids.add(new FxSolids.Tube(arc, 0.075, "block/vine", 0xFF8FC060, 3, 4, 10));
         FxSounds.play("druid.ivy.splat", e.x(), e.y() + 1, e.z(), 0.8f, 1f);
     }
 
@@ -379,7 +379,7 @@ final class FxScenes {
                                 on.radius());
                         FxSolids.add(new FxSolids.Tube(FxGeometry.rootSpike(RANDOM, p[0],
                                 FxGround.top(level, p[0], p[2], on.y()), p[2], 0.8), 0.07,
-                                "rpgcore:block/druid_root", 0xFFC8A890, 3, 8, 8)
+                                "block/mangrove_log", 0xFF9A6A4A, 3, 8, 8)
                                 .bound(on.x(), on.z(), on.radius()));
                     }
                 }
