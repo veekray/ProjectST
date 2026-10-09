@@ -354,9 +354,14 @@ public final class CastService {
         // подготовки разом — это вопрос «какая сработает», и ответ на него
         // игрок не выбирал. Мгновенный навык — можно: рывок и защитная реакция
         // как раз для того, чтобы бросить каст и спастись.
-        int castTicks = source == null ? castTicks(skill, level) : 0;
+        // Нажатие — это ручной навык без источника. Периодическая пассивка тоже
+        // приходит без источника (её никто не задел), но её никто не нажимал:
+        // принять её за нажатие значило бы, что Опека зверя раз в две секунды
+        // бросает подготовку друида.
+        boolean pressed = source == null && !skill.passive();
+        int castTicks = pressed ? castTicks(skill, level) : 0;
         Casting ongoing = casting.get(player);
-        if (ongoing != null && source == null && castTicks > 0) {
+        if (ongoing != null && pressed && castTicks > 0) {
             return CastOutcome.of(CastOutcome.Kind.BUSY,
                     "идёт подготовка: " + ongoing.skill().display());
         }
@@ -416,7 +421,7 @@ public final class CastService {
             listener.started(player, skill, castTicks);
             return CastOutcome.cast();
         }
-        if (source == null && ongoing != null) {
+        if (pressed && ongoing != null) {
             interrupt(player, "прерван: " + skill.display());
         }
         runtime.cast(context, skill, 0);

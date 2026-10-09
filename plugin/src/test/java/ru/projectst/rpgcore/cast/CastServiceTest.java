@@ -542,6 +542,23 @@ class CastServiceTest {
         assertTrue(world.damage.isEmpty(), "брошенный каст не доигрывается");
     }
 
+    @Test
+    @DisplayName("периодическая пассивка не срывает подготовку: её никто не нажимал")
+    void intervalPassiveKeepsTheCast() {
+        listenCasts();
+        assertTrue(classes.unlock(PLAYER, "aura").succeeded());
+        casts.cast(PLAYER, "channel");
+
+        // Опека зверя и подобные срабатывают сами, без источника — как нажатие.
+        casts.fire(PLAYER, ru.projectst.rpgcore.skill.SkillTrigger.ON_INTERVAL, null);
+
+        assertTrue(casts.isCasting(PLAYER), "подготовку сорвала пассивка: " + castLog);
+        for (int i = 0; i < 10; i++) {
+            casts.tick();
+        }
+        assertEquals(List.of(7.0), world.damage, "каст доигран до конца");
+    }
+
     // ------------------------------------------------------------------ рывок
 
     @Test

@@ -164,7 +164,7 @@ balance:
     counter_duration: 300
 
   druid_life_spores:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 15   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -193,7 +193,7 @@ balance:
     stun_duration: 20
 
   druid_grasping_roots:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 25   # подготовка, тиков
     strike_delay: 10   # круг виден до удара, тиков
     mana:
       base: 16.0
@@ -228,7 +228,7 @@ balance:
     heal: 3
 
   druid_abyss_bloom:
-    cast_time: 20   # подготовка, тиков
+    cast_time: 40   # подготовка, тиков
     mana:
       base: 40.0
       per-level: 0.5

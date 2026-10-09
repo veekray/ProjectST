@@ -171,23 +171,21 @@ final class FxStatuses {
                         0.9f, thick ? 0.8f : 1f);
             }
             case "bark_guard" -> {
-                // Пластины коры смыкаются на плечах и груди. Каждый заряд — свой
-                // слой; сорванный заряд раскалывает один слой, а не всю кору.
-                int layer = Math.max(0, state.stacks - 1);
-                for (int i = 0; i < 4; i++) {
-                    double angle = Math.PI / 2 * i + layer * 0.4;
-                    FxSolids.Model plate = new FxSolids.Model(Blocks.OAK_WOOD.defaultBlockState(),
-                            entity.getX(), entity.getY(), entity.getZ(), 0.3f + layer * 0.04f,
-                            10, 0, 8);
-                    plate.follow = id;
-                    plate.offsetX = Math.cos(angle) * (0.32 + layer * 0.06);
-                    plate.offsetZ = Math.sin(angle) * (0.32 + layer * 0.06);
-                    plate.offsetY = 0.75 + (i % 2) * 0.35;
-                    plate.holding = () -> has(id, "bark_guard");
-                    plate.decor = false;
-                    state.solids.add(plate);
-                    FxSolids.add(plate);
+                // Доспех из коры: изогнутые пластины на торсе и плечах, а не блоки.
+                // Слоёв столько, сколько зарядов; потерянный заряд скалывает
+                // внешний слой (lostStack).
+                if (!state.solids.isEmpty()) {
+                    return;
                 }
+                FxSolids.Shell shell = new FxSolids.Shell(id, FxSolids.Shell.bark(id * 31L), 10, 8);
+                shell.layers = () -> {
+                    State now = get(id, "bark_guard");
+                    return now == null ? 1 : Math.max(1, now.stacks);
+                };
+                shell.holding = () -> has(id, "bark_guard");
+                shell.decor = false;
+                state.solids.add(shell);
+                FxSolids.add(shell);
                 FxSounds.play("druid.bark.grow", entity.getX(), entity.getY(), entity.getZ(),
                         0.9f, 1f);
             }
@@ -219,30 +217,25 @@ final class FxStatuses {
         }
     }
 
-    /** Стака стало меньше: у коры — раскололся слой. */
+    /** Стака стало меньше: у коры — скололся внешний слой. */
     private static void lostStack(State state) {
         if (!state.id.equals("bark_guard")) {
             return;
         }
-        int keep = state.stacks * 4;
-        for (int i = state.solids.size() - 1; i >= keep && i >= 0; i--) {
-            FxSolids.Solid plate = state.solids.remove(i);
-            plate.release();
-            if (plate instanceof FxSolids.Model model) {
-                splinters(model.x, model.y, model.z, 3);
-            }
-        }
         Entity entity = entity(state.entity);
-        if (entity != null) {
-            FxSounds.play("druid.bark.crack", entity.getX(), entity.getY(), entity.getZ(), 1f, 1f);
+        if (entity == null) {
+            return;
         }
+        // Слой исчезает сам (доспех рисует слоёв по стакам), здесь — щепа и треск.
+        splinters(entity.getX(), entity.getY() + 1.0, entity.getZ(), 6);
+        FxSounds.play("druid.bark.crack", entity.getX(), entity.getY(), entity.getZ(), 1f, 1f);
     }
 
     /** Щепа: несколько кусочков коры разлетаются и падают. */
     static void splinters(double x, double y, double z, int count) {
         for (int i = 0; i < count; i++) {
             FxSolids.Model chip = new FxSolids.Model(Blocks.OAK_WOOD.defaultBlockState(),
-                    x, y, z, 0.12f, 1, 14, 6);
+                    x, y, z, 0.07f, 1, 14, 6);
             chip.vx = FxMotes.jitter(0.15f);
             chip.vy = 0.15 + FxMotes.random() * 0.12;
             chip.vz = FxMotes.jitter(0.15f);
