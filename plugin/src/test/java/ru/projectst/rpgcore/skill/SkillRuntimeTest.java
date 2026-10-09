@@ -898,6 +898,44 @@ class SkillRuntimeTest {
     }
 
     @Test
+    @DisplayName("предупреждённый удар: круг запомнен при касте, бьёт по нему, а не за кастером")
+    void telegraphLocksTheArea() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: druid
+                steps:
+                  - target: { type: enemies_in_radius, radius: 6 }
+                    delay: 10
+                    telegraph: druid_roots_mark
+                    do:
+                      - { action: damage, amount: 5 }
+                      - { action: particles, particle: composter, shape: ring, size: radius, fx: druid_roots_grasp }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+        f.world.positions.put(CASTER, new Position(WORLD, 10, 64, 10));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Круг виден сразу и тем же радиусом, каким ударит.
+        var marks = f.world.effects(FxEvent.Telegraph.class);
+        assertEquals(1, marks.size(), "предупреждение — в момент каста");
+        assertEquals(9.0, marks.get(0).radius(), 1e-9, "шесть плюс половина — девять");
+        assertEquals(10, marks.get(0).ticks());
+        assertEquals("composter", marks.get(0).particle(), "ванильный круг — частицей шага");
+        assertTrue(f.world.calls.stream().noneMatch(c -> c.startsWith("damage")),
+                "урона по нажатию нет");
+
+        // Кастер ушёл, пока круг висел: удар остаётся там, где был показан.
+        f.world.positions.put(CASTER, new Position(WORLD, 40, 64, 40));
+        f.world.runAllDelayed();
+
+        assertTrue(f.world.calls.contains("resolve ENEMIES_NEAR_ORIGIN r=9.0 origin=10.0"),
+                "выбор целей от запомненной точки запомненным радиусом: " + f.world.calls);
+    }
+
+        @Test
     @DisplayName("частицы без fx всё равно уходят событием: мод рисует общий эффект")
     void particlesWithoutFxStillGoToTheMod() {
         SkillDef skill = parse("test_skill", """

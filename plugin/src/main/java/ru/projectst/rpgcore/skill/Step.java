@@ -21,7 +21,24 @@ import java.util.List;
  *                   урон: «секунда на сбор» однажды станет полутора
  */
 public record Step(TargetSpec target, List<Action> actions, List<Condition> conditions,
-                   OriginSpec origin, NumberRef delay) {
+                   OriginSpec origin, NumberRef delay, String telegraph) {
+
+    /** Шаг без предупреждения: удар приходит, когда приходит. */
+    public Step(TargetSpec target, List<Action> actions, List<Condition> conditions,
+                OriginSpec origin, NumberRef delay) {
+        this(target, actions, conditions, origin, delay, null);
+    }
+
+    /**
+     * Есть ли у шага предупреждение.
+     *
+     * <p>Шаг с предупреждением запоминает свою область в момент каста — центр и
+     * радиус — и сразу показывает её, а бьёт по ней же после задержки. Из круга
+     * можно выйти, и кастер, ушедший с места, круг с собой не уносит.
+     */
+    public boolean telegraphed() {
+        return telegraph != null;
+    }
 
     public Step {
         if (target == null) {

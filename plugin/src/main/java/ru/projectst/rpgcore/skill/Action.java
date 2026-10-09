@@ -354,7 +354,20 @@ public sealed interface Action {
         }
     }
 
-    record Sound(String sound, double volume, double pitch, boolean atOrigin) implements Action {
+    /**
+     * Звук.
+     *
+     * @param fx звук мода: {@code null} — ванильный у всех; {@code none} — звучит
+     *           сцена мода, ванильный только у игроков без мода; иначе событие из
+     *           {@code sounds.json} мода вместо ванильного
+     */
+    record Sound(String sound, double volume, double pitch, boolean atOrigin, String fx)
+            implements Action {
+
+        public Sound(String sound, double volume, double pitch, boolean atOrigin) {
+            this(sound, volume, pitch, atOrigin, null);
+        }
+
         @Override
         public String name() {
             return "sound";

@@ -113,6 +113,28 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String ta
                     || this == ALLIES_NEAR_ORIGIN || this == ENEMIES_IN_CONE_TO_CASTER;
         }
 
+        /**
+         * Можно ли запомнить область в момент каста: круг с центром.
+         *
+         * <p>Конус и союзники вокруг кастера — нет: у конуса ось — взгляд в
+         * момент удара, а «союзники вокруг» включают самого кастера, и круг у
+         * точки это поведение молча потерял бы.
+         */
+        public boolean lockable() {
+            return this == ENEMIES_IN_RADIUS || this == ENEMIES_NEAR_ORIGIN
+                    || this == ALL_NEAR_ORIGIN || this == ALLIES_NEAR_ORIGIN;
+        }
+
+        /**
+         * Тот же выбор целей, но от запомненной точки.
+         *
+         * <p>«Враги вокруг кастера» с предупреждением — это «враги у точки, где
+         * кастер стоял»: круг остаётся на месте, а не ездит за кастером.
+         */
+        public Type locked() {
+            return this == ENEMIES_IN_RADIUS ? ENEMIES_NEAR_ORIGIN : this;
+        }
+
         /** Нужен ли этому типу тег зоны. */
         public boolean needsTag() {
             return this == ENEMIES_NEAR_ZONE || this == OWN_MINIONS;

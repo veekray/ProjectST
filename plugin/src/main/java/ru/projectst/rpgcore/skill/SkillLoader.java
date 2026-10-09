@@ -44,6 +44,10 @@ public final class SkillLoader {
     /** Метка «ключ fx был, но с ошибкой»: действие тогда не собирается. */
     private static final String FX_INVALID = "\0";
 
+    /** Имя звука мода: как событие в его sounds.json. */
+    private static final java.util.regex.Pattern SOUND_FX =
+            java.util.regex.Pattern.compile("[a-z0-9_]+(\\.[a-z0-9_]+)*");
+
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
                     + "teleport, dash, approach, particles, sound, message, cast, ray, "
@@ -72,6 +76,8 @@ public final class SkillLoader {
         NumberRef cost = number(root, "cost", errors, "skill", new NumberRef.Literal(0));
         NumberRef stamina = number(root, "stamina", errors, "skill", new NumberRef.Literal(0));
         NumberRef cooldown = number(root, "cooldown", errors, "skill", new NumberRef.Literal(0));
+        NumberRef castTime = number(root, "cast-time", errors, "skill",
+                new NumberRef.Literal(0));
         SkillTrigger trigger = readTrigger(root, errors);
         int interval = root.integer("every", 1, 12_000, 0);
         boolean internal = root.bool("internal", false);
@@ -145,11 +151,22 @@ public final class SkillLoader {
                     "ключ every имеет смысл только при on: interval");
             ok = false;
         }
+        // Подготовку готовит игрок, нажавший клавишу. Пассивку никто не
+        // нажимает: каст у неё был бы задержкой, которую некому показать и
+        // нечем сорвать честно.
+        boolean hasCast = !(castTime instanceof NumberRef.Literal literal
+                && literal.value() <= 0);
+        if (hasCast && trigger != SkillTrigger.MANUAL) {
+            errors.add(root.at(), "cast-time",
+                    "подготовка бывает только у навыка, который применяют нажатием");
+            ok = false;
+        }
         if (!ok) {
             return Optional.empty();
         }
         return Optional.of(new SkillDef(id, display, classId, tier, cost, cooldown, steps,
-                trigger, interval, internal, icon, description, stamina, charges, innate));
+                trigger, interval, internal, icon, description, stamina, charges, innate,
+                castTime));
     }
 
     /**
@@ -200,16 +217,45 @@ public final class SkillLoader {
         Optional<TargetSpec> target = readTarget(body, path, errors);
         NumberRef delay = number(body, "delay", errors, path, new NumberRef.Literal(0));
         OriginSpec origin = readOrigin(body, path, errors);
+        String telegraph = body.rawKind("telegraph") == YmlMap.Kind.ABSENT ? null
+                : body.str("telegraph", "").trim();
         List<Condition> conditions = readConditions(body, path, errors);
         List<Action> actions = readActions(body, path, errors, target.orElse(null));
 
         if (actions.isEmpty()) {
             errors.add(body.at(), path + ".do", "шаг без действий бессмыслен");
         }
-        if (target.isEmpty() || actions.isEmpty()) {
+        boolean ok = true;
+        if (telegraph != null) {
+            if (!FX_ID.matcher(telegraph).matches()) {
+                errors.add(body.at(), path + ".telegraph", "эффект называется строчными"
+                        + " латинскими буквами, цифрами и подчёркиванием, получено \""
+                        + telegraph + "\"");
+                ok = false;
+            }
+            // Предупреждение без задержки — это круг, который появляется
+            // одновременно с уроном: от него не уйти, и он ни о чём не
+            // предупреждает.
+            if (delay instanceof NumberRef.Literal literal && literal.value() <= 0) {
+                errors.add(body.at(), path + ".telegraph",
+                        "предупреждению нужна задержка: delay — сколько тиков круг виден до удара");
+                ok = false;
+            }
+            // Запомнить можно круг: центр и радиус. Конус от кастера смотрит туда,
+            // куда кастер смотрит в момент удара, и запомненный конус бил бы не
+            // туда, куда игрок развернулся. Конусам — подготовка каста.
+            if (target.isPresent() && !target.get().type().lockable()) {
+                errors.add(body.at(), path + ".telegraph",
+                        "предупреждение бывает у области-круга: enemies_in_radius или"
+                                + " цели у точки; у конуса — подготовка каста");
+                ok = false;
+            }
+        }
+        if (target.isEmpty() || actions.isEmpty() || !ok) {
             return Optional.empty();
         }
-        return Optional.of(new Step(target.get(), actions, conditions, origin, delay));
+        return Optional.of(new Step(target.get(), actions, conditions, origin, delay,
+                telegraph));
     }
 
     /**
@@ -596,11 +642,21 @@ public final class SkillLoader {
                 double volume = b.number("volume", 0, 10, 1);
                 double pitch = b.number("pitch", 0.1, 2, 1);
                 boolean atOrigin = b.bool("at-origin", false);
+                String fx = b.rawKind("fx") == YmlMap.Kind.ABSENT ? null
+                        : b.str("fx", "").trim();
                 if (sound.isBlank()) {
                     errors.add(b.at(), path + ".sound", "обязательный ключ sound отсутствует");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.Sound(sound, volume, pitch, atOrigin));
+                // Звук мода называется как событие в sounds.json: буквы, цифры,
+                // подчёркивание и точки — druid.roots.crack.
+                if (fx != null && !SOUND_FX.matcher(fx).matches()) {
+                    errors.add(b.at(), path + ".fx", "звук мода называется строчными латинскими"
+                            + " буквами, цифрами, точками и подчёркиванием, получено \""
+                            + fx + "\"");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Sound(sound, volume, pitch, atOrigin, fx));
             }
 
             case "projectile" -> {

@@ -48,7 +48,22 @@ public record SkillDef(String id, String display, String classId, int tier,
                        NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
                        SkillTrigger trigger, int intervalTicks, boolean internal, String icon,
                        List<String> description, NumberRef staminaCost, int charges,
-                       boolean innate) {
+                       boolean innate, NumberRef castTime) {
+
+    /**
+     * Навык без подготовки: так записан каждый навык до появления каста.
+     *
+     * @param castTime сколько тиков кастер готовит навык; ноль — мгновенно
+     */
+    public SkillDef(String id, String display, String classId, int tier,
+                    NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
+                    SkillTrigger trigger, int intervalTicks, boolean internal, String icon,
+                    List<String> description, NumberRef staminaCost, int charges,
+                    boolean innate) {
+        this(id, display, classId, tier, resourceCost, cooldown, steps, trigger, intervalTicks,
+                internal, icon, description, staminaCost, charges, innate,
+                new NumberRef.Literal(0));
+    }
 
     public SkillDef(String id, String display, String classId, int tier,
                     NumberRef resourceCost, NumberRef cooldown, List<Step> steps,
@@ -100,6 +115,7 @@ public record SkillDef(String id, String display, String classId, int tier,
         icon = icon == null || icon.isBlank() ? DEFAULT_ICON : icon.toUpperCase(Locale.ROOT);
         description = description == null ? List.of() : List.copyOf(description);
         staminaCost = staminaCost == null ? new NumberRef.Literal(0) : staminaCost;
+        castTime = castTime == null ? new NumberRef.Literal(0) : castTime;
         if (charges < 1) {
             throw new IllegalArgumentException("зарядов у навыка не меньше одного: " + id);
         }

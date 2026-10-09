@@ -224,14 +224,21 @@ class StateCodecTest {
     void fxRoundTrip() {
         List<FxMessage.Event> events = List.of(
                 new FxMessage.Burst("mage_flow_wave", "mage", FxMessage.Shape.CONE,
-                        29_999_000.25, 64.5, -12.75, 9f, 60f, -1f, 0f),
-                new FxMessage.ZoneOn(7, "mage_seal", "mage", 1.5, 70, 2.5, 2.5f, 200, 150, true),
+                        29_999_000.25, 64.5, -12.75, 9f, 60f, -1f, 0f, 77),
+                new FxMessage.ZoneOn(7, "mage_seal", "mage", 1.5, 70, 2.5, 2.5f, 200, 150, true,
+                        77),
                 new FxMessage.ZoneOff(7, FxMessage.ZoneEnd.CONSUMED, 10, 64, 0),
                 new FxMessage.Projectile(3, "mage_bolt", "mage", 0, 65.6, 0,
                         0f, 0f, 1f, 2.75f, 28f, 0f),
                 new FxMessage.ProjectileEnd(3, 0, 65.6, 20.5, true),
-                new FxMessage.Hit(4242, "mage", true),
-                new FxMessage.Trail("mage_void_trail", "mage", 0, 64, 0, 6, 64, 0));
+                new FxMessage.Hit(4242, "mage", true, 77),
+                new FxMessage.Trail("mage_void_trail", "mage", 0, 64, 0, 6, 64, 0),
+                new FxMessage.Telegraph("druid_roots_mark", "druid", 10, 64, 10, 9f, 10, 77),
+                new FxMessage.CastStart(77, "druid_grasping_roots", "druid", 12),
+                new FxMessage.CastEnd(77, false),
+                new FxMessage.StatusOn(4242, "root", 77, 30, 18, 1),
+                new FxMessage.StatusOff(4242, "potion:poison"),
+                new FxMessage.Sound("druid.roots.crack", 10, 64, 10, 1f, 0.8f));
 
         List<FxMessage.Event> back = StateCodec.readFx(StateCodec.writeFx(events));
 

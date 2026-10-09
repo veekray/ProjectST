@@ -241,6 +241,20 @@ class CastServiceTest {
                   - { action: damage, amount: $damage }
             """;
 
+    /** Навык с подготовкой: десять тиков, затем удар. */
+    private static final String CHANNEL = """
+            id: channel
+            class: mage
+            tier: 1
+            cost: 30
+            cooldown: 2
+            cast-time: 10
+            steps:
+              - target: { type: enemies_in_radius, radius: 5 }
+                do:
+                  - { action: damage, amount: 7 }
+            """;
+
     /** Пассивка: когда по мне попали, бью ударившего. */
     private static final String THORNS = """
             id: thorns
@@ -372,6 +386,7 @@ class CastServiceTest {
         byId.put("thorns", thorns);
         byId.put("aura", aura);
         byId.put("dash", SkillLoader.load("dash.yml", DASH, errors).orElseThrow());
+        byId.put("channel", SkillLoader.load("channel.yml", CHANNEL, errors).orElseThrow());
         SkillRegistry skills = new SkillRegistry(byId);
         BalanceBook balance = BalanceLoader.load("balance.yml", BALANCE, errors).orElseThrow();
         assertTrue(errors.isEmpty(), () -> errors.all().toString());
@@ -392,6 +407,7 @@ class CastServiceTest {
         classes.setClass(PLAYER, "mage");
         classes.grantPoints(PLAYER, 5);
         assertTrue(classes.unlock(PLAYER, "bolt").succeeded());
+        assertTrue(classes.unlock(PLAYER, "channel").succeeded());
 
         world = new FakeWorld();
         zones = new ZoneService(() -> tick);
@@ -431,6 +447,99 @@ class CastServiceTest {
         casts.cast(PLAYER, "bolt");
 
         assertEquals(List.of(20.0), world.damage, "10 + 5 * 2 на третьем уровне");
+    }
+
+    // ------------------------------------------------------------------ подготовка
+
+    /** Что сказала служба каста о начале и конце подготовки. */
+    private final List<String> castLog = new java.util.ArrayList<>();
+
+    private void listenCasts() {
+        casts.useListener(new CastService.CastListener() {
+            @Override
+            public void started(UUID player, SkillDef started, int ticks) {
+                castLog.add("start " + started.id() + " " + ticks);
+            }
+
+            @Override
+            public void ended(UUID player, SkillDef ended, boolean completed, String reason) {
+                castLog.add("end " + ended.id() + " " + completed + " " + reason);
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("навык с подготовкой бьёт не по нажатию, а через свои тики")
+    void castTimeDelaysTheSkill() {
+        listenCasts();
+
+        CastOutcome out = casts.cast(PLAYER, "channel");
+
+        assertEquals(CastOutcome.Kind.CAST, out.kind(), out::toString);
+        assertTrue(casts.isCasting(PLAYER));
+        assertTrue(world.damage.isEmpty(), "удар по нажатию — ровно то, чего быть не должно");
+        // Цена — в начале: решение владельца, сорванный каст пропадает.
+        assertEquals(70, mana.current(PLAYER), 1e-9, "сто минус тридцать сразу");
+        assertTrue(cooldowns.remaining(PLAYER, "channel") > 0, "перезарядка тоже сразу");
+
+        for (int i = 0; i < 9; i++) {
+            casts.tick();
+        }
+        assertTrue(world.damage.isEmpty(), "девять тиков из десяти — ещё готовит");
+        casts.tick();
+
+        assertEquals(List.of(7.0), world.damage);
+        assertFalse(casts.isCasting(PLAYER));
+        assertEquals(List.of("start channel 10", "end channel true "), castLog);
+    }
+
+    @Test
+    @DisplayName("статус, запрещающий касты, срывает подготовку, и цена не возвращается")
+    void blockingStatusInterrupts() {
+        listenCasts();
+        casts.cast(PLAYER, "channel");
+        casts.tick();
+
+        statuses.apply(PLAYER, ru.projectst.rpgcore.status.StatusApplication.of(
+                "silence", 40, "test"));
+        for (int i = 0; i < 20; i++) {
+            casts.tick();
+        }
+
+        assertTrue(world.damage.isEmpty(), "сорванный каст не бьёт никогда");
+        assertFalse(casts.isCasting(PLAYER));
+        assertEquals(70, mana.current(PLAYER), 1e-9, "цена не возвращается");
+        assertTrue(castLog.get(castLog.size() - 1).startsWith("end channel false сорван"),
+                castLog::toString);
+    }
+
+    @Test
+    @DisplayName("вторая подготовка не начинается, пока идёт первая, и ничего не стоит")
+    void secondCastIsBusy() {
+        casts.cast(PLAYER, "channel");
+        cooldowns.forget(PLAYER);
+
+        CastOutcome second = casts.cast(PLAYER, "channel");
+
+        assertEquals(CastOutcome.Kind.BUSY, second.kind(), second::toString);
+        assertEquals(70, mana.current(PLAYER), 1e-9, "отказ не тратит запасы");
+    }
+
+    @Test
+    @DisplayName("мгновенный навык бросает подготовку: рывок — чтобы спастись")
+    void instantSkillCancelsCast() {
+        listenCasts();
+        casts.cast(PLAYER, "channel");
+
+        CastOutcome dash = casts.castInnate(PLAYER, null);
+
+        assertEquals(CastOutcome.Kind.CAST, dash.kind(), dash::toString);
+        assertEquals(1, world.dashes);
+        assertFalse(casts.isCasting(PLAYER));
+        for (int i = 0; i < 20; i++) {
+            casts.tick();
+        }
+        assertTrue(world.damage.isEmpty(), "брошенный каст не доигрывается");
     }
 
     // ------------------------------------------------------------------ рывок

@@ -408,6 +408,7 @@ public final class StateCodec {
                         out.writeFloat(e.angle());
                         out.writeFloat(e.axisX());
                         out.writeFloat(e.axisZ());
+                        out.writeInt(e.source());
                     }
                     case FxMessage.ZoneOn e -> {
                         out.writeByte(FxKind.ZONE_ON.ordinal());
@@ -419,6 +420,7 @@ public final class StateCodec {
                         out.writeInt(e.totalTicks());
                         out.writeInt(e.remainingTicks());
                         out.writeBoolean(e.own());
+                        out.writeInt(e.owner());
                     }
                     case FxMessage.ZoneOff e -> {
                         out.writeByte(FxKind.ZONE_OFF.ordinal());
@@ -450,6 +452,7 @@ public final class StateCodec {
                         out.writeInt(e.entityId());
                         writeString(out, e.classId());
                         out.writeBoolean(e.crit());
+                        out.writeInt(e.attacker());
                     }
                     case FxMessage.Trail e -> {
                         out.writeByte(FxKind.TRAIL.ordinal());
@@ -457,6 +460,48 @@ public final class StateCodec {
                         writeString(out, e.classId());
                         writePoint(out, e.fromX(), e.fromY(), e.fromZ());
                         writePoint(out, e.toX(), e.toY(), e.toZ());
+                    }
+                    case FxMessage.Telegraph e -> {
+                        out.writeByte(FxKind.TELEGRAPH.ordinal());
+                        writeString(out, e.fx());
+                        writeString(out, e.classId());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeFloat(e.radius());
+                        out.writeInt(e.ticks());
+                        out.writeInt(e.caster());
+                    }
+                    case FxMessage.CastStart e -> {
+                        out.writeByte(FxKind.CAST_START.ordinal());
+                        out.writeInt(e.entityId());
+                        writeString(out, e.skillId());
+                        writeString(out, e.classId());
+                        out.writeInt(e.totalTicks());
+                    }
+                    case FxMessage.CastEnd e -> {
+                        out.writeByte(FxKind.CAST_END.ordinal());
+                        out.writeInt(e.entityId());
+                        out.writeBoolean(e.completed());
+                    }
+                    case FxMessage.StatusOn e -> {
+                        out.writeByte(FxKind.STATUS_ON.ordinal());
+                        out.writeInt(e.entityId());
+                        writeString(out, e.statusId());
+                        out.writeInt(e.source());
+                        out.writeInt(e.totalTicks());
+                        out.writeInt(e.remainingTicks());
+                        out.writeShort(Math.clamp(e.stacks(), 0, Short.MAX_VALUE));
+                    }
+                    case FxMessage.StatusOff e -> {
+                        out.writeByte(FxKind.STATUS_OFF.ordinal());
+                        out.writeInt(e.entityId());
+                        writeString(out, e.statusId());
+                    }
+                    case FxMessage.Sound e -> {
+                        out.writeByte(FxKind.SOUND.ordinal());
+                        writeString(out, e.event());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeFloat(e.volume());
+                        out.writeFloat(e.pitch());
                     }
                 }
             }
@@ -484,10 +529,12 @@ public final class StateCodec {
                     case BURST -> new FxMessage.Burst(readString(in), readString(in),
                             FxMessage.Shape.of(in.readUnsignedByte()),
                             in.readDouble(), in.readDouble(), in.readDouble(),
-                            in.readFloat(), in.readFloat(), in.readFloat(), in.readFloat());
+                            in.readFloat(), in.readFloat(), in.readFloat(), in.readFloat(),
+                            in.readInt());
                     case ZONE_ON -> new FxMessage.ZoneOn(in.readInt(), readString(in),
                             readString(in), in.readDouble(), in.readDouble(), in.readDouble(),
-                            in.readFloat(), in.readInt(), in.readInt(), in.readBoolean());
+                            in.readFloat(), in.readInt(), in.readInt(), in.readBoolean(),
+                            in.readInt());
                     case ZONE_OFF -> new FxMessage.ZoneOff(in.readInt(),
                             FxMessage.ZoneEnd.of(in.readUnsignedByte()),
                             in.readDouble(), in.readDouble(), in.readDouble());
@@ -499,10 +546,22 @@ public final class StateCodec {
                             in.readDouble(), in.readDouble(), in.readDouble(),
                             in.readBoolean());
                     case HIT -> new FxMessage.Hit(in.readInt(), readString(in),
-                            in.readBoolean());
+                            in.readBoolean(), in.readInt());
                     case TRAIL -> new FxMessage.Trail(readString(in), readString(in),
                             in.readDouble(), in.readDouble(), in.readDouble(),
                             in.readDouble(), in.readDouble(), in.readDouble());
+                    case TELEGRAPH -> new FxMessage.Telegraph(readString(in), readString(in),
+                            in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readFloat(), in.readInt(), in.readInt());
+                    case CAST_START -> new FxMessage.CastStart(in.readInt(), readString(in),
+                            readString(in), in.readInt());
+                    case CAST_END -> new FxMessage.CastEnd(in.readInt(), in.readBoolean());
+                    case STATUS_ON -> new FxMessage.StatusOn(in.readInt(), readString(in),
+                            in.readInt(), in.readInt(), in.readInt(), in.readShort());
+                    case STATUS_OFF -> new FxMessage.StatusOff(in.readInt(), readString(in));
+                    case SOUND -> new FxMessage.Sound(readString(in),
+                            in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readFloat(), in.readFloat());
                 });
             }
             return out;
@@ -510,7 +569,10 @@ public final class StateCodec {
     }
 
     /** Байт вида события. Порядок — часть формата, переставлять нельзя. */
-    private enum FxKind { BURST, ZONE_ON, ZONE_OFF, PROJECTILE, PROJECTILE_END, HIT, TRAIL }
+    private enum FxKind {
+        BURST, ZONE_ON, ZONE_OFF, PROJECTILE, PROJECTILE_END, HIT, TRAIL,
+        TELEGRAPH, CAST_START, CAST_END, STATUS_ON, STATUS_OFF, SOUND
+    }
 
     private static void writePoint(DataOutputStream out, double x, double y, double z)
             throws IOException {

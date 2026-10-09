@@ -866,4 +866,62 @@ class SkillLoaderTest {
                         && errors.all().get(0).at().line() == 7,
                 errors.all().toString());
     }
+
+    @Test
+    @DisplayName("предупреждение без задержки и у конуса — ошибка со строкой")
+    void telegraphNeedsDelayAndCircle() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 4 }
+                    telegraph: mage_mark
+                    do:
+                      - { action: damage, amount: 1 }
+                  - target: { type: enemies_in_cone, radius: 4, angle: 60 }
+                    delay: 10
+                    telegraph: mage_mark
+                    do:
+                      - { action: damage, amount: 1 }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("нужна задержка")),
+                errors.all().toString());
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("у конуса")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("подготовка у пассивки — ошибка: её некому готовить")
+    void castTimeOnlyForManual() {
+        load("""
+                id: s
+                class: mage
+                on: damaged
+                cast-time: 10
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: heal, amount: 1 }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.path().equals("cast-time")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("подготовка и звук мода читаются")
+    void castTimeAndSoundFxAreRead() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                cast-time: 12
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: sound, sound: block_moss_place, fx: druid.roots.crack }
+                """).orElseThrow();
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        assertEquals(12, ((NumberRef.Literal) skill.castTime()).value(), 1e-9);
+        assertEquals("druid.roots.crack",
+                assertInstanceOf(Action.Sound.class, skill.steps().get(0).actions().get(0)).fx());
+    }
 }

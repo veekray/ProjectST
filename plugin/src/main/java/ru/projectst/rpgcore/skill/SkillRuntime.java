@@ -126,7 +126,9 @@ public final class SkillRuntime {
         BalanceTable table = balance.table(skill.id());
         for (Step step : skill.steps()) {
             int delay = (int) resolve(step.delay(), table, context, 0);
-            if (delay > 0) {
+            if (delay > 0 && step.telegraphed()) {
+                telegraph(context, skill, step, table, depth, delay);
+            } else if (delay > 0) {
                 world.runLater(delay, () -> runStep(context, skill, step, table, depth));
             } else {
                 runStep(context, skill, step, table, depth);
@@ -134,8 +136,57 @@ public final class SkillRuntime {
         }
     }
 
+    /**
+     * Шаг с предупреждением: область запоминается сейчас, удар — по ней же позже.
+     *
+     * <p>Центр — где область стоит в момент каста: у «врагов вокруг» это кастер,
+     * у «целей у точки» — точка. Радиус — со статом, как у любого шага. Через
+     * задержку шаг выбирает цели от этого центра этим радиусом, а не от того
+     * места, куда кастер успел уйти: иначе круг на земле ездил бы за ним, и
+     * выйти из него было бы нельзя.
+     */
+    private void telegraph(CastContext context, SkillDef skill, Step step, BalanceTable table,
+                           int depth, int delay) {
+        CastContext atCast = withStepOrigin(context, step, table);
+        Optional<Position> centre = step.target().type() == TargetSpec.Type.ENEMIES_IN_RADIUS
+                ? world.positionOf(context.caster())
+                : Optional.ofNullable(atCast.origin());
+        if (centre.isEmpty()) {
+            // Точки нет — удара не будет и без предупреждения: шаг у точки без
+            // точки выбирает пустой список.
+            return;
+        }
+        double radius = resolve(step.target().radius(), table, atCast, 0)
+                * radiusScale(context.caster());
+        String particle = "crit";
+        for (Action action : step.actions()) {
+            if (action instanceof Action.Particles p) {
+                particle = p.particle();
+                break;
+            }
+        }
+        world.effect(new FxEvent.Telegraph(step.telegraph(), classOf(skill), centre.get(),
+                radius, delay, context.caster(), particle));
+        TargetSpec target = step.target();
+        Step locked = new Step(new TargetSpec(target.type().locked(), target.radius(),
+                target.angle(), target.tag(), target.limit()), step.actions(),
+                step.conditions(), OriginSpec.INHERIT, new NumberRef.Literal(0), null);
+        CastContext lockedContext = atCast.withOrigin(centre.get());
+        world.runLater(delay,
+                () -> runStep(lockedContext, skill, locked, table, depth, radius));
+    }
+
     private void runStep(CastContext outer, SkillDef skill, Step step,
                          BalanceTable table, int depth) {
+        runStep(outer, skill, step, table, depth, -1);
+    }
+
+    /**
+     * @param lockedRadius радиус, запомненный предупреждением; меньше нуля —
+     *                     считать как обычно
+     */
+    private void runStep(CastContext outer, SkillDef skill, Step step,
+                         BalanceTable table, int depth, double lockedRadius) {
         // Условия на кастере отменяют шаг целиком.
         for (Condition condition : step.conditions()) {
             if (condition.scope() == Condition.Scope.CASTER
@@ -155,7 +206,9 @@ public final class SkillRuntime {
         // разные вещи, и общий множитель испортил бы конусы.
         double baseRadius = resolve(step.target().radius(), table, context, 0);
         double scale = radiusScale(context.caster());
-        double radius = baseRadius * scale;
+        // Предупреждённый удар бьёт тем радиусом, который был показан: стат,
+        // сменившийся за время полёта, не должен сдвигать уже нарисованный круг.
+        double radius = lockedRadius >= 0 ? lockedRadius : baseRadius * scale;
         double angle = resolve(step.target().angle(), table, context, 0);
 
         // Единственное место, где определяются цели шага.
@@ -391,7 +444,8 @@ public final class SkillRuntime {
                     // нарисованный отдельным броском, был бы вторым источником
                     // правды. Отменённый и уклонённый урон не вспыхивает.
                     if (result != null && !result.blocked()) {
-                        world.effect(new FxEvent.Hit(t, classOf(skill), result.crit()));
+                        world.effect(new FxEvent.Hit(t, classOf(skill), result.crit(),
+                                context.caster()));
                     }
                 });
             }
@@ -533,14 +587,15 @@ public final class SkillRuntime {
                     for (AreaMark mark : areaMarks(context, area)) {
                         world.effect(new FxEvent.Burst(a.fx(), classOf(skill), mark.centre(),
                                 a.shape(), area.radius(), area.angle(), mark.axis(),
-                                a.particle(), count));
+                                a.particle(), count, context.caster()));
                     }
                     return;
                 }
                 double size = resolve(a.size(), table, context, 1);
                 java.util.function.Consumer<Position> draw =
                         p -> world.effect(new FxEvent.Burst(a.fx(), classOf(skill), p,
-                                a.shape(), size, 0, null, a.particle(), count));
+                                a.shape(), size, 0, null, a.particle(), count,
+                                context.caster()));
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(draw);
                 } else {
@@ -551,10 +606,10 @@ public final class SkillRuntime {
             case Action.Sound a -> {
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(
-                            p -> world.sound(p, a.sound(), a.volume(), a.pitch()));
+                            p -> world.sound(p, a.sound(), a.volume(), a.pitch(), a.fx()));
                 } else {
                     forEach(targets, t -> world.positionOf(t).ifPresent(
-                            p -> world.sound(p, a.sound(), a.volume(), a.pitch())));
+                            p -> world.sound(p, a.sound(), a.volume(), a.pitch(), a.fx())));
                 }
             }
 

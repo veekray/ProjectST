@@ -323,6 +323,9 @@ public final class BukkitSkillWorld implements SkillWorld {
         // Без пузырьков: это ванильные частицы, которые сыпались бы с цели
         // поверх эффектов мода весь срок зелья. Значок у игрока остаётся.
         target.addPotionEffect(new PotionEffect(type, durationTicks, amplifier, false, false, true));
+        // Чужие зелья клиент не видит, а пузырьки мы выключили: мод узнаёт о
+        // зелье псевдостатусом, иначе яд плюща на цели не нарисовать.
+        fx.notePotion(targetId, effect.toLowerCase(Locale.ROOT), durationTicks);
     }
 
     @Override
@@ -337,6 +340,7 @@ public final class BukkitSkillWorld implements SkillWorld {
             return;
         }
         target.removePotionEffect(type);
+        fx.clearPotion(targetId, effect.toLowerCase(Locale.ROOT));
     }
 
     // ------------------------------------------------------------------ движение
@@ -1125,7 +1129,7 @@ public final class BukkitSkillWorld implements SkillWorld {
                             burst.at().x(), burst.at().y(), burst.at().z(),
                             (float) burst.radius(), (float) burst.angle(),
                             axis == null ? 0f : (float) axis.x(),
-                            axis == null ? 0f : (float) axis.z()));
+                            axis == null ? 0f : (float) axis.z(), entityIdOf(burst.source())));
                 }
                 particlesFor(viewers.vanilla(), burst.at(), burst.particle(), burst.shape(),
                         burst.count(), burst.radius(), burst.angle(), axis);
@@ -1136,6 +1140,43 @@ public final class BukkitSkillWorld implements SkillWorld {
                     fx.zoneConsumed(consumed.zone(), consumed.pulledTo());
             case FxEvent.Hit hit -> showHit(hit);
             case FxEvent.Trail trail -> showTrail(trail);
+            case FxEvent.Telegraph telegraph -> showTelegraph(telegraph);
+        }
+    }
+
+    /** Сетевой номер существа для мода; 0 — нет такого в мире. */
+    static int entityIdOf(UUID id) {
+        if (id == null) {
+            return 0;
+        }
+        Entity entity = Bukkit.getEntity(id);
+        return entity == null ? 0 : entity.getEntityId();
+    }
+
+    /** Как часто игроку без мода перерисовывается круг предупреждения. */
+    private static final int TELEGRAPH_REDRAW = 5;
+
+    /**
+     * Предупреждение: моду — событием, без мода — кольцом, которое держится до
+     * удара.
+     *
+     * <p>Кольцо перерисовывается раз в четверть секунды: ванильная частица
+     * живёт мгновение, и один раз нарисованный круг пропал бы задолго до удара —
+     * предупреждение, которое не видно, ни о чём не предупреждает.
+     */
+    private void showTelegraph(FxEvent.Telegraph telegraph) {
+        Optional<Location> at = toLocation(telegraph.at());
+        if (at.isEmpty()) {
+            return;
+        }
+        FxBroadcaster.Viewers viewers = fx.viewers(at.get());
+        fx.send(viewers.modded(), new FxMessage.Telegraph(telegraph.fx(), telegraph.classId(),
+                telegraph.at().x(), telegraph.at().y(), telegraph.at().z(),
+                (float) telegraph.radius(), telegraph.ticks(), entityIdOf(telegraph.caster())));
+        for (int t = 0; t < telegraph.ticks(); t += TELEGRAPH_REDRAW) {
+            runLater(t, () -> particlesFor(fx.viewers(at.get()).vanilla(), telegraph.at(),
+                    telegraph.particle(), Action.Particles.Shape.RING, 8,
+                    telegraph.radius(), 0, null));
         }
     }
 
@@ -1154,7 +1195,7 @@ public final class BukkitSkillWorld implements SkillWorld {
         Location chest = target.getLocation().add(0, target.getHeight() * 0.6, 0);
         FxBroadcaster.Viewers viewers = fx.viewers(chest);
         fx.send(viewers.modded(), new FxMessage.Hit(target.getEntityId(), hit.classId(),
-                hit.crit()));
+                hit.crit(), entityIdOf(hit.attacker())));
         if (hit.crit()) {
             spawn(chest.getWorld(), viewers.vanilla(), Particle.CRIT, chest, 16, 0.35);
             chest.getWorld().playSound(chest, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.1f);
@@ -1212,6 +1253,38 @@ public final class BukkitSkillWorld implements SkillWorld {
             return;
         }
         location.get().getWorld().playSound(location.get(), type, (float) volume, (float) pitch);
+    }
+
+    /**
+     * Звук адресно: каждый слышит один вид.
+     *
+     * <p>Без {@code fx} — ванильный у всех, как раньше. С {@code fx} игрок с
+     * модом слышит звук мода (или сцену, если {@code none}), а ванильный — только
+     * игрок без мода: два звука одного удара — тот же дубль, что и две картинки.
+     */
+    @Override
+    public void sound(Position at, String sound, double volume, double pitch, String soundFx) {
+        if (soundFx == null) {
+            sound(at, sound, volume, pitch);
+            return;
+        }
+        Optional<Location> location = toLocation(at);
+        if (location.isEmpty()) {
+            return;
+        }
+        FxBroadcaster.Viewers viewers = fx.viewers(location.get());
+        if (!FxEvent.NONE.equals(soundFx)) {
+            fx.send(viewers.modded(), new FxMessage.Sound(soundFx, at.x(), at.y(), at.z(),
+                    (float) volume, (float) pitch));
+        }
+        Sound type = fromKey(sound, Sound.class);
+        if (type == null) {
+            plugin.getLogger().warning("неизвестный звук: " + sound);
+            return;
+        }
+        for (Player player : viewers.vanilla()) {
+            player.playSound(location.get(), type, (float) volume, (float) pitch);
+        }
     }
 
     @Override

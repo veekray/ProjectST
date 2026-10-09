@@ -86,6 +86,17 @@ public final class FxBroadcaster {
 
     private int nextHandle = 1;
 
+    /** Что каким игрокам показано из статусов на существах. */
+    private final StatusFeed feed = new StatusFeed();
+
+    /**
+     * Зелья от навыков: существо → зелье → {полный срок, тик конца}.
+     *
+     * <p>Чужие зелья клиент не видит, а их пузырьки выключены. Без этой памяти
+     * яд плюща на цели было бы не нарисовать ничем.
+     */
+    private final Map<UUID, Map<String, long[]>> potions = new HashMap<>();
+
     public FxBroadcaster(Plugin plugin, LongSupplier clock) {
         this.plugin = plugin;
         this.clock = clock;
@@ -240,7 +251,7 @@ public final class FxBroadcaster {
         Position c = zone.center();
         return new FxMessage.ZoneOn(handle, zone.fx(), zone.classId(), c.x(), c.y(), c.z(),
                 (float) zone.radius(), zone.totalTicks(), Math.min(remaining, zone.totalTicks()),
-                zone.ownedBy(viewer.getUniqueId()));
+                zone.ownedBy(viewer.getUniqueId()), BukkitSkillWorld.entityIdOf(zone.owner()));
     }
 
     private static FxMessage.ZoneOff zoneOff(int handle, Zone zone, FxMessage.ZoneEnd why) {
@@ -257,6 +268,107 @@ public final class FxBroadcaster {
         double dy = here.getY() - at.y();
         double dz = here.getZ() - at.z();
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    // ------------------------------------------------------------------ статусы
+
+    public void notePotion(UUID target, String effect, int ticks) {
+        long now = clock.getAsLong();
+        potions.computeIfAbsent(target, id -> new HashMap<>())
+                .put(effect, new long[] {Math.max(1, ticks), now + Math.max(1, ticks)});
+    }
+
+    public void clearPotion(UUID target, String effect) {
+        Map<String, long[]> mine = potions.get(target);
+        if (mine != null) {
+            mine.remove(effect);
+        }
+    }
+
+    /**
+     * Сверка статусов на существах с тем, что видит каждый игрок с модом.
+     *
+     * <p>Зовётся раз в тик. Видно то, что действует (подавленное не рисуется:
+     * его и в бою нет), зелья от навыков — псевдостатусом {@code potion:<зелье>},
+     * призванные — {@code minion:<тег>} с хозяином в источнике.
+     */
+    public void syncStatuses(ru.projectst.rpgcore.status.StatusService statuses,
+                             ru.projectst.rpgcore.skill.MinionService minions) {
+        long now = clock.getAsLong();
+        Map<UUID, List<StatusFeed.Seen>> byEntity = new HashMap<>();
+        Map<UUID, Integer> ids = new HashMap<>();
+        for (UUID target : statuses.targets()) {
+            for (ru.projectst.rpgcore.status.ActiveStatus status : statuses.acting(target)) {
+                byEntity.computeIfAbsent(target, k -> new ArrayList<>()).add(new StatusFeed.Seen(
+                        status.id(), idOf(casterOf(status.source()), ids),
+                        (int) Math.min(Integer.MAX_VALUE, status.total()),
+                        status.expiresAtTick(), status.stacks()));
+            }
+        }
+        potions.values().forEach(mine -> mine.values().removeIf(p -> p[1] <= now));
+        potions.values().removeIf(Map::isEmpty);
+        for (Map.Entry<UUID, Map<String, long[]>> entry : potions.entrySet()) {
+            for (Map.Entry<String, long[]> potion : entry.getValue().entrySet()) {
+                byEntity.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(
+                        new StatusFeed.Seen("potion:" + potion.getKey(), 0,
+                                (int) potion.getValue()[0], potion.getValue()[1], 1));
+            }
+        }
+        for (ru.projectst.rpgcore.skill.Minion minion : minions.all()) {
+            // Срок призванного мод не рисует: он узнаёт, кто это и чей он.
+            // Полный срок нулём — иначе он «менялся» бы каждый тик сверки.
+            byEntity.computeIfAbsent(minion.entityId(), k -> new ArrayList<>()).add(
+                    new StatusFeed.Seen("minion:" + minion.tag(), idOf(minion.owner(), ids),
+                            0, minion.expiresAtTick(), 1));
+        }
+        Map<UUID, org.bukkit.entity.Entity> entities = new HashMap<>();
+        for (UUID id : byEntity.keySet()) {
+            org.bukkit.entity.Entity entity = Bukkit.getEntity(id);
+            if (entity != null && !entity.isDead()) {
+                entities.put(id, entity);
+            }
+        }
+        double near = RANGE * RANGE;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!hasMod(player)) {
+                continue;
+            }
+            Map<Integer, List<StatusFeed.Seen>> visible = new HashMap<>();
+            Location here = player.getLocation();
+            for (Map.Entry<UUID, org.bukkit.entity.Entity> entry : entities.entrySet()) {
+                Location there = entry.getValue().getLocation();
+                if (there.getWorld() == here.getWorld()
+                        && there.distanceSquared(here) <= near) {
+                    visible.put(entry.getValue().getEntityId(), byEntity.get(entry.getKey()));
+                }
+            }
+            for (FxMessage.Event event : feed.diff(player.getUniqueId(), visible, now)) {
+                send(player, event);
+            }
+        }
+    }
+
+    /** Кастер из источника статуса {@code skill:<навык>:<uuid>}; иначе {@code null}. */
+    static UUID casterOf(String source) {
+        if (source == null) {
+            return null;
+        }
+        int cut = source.lastIndexOf(':');
+        if (cut < 0) {
+            return null;
+        }
+        try {
+            return UUID.fromString(source.substring(cut + 1));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static int idOf(UUID id, Map<UUID, Integer> cache) {
+        if (id == null) {
+            return 0;
+        }
+        return cache.computeIfAbsent(id, BukkitSkillWorld::entityIdOf);
     }
 
     // ------------------------------------------------------------------ отправка
@@ -292,10 +404,17 @@ public final class FxBroadcaster {
         List<FxMessage.Event> out = new ArrayList<>(events.size());
         int decor = 0;
         for (FxMessage.Event event : events) {
+            // Состояние уходит всегда: потерянное «статус снят» оставило бы корни
+            // на ногах навсегда, потерянное «каст кончился» — полосу на экране.
             boolean state = event instanceof FxMessage.ZoneOn
                     || event instanceof FxMessage.ZoneOff
                     || event instanceof FxMessage.Projectile
-                    || event instanceof FxMessage.ProjectileEnd;
+                    || event instanceof FxMessage.ProjectileEnd
+                    || event instanceof FxMessage.StatusOn
+                    || event instanceof FxMessage.StatusOff
+                    || event instanceof FxMessage.CastStart
+                    || event instanceof FxMessage.CastEnd
+                    || event instanceof FxMessage.Telegraph;
             if (state || decor++ < DECOR_PER_TICK) {
                 out.add(event);
             }
@@ -307,5 +426,11 @@ public final class FxBroadcaster {
     public void forget(UUID player) {
         queue.remove(player);
         known.remove(player);
+        feed.forget(player);
+    }
+
+    /** Существо ушло из мира: его зелья помнить незачем. */
+    public void forgetEntity(UUID entity) {
+        potions.remove(entity);
     }
 }

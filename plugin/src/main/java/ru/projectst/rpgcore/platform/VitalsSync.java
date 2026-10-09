@@ -22,8 +22,55 @@ public final class VitalsSync {
 
     private final StatService stats;
 
+    /** Кто сейчас готовит навык: у него скорость не от стата, а фиксированная. */
+    private java.util.function.Predicate<java.util.UUID> casting = id -> false;
+
+    /**
+     * Скорость во время подготовки: ровно половина ванильной базы ходьбы.
+     *
+     * <p>Решение владельца: бонусы к скорости во время каста не действуют
+     * вовсе — ни стат, ни зелье, ни бег. Иначе подготовка у быстрого героя и у
+     * медленного стоила бы по-разному, а цена каста должна быть одна.
+     */
+    static final double CAST_SPEED = 0.05;
+
     public VitalsSync(StatService stats) {
         this.stats = stats;
+    }
+
+    public void useCasting(java.util.function.Predicate<java.util.UUID> casting) {
+        this.casting = casting == null ? id -> false : casting;
+    }
+
+    /**
+     * Держит скорость кастера ровно на {@link #CAST_SPEED}.
+     *
+     * <p>Чужие модификаторы на атрибуте снимать нельзя — они не наши. Поэтому
+     * подбирается база: такая, чтобы с ними итог был ровно нужным. Зовётся
+     * каждый тик подготовки: модификаторы появляются и уходят (зелье, бег), и
+     * база под них пересчитывается. Бег сбрасывается: ускорения во время каста
+     * нет.
+     */
+    public void lockCastSpeed(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
+        if (attribute == null) {
+            return;
+        }
+        if (player.isSprinting()) {
+            player.setSprinting(false);
+        }
+        double base = attribute.getBaseValue();
+        double value = attribute.getValue();
+        if (base <= 0 || value <= 0) {
+            attribute.setBaseValue(CAST_SPEED);
+            return;
+        }
+        // Итог пропорционален базе при множителях; прибавки числом редки, и
+        // следующий тик доберёт остаток.
+        double wanted = base * CAST_SPEED / value;
+        if (Math.abs(wanted - base) > 1.0E-5) {
+            attribute.setBaseValue(Math.max(0.0001, wanted));
+        }
     }
 
     public void apply(Player player) {
@@ -62,6 +109,10 @@ public final class VitalsSync {
      * за один и тот же атрибут с каждым соседним плагином.
      */
     private void applySpeed(Player player) {
+        if (casting.test(player.getUniqueId())) {
+            lockCastSpeed(player);
+            return;
+        }
         double share = stats.share(player.getUniqueId(), StatIds.MOVEMENT_SPEED);
         AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
         if (attribute == null) {

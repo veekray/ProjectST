@@ -35,7 +35,9 @@ public record CastOutcome(Kind kind, String detail) {
         /** Каст запрещён действующим статусом. */
         BLOCKED,
         /** Навык срабатывает сам, вручную его не применить. */
-        NOT_MANUAL
+        NOT_MANUAL,
+        /** Уже идёт подготовка другого навыка: второй ждёт, пока она кончится. */
+        BUSY
     }
 
     public boolean succeeded() {

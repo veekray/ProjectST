@@ -3,6 +3,7 @@ package ru.projectst.rpgcore.cast;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -56,6 +57,48 @@ public final class CastService {
     private final CooldownTracker cooldowns;
     private final SkillRuntime runtime;
 
+    /**
+     * Кто сейчас готовит навык.
+     *
+     * <p>Подготовка — решение владельца: навык с {@code cast-time} не бьёт по
+     * нажатию, кастер сначала его готовит, и это видно всем. Запасы и
+     * перезарядка списываются в начале — сорванный каст пропадает, это его цена.
+     * Срывает подготовку любой статус, запрещающий касты: оглушение, тишина,
+     * изъятие. Движение не срывает, но пока идёт подготовка, кастер ходит
+     * ровно вполовину базовой скорости — это держит платформа.
+     */
+    private final Map<UUID, Casting> casting = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Тики службы: по ним считается конец подготовки. */
+    private long now;
+
+    private CastListener listener = CastListener.NONE;
+
+    /** Подготовка навыка: что, с какими числами и до какого тика. */
+    private record Casting(SkillDef skill, CastContext context, long endsAt, int total) {
+    }
+
+    /** Кому сказать о начале и конце подготовки: платформе — моду и скорости. */
+    public interface CastListener {
+        CastListener NONE = new CastListener() {
+            @Override
+            public void started(UUID player, SkillDef skill, int ticks) {
+            }
+
+            @Override
+            public void ended(UUID player, SkillDef skill, boolean completed, String reason) {
+            }
+        };
+
+        void started(UUID player, SkillDef skill, int ticks);
+
+        /**
+         * @param completed навык сработал; {@code false} — сорван
+         * @param reason    почему сорван, словами для игрока; при успехе пусто
+         */
+        void ended(UUID player, SkillDef skill, boolean completed, String reason);
+    }
+
     /** Игроки, чьи пассивки сейчас срабатывают: защита от повторного входа. */
     private final Set<UUID> firing = java.util.Collections.synchronizedSet(new HashSet<>());
 
@@ -71,6 +114,58 @@ public final class CastService {
         this.resource = resource;
         this.cooldowns = cooldowns;
         this.runtime = runtime;
+    }
+
+    public void useListener(CastListener listener) {
+        this.listener = listener == null ? CastListener.NONE : listener;
+    }
+
+    /** Готовит ли игрок сейчас навык. */
+    public boolean isCasting(UUID player) {
+        return casting.containsKey(player);
+    }
+
+    /** Сколько тиков подготовки у навыка на этом уровне; ноль — мгновенный. */
+    public int castTicks(SkillDef skill, int level) {
+        return (int) Math.max(0, Math.round(
+                skill.castTime().resolve(balance.table(skill.id()), level)));
+    }
+
+    /**
+     * Тик подготовки: срыв статусом или срабатывание.
+     *
+     * <p>Зовётся платформой раз в тик сервера. Срыв проверяется раньше конца:
+     * оглушение, легшее в последний тик, тоже срывает — удар, который успел бы
+     * «проскочить» в тот же тик, был бы ровно тем случайным исходом, от
+     * которого проект уходит.
+     */
+    public void tick() {
+        now++;
+        for (Map.Entry<UUID, Casting> entry : List.copyOf(casting.entrySet())) {
+            UUID player = entry.getKey();
+            Casting cast = entry.getValue();
+            Optional<ActiveStatus> blocker = blockingStatus(player);
+            if (blocker.isPresent()) {
+                casting.remove(player);
+                listener.ended(player, cast.skill(), false, "сорван: "
+                        + statusDefs.find(blocker.get().id()).map(d -> d.display())
+                                .filter(d -> !d.isBlank()).orElse(blocker.get().id()));
+                continue;
+            }
+            if (now >= cast.endsAt()) {
+                casting.remove(player);
+                listener.ended(player, cast.skill(), true, "");
+                runtime.cast(cast.context(), cast.skill(), 0);
+            }
+        }
+    }
+
+    /** Прервать подготовку: игрок ушёл, умер или выбрал другой навык. */
+    public void interrupt(UUID player, String reason) {
+        Casting cast = casting.remove(player);
+        if (cast != null) {
+            listener.ended(player, cast.skill(), false, reason);
+        }
     }
 
     /** Применить навык из слота: то, что происходит по нажатию клавиши. */
@@ -255,6 +350,17 @@ public final class CastService {
                     "мешает " + blocker.get().id());
         }
 
+        // Пока идёт подготовка, второй навык с подготовкой не начать: две
+        // подготовки разом — это вопрос «какая сработает», и ответ на него
+        // игрок не выбирал. Мгновенный навык — можно: рывок и защитная реакция
+        // как раз для того, чтобы бросить каст и спастись.
+        int castTicks = source == null ? castTicks(skill, level) : 0;
+        Casting ongoing = casting.get(player);
+        if (ongoing != null && source == null && castTicks > 0) {
+            return CastOutcome.of(CastOutcome.Kind.BUSY,
+                    "идёт подготовка: " + ongoing.skill().display());
+        }
+
         // Обездвиженный не перемещается — ни рывком, ни телепортом, ни
         // сближением. Проверка здесь, а не в самом навыке: иначе каждый
         // перемещающий навык пришлось бы об этом помнить, а забытый означал бы
@@ -303,8 +409,17 @@ public final class CastService {
         cooldowns.start(player, skillId,
                 Math.max(cooldownTicks(player, skill, level), skill.intervalTicks()),
                 skill.charges());
-        runtime.cast(new CastContext(player, level, null, source,
-                new java.util.HashMap<>(), heading), skill, 0);
+        CastContext context = new CastContext(player, level, null, source,
+                new java.util.HashMap<>(), heading);
+        if (castTicks > 0) {
+            casting.put(player, new Casting(skill, context, now + castTicks, castTicks));
+            listener.started(player, skill, castTicks);
+            return CastOutcome.cast();
+        }
+        if (source == null && ongoing != null) {
+            interrupt(player, "прерван: " + skill.display());
+        }
+        runtime.cast(context, skill, 0);
         return CastOutcome.cast();
     }
 

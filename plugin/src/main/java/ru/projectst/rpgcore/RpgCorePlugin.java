@@ -34,6 +34,7 @@ import ru.projectst.rpgcore.platform.MobService;
 import ru.projectst.rpgcore.platform.RecipeRegistrar;
 import ru.projectst.rpgcore.platform.RpgItems;
 import ru.projectst.rpgcore.platform.VitalsSync;
+import ru.projectst.rpgcore.platform.CastPresenter;
 import ru.projectst.rpgcore.platform.gui.MenuContext;
 import ru.projectst.rpgcore.platform.gui.MenuListener;
 import ru.projectst.rpgcore.platform.ZoneTicker;
@@ -66,6 +67,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private ru.projectst.rpgcore.platform.gui.ChatPrompt chatPrompt;
     private ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
     private VitalsSync vitals;
+    private CastService casts;
     private RpgItems rpgItems;
     private EquipmentWatcher equipment;
     private RecipeRegistrar recipes;
@@ -118,7 +120,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
         resources = new ResourcePool(stats, classService);
         cooldowns = new CooldownTracker(clock);
-        CastService casts = new CastService(classService, content.skills(), content.balance(),
+        casts = new CastService(classService, content.skills(), content.balance(),
                 statuses, content.statuses(), stats, resources, cooldowns, runtime);
         // Возврат ресурса навыком: исполнитель не знает, мана это или
         // выносливость, и знать ему незачем.
@@ -212,6 +214,17 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // ровно раз в секунду, чтобы между ними не было пересчёта, который
         // однажды разошёлся бы с написанным в stats.yml.
         vitals = new VitalsSync(stats);
+        vitals.useCasting(casts::isCasting);
+        CastPresenter castPresenter = new CastPresenter(fx, vitals);
+        casts.useListener(castPresenter);
+        // Подготовка каста, её скорость и статусы на существах — каждый тик:
+        // оглушение должно сорвать каст в тот же тик, а корни — уйти с ног
+        // ровно тогда, когда статус снят.
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            casts.tick();
+            castPresenter.tick(casts);
+            fx.syncStatuses(statuses, minions);
+        }, 1L, 1L);
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (var online : Bukkit.getOnlinePlayers()) {
                 resources.regenerate(online.getUniqueId(), 1.0);
@@ -339,6 +352,9 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         itemForge.forget(uuid);
         clientLink.forget(uuid);
         fx.forget(uuid);
+        fx.forgetEntity(uuid);
+        // Ушедший не доготовит навык: срыв без слов, говорить уже некому.
+        casts.interrupt(uuid, "");
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);

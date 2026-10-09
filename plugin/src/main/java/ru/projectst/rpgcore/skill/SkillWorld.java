@@ -192,6 +192,16 @@ public interface SkillWorld {
     void sound(Position at, String sound, double volume, double pitch);
 
     /**
+     * Звук с видом для мода.
+     *
+     * @param fx {@code null} — ванильный у всех; {@code none} — у игроков с
+     *           модом звучит сцена; иначе звук мода вместо ванильного
+     */
+    default void sound(Position at, String sound, double volume, double pitch, String fx) {
+        sound(at, sound, volume, pitch);
+    }
+
+    /**
      * Видимое событие для клиентского мода.
      *
      * <p>Мир сам решает, кому что показать: игрокам с модом — событие, без

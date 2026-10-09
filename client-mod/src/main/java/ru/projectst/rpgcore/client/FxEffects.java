@@ -118,6 +118,14 @@ public final class FxEffects {
                     FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
             case FxMessage.Trail trail -> add(new FxKinds.Trail(
                     FxStyle.of(trail.fx(), FxStyle.Kind.TRAIL), trail));
+            // Протокол 10: сцены, каст, статусы и звук принимаются отдельными
+            // службами; здесь — только то, что рисуется видами из FxKinds.
+            case FxMessage.Telegraph t -> { }
+            case FxMessage.CastStart c -> { }
+            case FxMessage.CastEnd c -> { }
+            case FxMessage.StatusOn st -> { }
+            case FxMessage.StatusOff st -> { }
+            case FxMessage.Sound snd -> { }
         }
     }
 

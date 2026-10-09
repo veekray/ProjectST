@@ -37,10 +37,17 @@ public sealed interface FxEvent {
      * @param axis     ось конуса; для других форм {@code null}
      * @param particle ванильная частица для игроков без мода
      * @param count    сколько ванильных частиц
+     * @param source   кастер: от него сцена тянет лозу или щепку к цели
      */
     record Burst(String fx, String classId, Position at, Action.Particles.Shape shape,
-                 double radius, double angle, Heading axis, String particle, int count)
-            implements FxEvent {
+                 double radius, double angle, Heading axis, String particle, int count,
+                 UUID source) implements FxEvent {
+
+        /** Вспышка без источника. */
+        public Burst(String fx, String classId, Position at, Action.Particles.Shape shape,
+                     double radius, double angle, Heading axis, String particle, int count) {
+            this(fx, classId, at, shape, radius, angle, axis, particle, count, null);
+        }
     }
 
     /** Поставлена зона с эффектом: срок, радиус и место — в самой зоне. */
@@ -63,7 +70,11 @@ public sealed interface FxEvent {
      *
      * @param crit был ли крит — из того же результата конвейера, что урон
      */
-    record Hit(UUID target, String classId, boolean crit) implements FxEvent {
+    record Hit(UUID target, String classId, boolean crit, UUID attacker) implements FxEvent {
+
+        public Hit(UUID target, String classId, boolean crit) {
+            this(target, classId, crit, null);
+        }
     }
 
     /**
@@ -74,5 +85,20 @@ public sealed interface FxEvent {
      */
     record Trail(String fx, String classId, Position from, Position to, String particle)
             implements FxEvent {
+    }
+
+    /**
+     * Предупреждение: область, по которой ударит через {@code ticks}.
+     *
+     * <p>Центр и радиус запомнены в момент каста, и удар придёт ровно по ним:
+     * круг на экране — это и есть то, из чего нужно выйти.
+     *
+     * @param radius   радиус удара, уже со статом радиуса
+     * @param ticks    через сколько ударит
+     * @param caster   кто бьёт: от него мод тянет замах
+     * @param particle ванильная частица круга для игроков без мода
+     */
+    record Telegraph(String fx, String classId, Position at, double radius, int ticks,
+                     UUID caster, String particle) implements FxEvent {
     }
 }
