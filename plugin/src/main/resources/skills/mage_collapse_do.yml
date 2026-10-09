@@ -9,9 +9,12 @@ internal: true
 
 steps:
 
-  - target: { type: self }
+  # Круг удара виден сразу, за секунду до самого удара: граница — тот же радиус,
+  # которым удар выберет цели. Раньше здесь было кольцо в четыре блока при
+  # ударе в пять.
+  - target: { type: enemies_near_origin, radius: $hit_radius }
     do:
-      - { action: particles, particle: witch, shape: ring, count: 44, size: 4, at-origin: true }
+      - { action: particles, particle: witch, shape: ring, count: 44, size: radius }
       - { action: particles, particle: portal, shape: sphere, count: 80, size: 3, at-origin: true }
 
   # Тянет тех, кого накрыли печати, а не всех вокруг мага: расстановка поля
@@ -36,6 +39,7 @@ steps:
       - { action: damage, amount: $damage_per_seal * @seals, school: magic }
       - { action: particles, particle: witch, shape: sphere, count: 40, size: 0.5 }
       - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.4 }
+      - { action: particles, particle: witch, shape: ring, count: 44, size: radius }
 
   - target: { type: self }
     delay: 20

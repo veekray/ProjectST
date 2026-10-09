@@ -23,7 +23,6 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_ender_dragon_growl, volume: 1.2, pitch: 0.8 }
-      - { action: particles, particle: angry_villager, shape: ring, count: 36, size: $radius }
       - { action: message, text: "&6Боевой Клич" }
 
   - target: { type: allies_in_radius, radius: $radius }
@@ -40,3 +39,4 @@ steps:
         value: $speed
         status: unshakable
       - { action: particles, particle: end_rod, shape: point, count: 10, size: 0.4 }
+      - { action: particles, particle: angry_villager, shape: ring, count: 36, size: radius }

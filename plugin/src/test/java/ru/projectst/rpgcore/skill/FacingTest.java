@@ -116,4 +116,31 @@ class FacingTest {
         assertNull(Facing.headingOf(0, 0, 0),
                 "пусть решает тот, кто знает, чем заменить: рывок возьмёт взгляд");
     }
+
+    // ------------------------------------------------------------------ конус
+
+    @Test
+    @DisplayName("конус: внутри по оси, снаружи сбоку и сзади")
+    void coneGeometry() {
+        // Ось на +X, ширина 60: по 30 в каждую сторону.
+        assertTrue(Facing.insideCone(1, 0, 5, 0, 60));
+        assertTrue(Facing.insideCone(1, 0, 5, 2.5, 60), "≈27° от оси — внутри");
+        assertFalse(Facing.insideCone(1, 0, 5, 3.5, 60), "≈35° от оси — снаружи");
+        assertFalse(Facing.insideCone(1, 0, -5, 0, 60), "позади вершины");
+        assertTrue(Facing.insideCone(1, 0, 0, 0, 60), "в самой вершине — попадание");
+    }
+
+    @Test
+    @DisplayName("ось конуса к кастеру — на кастера, а без него — назад от взгляда")
+    void coneAxisToCaster() {
+        Heading axis = Facing.coneAxisToCaster(-9, 0, new Heading(1, 0));
+        assertNotNull(axis);
+        assertEquals(-1, axis.x(), 1e-9);
+
+        Heading fallback = Facing.coneAxisToCaster(0, 0, new Heading(0, 1));
+        assertNotNull(fallback);
+        assertEquals(-1, fallback.z(), 1e-9, "точка упёрлась в стену: конус назад от взгляда");
+
+        assertNull(Facing.coneAxisToCaster(0, 0, null));
+    }
 }

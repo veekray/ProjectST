@@ -301,13 +301,37 @@ public sealed interface Action {
     /**
      * Частицы.
      *
-     * @param shape  форма: точка, сфера, кольцо, линия до цели
-     * @param atOrigin рисовать в точке действия, а не на целях
+     * <p>{@code size: radius} — размер берётся из радиуса выбора целей этого
+     * шага, уже умноженного на стат радиуса. Это единственный способ нарисовать
+     * границу области: число, переписанное в {@code size} отдельно, расходилось
+     * с уроном, как только стат радиуса отличался от нуля, — кольцо Петли
+     * оставалось на пяти блоках, а толкало на семи с половиной.
+     *
+     * @param shape     форма: точка, сфера, кольцо, конус, линия до цели
+     * @param size      размер числом; {@code null} при {@code fitRadius}
+     * @param fitRadius размер — радиус выбора целей шага
+     * @param atOrigin  рисовать в точке действия, а не на целях
      */
     record Particles(String particle, Shape shape, NumberRef count, NumberRef size,
-                     boolean atOrigin) implements Action {
+                     boolean fitRadius, boolean atOrigin) implements Action {
 
-        public enum Shape { POINT, SPHERE, RING, LINE }
+        public Particles(String particle, Shape shape, NumberRef count, NumberRef size,
+                         boolean atOrigin) {
+            this(particle, shape, count, size, false, atOrigin);
+        }
+
+        /**
+         * Форма частиц.
+         *
+         * <p>{@code SPHERE} — облако с разбросом около {@code size}, а не шар с
+         * границей: ванильный разброс гауссов, и края у облака нет. Границу
+         * области рисуют только {@code RING} и {@code CONE}.
+         */
+        public enum Shape {
+            POINT, SPHERE, RING, LINE,
+            /** Сектор: дуга и две кромки по радиусу и углу шага. */
+            CONE
+        }
 
         @Override
         public String name() {
@@ -459,9 +483,21 @@ public sealed interface Action {
      *
      * @param counter куда записать число снятых
      * @param ownOnly снимать только свои зоны
+     * @param inside  снимать зоны, внутри которых лежит точка, по их
+     *                собственному радиусу; {@code radius} тогда не задаётся.
+     *                Так печать съедается ровно там, где её видно: радиус
+     *                поедания больше печати съедал соседнюю вместе с той, на
+     *                которой стоишь
+     * @param limit   сколько зон снять самое большее, ближние первыми; 0 — все
      */
     record ConsumeZones(String tag, NumberRef radius, String counter, boolean ownOnly,
-                        boolean atOrigin) implements Action {
+                        boolean atOrigin, boolean inside, int limit) implements Action {
+
+        public ConsumeZones(String tag, NumberRef radius, String counter, boolean ownOnly,
+                            boolean atOrigin) {
+            this(tag, radius, counter, ownOnly, atOrigin, false, 0);
+        }
+
         public ConsumeZones {
             if (tag == null || tag.isBlank()) {
                 throw new IllegalArgumentException("у зоны обязателен тег");

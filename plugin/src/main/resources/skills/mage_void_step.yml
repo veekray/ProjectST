@@ -58,3 +58,4 @@ steps:
       - { action: damage, amount: $wave_damage, school: magic }
       - { action: push, strength: $wave_push, lift: 0.4 }
       - { action: particles, particle: witch, shape: point, count: 15 }
+      - { action: particles, particle: witch, shape: ring, count: 30, size: radius }

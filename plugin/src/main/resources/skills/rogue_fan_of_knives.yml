@@ -22,7 +22,6 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: particles, particle: crit, shape: ring, count: 30, size: $radius }
       - { action: sound, sound: entity_arrow_shoot, pitch: 1.6 }
 
   - target: { type: enemies_in_radius, radius: $radius }
@@ -31,3 +30,4 @@ steps:
       - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 0 }
       - { action: restore, amount: $restore }
       - { action: particles, particle: crit, shape: point, count: 5 }
+      - { action: particles, particle: crit, shape: ring, count: 30, size: radius }

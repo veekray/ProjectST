@@ -160,9 +160,68 @@ public final class SkillRuntime {
         // частицы и звук в точке действия, луч — обязаны отработать всё равно.
         // Ровно этим мучил старый стек: метаскилл без подходящих целей не
         // выполнял даже партиклы, и промах выглядел как сломанный навык.
+        StepArea area = new StepArea(step.target(), radius, angle);
         for (Action action : step.actions()) {
-            perform(context, skill, action, kept, table, depth);
+            perform(context, skill, action, kept, table, depth, area);
         }
+    }
+
+    /**
+     * Область, по которой шаг выбирал цели: тип выборки и уже посчитанные
+     * радиус и угол.
+     *
+     * <p>Передаётся действиям, чтобы граница рисовалась тем же числом, которым
+     * выбирались цели. Посчитай её действие заново — и стат радиуса снова
+     * применялся бы к урону, но не к картинке.
+     */
+    private record StepArea(TargetSpec target, double radius, double angle) {
+    }
+
+    /** Где рисуется граница области шага и куда смотрит конус. */
+    private record AreaMark(Position centre, Heading axis) {
+    }
+
+    /**
+     * Центры области шага — те же, от которых считалась выборка.
+     *
+     * <p>Радиус вокруг кастера рисуется у кастера, даже если у шага есть точка
+     * впереди: выборка считалась от него. Область у зон — у каждой своей зоны с
+     * тегом, как и выборка.
+     */
+    private List<AreaMark> areaMarks(CastContext context, StepArea area) {
+        Optional<Position> caster = world.positionOf(context.caster());
+        List<AreaMark> out = new ArrayList<>();
+        switch (area.target().type()) {
+            case ENEMIES_IN_RADIUS, ALLIES_IN_RADIUS ->
+                    caster.ifPresent(p -> out.add(new AreaMark(p, null)));
+            case ENEMIES_IN_CONE -> caster.ifPresent(p -> world.lookOf(context.caster())
+                    .ifPresent(look -> out.add(new AreaMark(p, look))));
+            case ENEMIES_IN_CONE_TO_CASTER -> {
+                if (context.origin() != null && caster.isPresent()) {
+                    Heading look = world.lookOf(context.caster()).orElse(null);
+                    Heading axis = Facing.coneAxisToCaster(
+                            caster.get().x() - context.origin().x(),
+                            caster.get().z() - context.origin().z(), look);
+                    if (axis != null) {
+                        out.add(new AreaMark(context.origin(), axis));
+                    }
+                }
+            }
+            case ENEMIES_NEAR_ORIGIN, ALL_NEAR_ORIGIN, ALLIES_NEAR_ORIGIN -> {
+                if (context.origin() != null) {
+                    out.add(new AreaMark(context.origin(), null));
+                }
+            }
+            case ENEMIES_NEAR_ZONE -> {
+                for (Zone zone : zones.ofOwner(context.caster(), area.target().tag())) {
+                    out.add(new AreaMark(zone.center(), null));
+                }
+            }
+            case SELF, TRIGGER, OWN_MINIONS -> {
+                // радиуса нет: загрузчик не пускает сюда size: radius
+            }
+        }
+        return out;
     }
 
     /** Точка действия для шага: своя, впереди по взгляду или пришедшая извне. */
@@ -289,7 +348,7 @@ public final class SkillRuntime {
     // ------------------------------------------------------------------ действия
 
     private void perform(CastContext context, SkillDef skill, Action action,
-                         List<UUID> targets, BalanceTable table, int depth) {
+                         List<UUID> targets, BalanceTable table, int depth, StepArea area) {
         int level = context.level();
         switch (action) {
 
@@ -423,6 +482,13 @@ public final class SkillRuntime {
 
             case Action.Particles a -> {
                 int count = (int) a.count().resolve(table, level, context.counters());
+                if (a.fitRadius()) {
+                    for (AreaMark mark : areaMarks(context, area)) {
+                        world.particles(mark.centre(), a.particle(), a.shape(), count,
+                                area.radius(), area.angle(), mark.axis());
+                    }
+                    return;
+                }
                 double size = resolve(a.size(), table, context, 1);
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(
@@ -500,19 +566,20 @@ public final class SkillRuntime {
             case Action.ConsumeZones a -> {
                 double radius = resolve(a.radius(), table, context, 1);
                 UUID owner = a.ownOnly() ? context.caster() : null;
-                int count = 0;
+                List<Position> points = new ArrayList<>();
                 if (a.atOrigin()) {
-                    Optional<Position> at = positionFor(context);
-                    if (at.isPresent()) {
-                        count = zones.consume(at.get(), radius, a.tag(), owner);
-                    }
+                    positionFor(context).ifPresent(points::add);
                 } else {
                     for (UUID target : targets) {
-                        Optional<Position> at = world.positionOf(target);
-                        if (at.isPresent()) {
-                            count += zones.consume(at.get(), radius, a.tag(), owner);
-                        }
+                        world.positionOf(target).ifPresent(points::add);
                     }
+                }
+                int count = 0;
+                for (Position at : points) {
+                    List<Zone> taken = a.inside()
+                            ? zones.consumeInside(at, a.tag(), owner, a.limit())
+                            : zones.consumeNear(at, radius, a.tag(), owner, a.limit());
+                    count += taken.size();
                 }
                 // Счётчик пишется всегда, в том числе нулём: иначе прошлое
                 // значение осталось бы видимым следующему шагу.

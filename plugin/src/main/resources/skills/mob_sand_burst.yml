@@ -10,7 +10,6 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: $radius }
       - { action: sound, sound: entity_husk_ambient, pitch: 0.6 }
 
   - target: { type: enemies_in_radius, radius: $radius }
@@ -18,3 +17,4 @@ steps:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.4 }
       - { action: potion, effect: blindness, duration: $blind_duration, amplifier: 0 }
+      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: radius }

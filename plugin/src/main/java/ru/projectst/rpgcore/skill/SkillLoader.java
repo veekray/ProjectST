@@ -34,6 +34,9 @@ import ru.projectst.rpgcore.stat.StatOp;
  */
 public final class SkillLoader {
 
+    /** Значение {@code size}, означающее радиус выборки шага. */
+    static final String SIZE_RADIUS = "radius";
+
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
                     + "teleport, dash, approach, particles, sound, message, cast, ray, "
@@ -191,7 +194,7 @@ public final class SkillLoader {
         NumberRef delay = number(body, "delay", errors, path, new NumberRef.Literal(0));
         OriginSpec origin = readOrigin(body, path, errors);
         List<Condition> conditions = readConditions(body, path, errors);
-        List<Action> actions = readActions(body, path, errors);
+        List<Action> actions = readActions(body, path, errors, target.orElse(null));
 
         if (actions.isEmpty()) {
             errors.add(body.at(), path + ".do", "шаг без действий бессмыслен");
@@ -344,7 +347,8 @@ public final class SkillLoader {
 
     // ------------------------------------------------------------------ действия
 
-    private static List<Action> readActions(YmlMap body, String path, ContentErrors errors) {
+    private static List<Action> readActions(YmlMap body, String path, ContentErrors errors,
+                                            TargetSpec target) {
         List<Action> actions = new ArrayList<>();
         if (body.rawKind("do") == YmlMap.Kind.ABSENT) {
             return actions;
@@ -356,12 +360,20 @@ public final class SkillLoader {
                 errors.add(nodes.get(i).at(), p, "действие должно быть разделом");
                 continue;
             }
-            readAction(map, p, errors).ifPresent(actions::add);
+            readAction(map, p, errors, target).ifPresent(actions::add);
         }
         return actions;
     }
 
-    private static Optional<Action> readAction(YmlMap b, String path, ContentErrors errors) {
+    /**
+     * Одно действие шага.
+     *
+     * @param target цели шага; {@code null}, если их не удалось прочитать. Нужны
+     *               действиям, которые рисуют область шага: граница берётся из
+     *               той же выборки, а не переписывается числом
+     */
+    private static Optional<Action> readAction(YmlMap b, String path, ContentErrors errors,
+                                               TargetSpec target) {
         String kind = b.str("action");
         return switch (kind) {
             case "damage" -> require(b, path, errors, "amount", amount ->
@@ -511,13 +523,48 @@ public final class SkillLoader {
                 Action.Particles.Shape shape =
                         b.enumOf("shape", Action.Particles.Shape.class, Action.Particles.Shape.POINT);
                 NumberRef count = number(b, "count", errors, path, new NumberRef.Literal(10));
-                NumberRef size = number(b, "size", errors, path, null);
+                boolean fitRadius = b.rawKind("size") == YmlMap.Kind.SCALAR
+                        && b.str("size", "").trim().equals(SIZE_RADIUS);
+                NumberRef size = fitRadius ? null : number(b, "size", errors, path, null);
                 boolean atOrigin = b.bool("at-origin", false);
                 if (particle.isBlank()) {
                     errors.add(b.at(), path + ".particle", "обязательный ключ particle отсутствует");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.Particles(particle, shape, count, size, atOrigin));
+                if (shape == Action.Particles.Shape.CONE) {
+                    // Конус — это всегда конус выборки шага: свой угол и свой
+                    // радиус у картинки означали бы картинку, которая врёт.
+                    if (size != null) {
+                        errors.add(b.at(), path + ".size",
+                                "у конуса размер — радиус выборки шага: size: radius или без size");
+                        yield Optional.empty();
+                    }
+                    if (target != null && !target.type().isCone()) {
+                        errors.add(b.at(), path + ".shape",
+                                "конус рисуется только в шаге, который выбирает цели конусом");
+                        yield Optional.empty();
+                    }
+                    fitRadius = true;
+                }
+                if (fitRadius) {
+                    if (target != null && !target.type().needsRadius()) {
+                        errors.add(b.at(), path + ".size",
+                                "size: radius — радиус выборки шага, а у цели "
+                                        + target.type().name().toLowerCase(Locale.ROOT)
+                                        + " радиуса нет");
+                        yield Optional.empty();
+                    }
+                    if (atOrigin) {
+                        // Центр границы — центр выборки: у радиуса вокруг кастера
+                        // это кастер, даже когда у шага есть точка впереди.
+                        errors.add(b.at(), path + ".at-origin",
+                                "граница по радиусу шага рисуется в центре выборки, "
+                                        + "at-origin при ней не задаётся");
+                        yield Optional.empty();
+                    }
+                }
+                yield Optional.of(new Action.Particles(particle, shape, count, size, fitRadius,
+                        atOrigin));
             }
 
             case "sound" -> {
@@ -624,12 +671,23 @@ public final class SkillLoader {
                 String counter = b.str("counter", "");
                 boolean ownOnly = b.bool("own-only", true);
                 boolean atOrigin = b.bool("at-origin", false);
-                if (tag.isBlank() || radius == null || counter.isBlank()) {
-                    errors.add(b.at(), path, "нужны ключи tag, radius и counter");
+                boolean inside = b.bool("inside", false);
+                int limit = b.integer("limit", 1, 100, 0);
+                if (tag.isBlank() || counter.isBlank()) {
+                    errors.add(b.at(), path, "нужны ключи tag и counter");
+                    yield Optional.empty();
+                }
+                // Ровно одно из двух: радиус поиска или «зоны, в которых стоишь».
+                // Оба сразу — непонятно, какой из них решает; ни одного — нечем
+                // искать.
+                if (inside == (radius != null)) {
+                    errors.add(b.at(), path + ".radius", inside
+                            ? "при inside: true зоны снимаются по своему радиусу, radius не задаётся"
+                            : "нужен radius или inside: true");
                     yield Optional.empty();
                 }
                 yield Optional.of(new Action.ConsumeZones(tag, radius, counter, ownOnly,
-                        atOrigin));
+                        atOrigin, inside, limit));
             }
 
             case "swap" -> {

@@ -248,6 +248,17 @@ class SkillRuntimeTest {
             calls.add("particles " + particle + " " + shape + " x" + count + " @" + at.x());
         }
 
+        /** Последняя ось нарисованного конуса. */
+        Heading lastAxis;
+
+        @Override
+        public void particles(Position at, String particle, Action.Particles.Shape shape,
+                              int count, double size, double angle, Heading axis) {
+            lastAxis = axis;
+            calls.add("area " + particle + " " + shape + " r=" + size
+                    + (angle > 0 ? " a=" + angle : "") + " @" + at.x());
+        }
+
         @Override
         public void sound(Position at, String sound, double volume, double pitch) {
             calls.add("sound " + sound + " @" + at.x());
@@ -1551,5 +1562,90 @@ class SkillRuntimeTest {
         f.runtime.cast(CASTER, skill, 1);
 
         assertEquals(25, f.statuses.defenderState(A).shieldPool(), 1e-9);
+    }
+
+    // ------------------------------------------------------------------ граница области
+
+    @Test
+    @DisplayName("кольцо size: radius растёт вместе с радиусом выборки от стата")
+    void ringFollowsGearRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                      - { action: particles, particle: enchant, shape: ring, count: 40, size: radius }
+                """);
+        Fixture f = fixture(skill);
+        f.world.positions.put(CASTER, new Position(WORLD, 4, 64, 0));
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Шесть из баланса плюс половина — девять и у выборки, и у кольца.
+        assertTrue(f.world.calls.contains("resolve ENEMIES_IN_RADIUS r=9.0"), f.world.calls::toString);
+        assertTrue(f.world.calls.contains("area enchant RING r=9.0 @4.0"),
+                "кольцо осталось бы на шести блоках, хотя бьёт на девяти: " + f.world.calls);
+    }
+
+    @Test
+    @DisplayName("конус к кастеру рисуется из точки действия и смотрит на кастера")
+    void coneToCasterStartsAtOrigin() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_cone_to_caster, radius: $radius, angle: 60 }
+                    origin: forward 9
+                    do:
+                      - { action: pull, strength: 0.6 }
+                      - { action: particles, particle: enchant, shape: cone, count: 30 }
+                """);
+        Fixture f = fixture(skill);
+        // Кастер в нуле, точка сбора в девяти блоках по X: ось конуса — обратно, к кастеру.
+        f.world.positions.put(CASTER, new Position(WORLD, 0, 64, 0));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("resolve ENEMIES_IN_CONE_TO_CASTER r=6.0 origin=9.0"),
+                f.world.calls::toString);
+        assertTrue(f.world.calls.contains("area enchant CONE r=6.0 a=60.0 @9.0"),
+                f.world.calls::toString);
+        assertEquals(-1, f.world.lastAxis.x(), 1e-9);
+        assertEquals(0, f.world.lastAxis.z(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("печать съедается одна, та, внутри которой стоишь, по её радиусу")
+    void eatsOneSealByItsOwnRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, inside: true, limit: 1, counter: eaten }
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 1 * @eaten }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+        f.world.positions.put(CASTER, new Position(WORLD, 0, 64, 0));
+        // Под ногами, в двух блоках (кастер внутри и её) и в трёх (кастер снаружи).
+        f.zones.place("seal", CASTER, new Position(WORLD, 0.5, 64, 0), 2.5, 200);
+        f.zones.place("seal", CASTER, new Position(WORLD, 2, 64, 0), 2.5, 200);
+        f.zones.place("seal", CASTER, new Position(WORLD, -3, 64, 0), 2.5, 200);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("damage A 1.0 MAGIC"),
+                "съедена ровно одна: " + f.world.calls);
+        assertEquals(2, f.zones.size());
+        assertTrue(f.zones.all().stream().noneMatch(z -> z.center().x() == 0.5),
+                "съедается ближайшая, а не первая поставленная");
     }
 }

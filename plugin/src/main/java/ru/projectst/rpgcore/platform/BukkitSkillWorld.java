@@ -32,6 +32,8 @@ import ru.projectst.rpgcore.damage.StatIds;
 import ru.projectst.rpgcore.damage.DefenderState;
 import ru.projectst.rpgcore.skill.Action;
 import ru.projectst.rpgcore.skill.CastContext;
+import ru.projectst.rpgcore.skill.Facing;
+import ru.projectst.rpgcore.skill.Heading;
 import ru.projectst.rpgcore.skill.MinionService;
 import ru.projectst.rpgcore.skill.Position;
 import ru.projectst.rpgcore.skill.ProjectileSpec;
@@ -115,6 +117,10 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
 
         Entity caster = Bukkit.getEntity(context.caster());
+        Heading coneAxis = type.isCone() ? coneAxis(type, caster, centre) : null;
+        if (type == TargetSpec.Type.ENEMIES_IN_CONE_TO_CASTER && coneAxis == null) {
+            return List.of();
+        }
         List<UUID> out = new ArrayList<>();
         for (Entity nearby : centre.getWorld().getNearbyEntities(centre, radius, radius, radius)) {
             if (!(nearby instanceof LivingEntity living) || living.isDead()) {
@@ -128,8 +134,9 @@ public final class BukkitSkillWorld implements SkillWorld {
             if (centre.distance(nearby.getLocation()) > radius) {
                 continue;
             }
-            if (type == TargetSpec.Type.ENEMIES_IN_CONE
-                    && (caster == null || !insideCone(caster, nearby, angle))) {
+            if (coneAxis != null && !Facing.insideCone(coneAxis.x(), coneAxis.z(),
+                    nearby.getLocation().getX() - centre.getX(),
+                    nearby.getLocation().getZ() - centre.getZ(), angle)) {
                 continue;
             }
             // Свой призванный не попадает под свои же площадные навыки. Одно
@@ -150,19 +157,36 @@ public final class BukkitSkillWorld implements SkillWorld {
         return out;
     }
 
-    private static boolean insideCone(Entity source, Entity target, double angleDegrees) {
-        Vector look = source.getLocation().getDirection().setY(0);
-        if (look.lengthSquared() < 1.0E-6) {
-            return true;
+    /**
+     * Ось конуса выборки.
+     *
+     * <p>Тот же расчёт, что у картинки в исполнителе ({@code SkillRuntime#areaMarks}):
+     * ось взгляда для конуса от кастера и {@link Facing#coneAxisToCaster} для
+     * конуса от точки. Две разные оси у выборки и у картинки — это ровно та
+     * граница, которая показывает не то, что бьёт.
+     */
+    private Heading coneAxis(TargetSpec.Type type, Entity caster, Location apex) {
+        if (caster == null) {
+            return null;
         }
-        look.normalize();
-        Vector to = target.getLocation().toVector()
-                .subtract(source.getLocation().toVector()).setY(0);
-        if (to.lengthSquared() < 1.0E-6) {
-            return true; // вплотную: угол не определён, считаем попаданием
+        Heading look = lookOf(caster.getUniqueId()).orElse(null);
+        if (type == TargetSpec.Type.ENEMIES_IN_CONE) {
+            // Смотрит строго вверх или вниз: направления по земле нет, и конус
+            // накрывает всё вокруг, как и раньше (null — без проверки угла).
+            return look;
         }
-        double cos = look.dot(to.normalize());
-        return Math.toDegrees(Math.acos(Math.clamp(cos, -1, 1))) <= angleDegrees / 2;
+        return Facing.coneAxisToCaster(caster.getLocation().getX() - apex.getX(),
+                caster.getLocation().getZ() - apex.getZ(), look);
+    }
+
+    @Override
+    public Optional<Heading> lookOf(UUID entityId) {
+        Entity entity = Bukkit.getEntity(entityId);
+        if (entity == null) {
+            return Optional.empty();
+        }
+        Vector look = entity.getLocation().getDirection();
+        return Optional.ofNullable(Heading.orNull(look.getX(), look.getZ()));
     }
 
     @Override
@@ -843,6 +867,12 @@ public final class BukkitSkillWorld implements SkillWorld {
     @Override
     public void particles(Position at, String particle, Action.Particles.Shape shape,
                           int count, double size) {
+        particles(at, particle, shape, count, size, 0, null);
+    }
+
+    @Override
+    public void particles(Position at, String particle, Action.Particles.Shape shape,
+                          int count, double size, double angle, Heading axis) {
         Optional<Location> location = toLocation(at);
         if (location.isEmpty()) {
             return;
@@ -859,7 +889,7 @@ public final class BukkitSkillWorld implements SkillWorld {
         // на полпути, уже списав ману. Поэтому промах по частице — строка в
         // логе, а не прерванный каст.
         try {
-            draw(world, centre, type, shape, count, size);
+            draw(world, centre, type, shape, count, size, angle, axis);
         } catch (RuntimeException e) {
             if (badParticles.add(particle)) {
                 plugin.getLogger().warning("частица " + particle
@@ -868,21 +898,109 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
+    /** Расстояние между соседними точками границы: дыр в кольце не видно. */
+    private static final double BORDER_STEP = 0.5;
+
+    /** Больше точек на одну границу не ставим: дальше это уже нагрузка, а не чёткость. */
+    private static final int BORDER_MAX_POINTS = 180;
+
     private void draw(World world, Location centre, Particle type,
-                      Action.Particles.Shape shape, int count, double size) {
+                      Action.Particles.Shape shape, int count, double size,
+                      double angle, Heading axis) {
         switch (shape) {
             case POINT -> world.spawnParticle(type, centre, count, 0.2, 0.2, 0.2, 0);
             case SPHERE -> world.spawnParticle(type, centre, count, size, size, size, 0);
             case RING -> {
-                for (int i = 0; i < count; i++) {
-                    double a = 2 * Math.PI * i / count;
-                    world.spawnParticle(type,
-                            centre.clone().add(Math.cos(a) * size, 0.2, Math.sin(a) * size),
-                            1, 0, 0, 0, 0);
+                for (Location point : ringPoints(centre, size, count)) {
+                    world.spawnParticle(type, point, 1, 0, 0, 0, 0);
+                }
+            }
+            case CONE -> {
+                if (axis != null) {
+                    for (Location point : conePoints(centre, size, angle, axis)) {
+                        world.spawnParticle(type, point, 1, 0, 0, 0, 0);
+                    }
                 }
             }
             case LINE -> world.spawnParticle(type, centre, count, 0.05, 0.05, 0.05, 0);
         }
+    }
+
+    /**
+     * Точки кольца ровно на радиусе, прижатые к земле.
+     *
+     * <p>Число точек — не меньше, чем нужно, чтобы между соседними было не
+     * больше полублока. Раньше их было столько, сколько написано в навыке, и
+     * кольцо в семь блоков из сорока точек читалось как россыпь, а не как
+     * граница. Высота — своя у каждой точки: кольцо на высоте центра уходило в
+     * склон с одной стороны и висело в воздухе с другой.
+     *
+     * @param written сколько точек написано в навыке: меньше не будет
+     */
+    static List<Location> ringPoints(Location centre, double radius, int written) {
+        int points = pointsFor(2 * Math.PI * radius, written);
+        List<Location> out = new ArrayList<>(points);
+        for (int i = 0; i < points; i++) {
+            double a = 2 * Math.PI * i / points;
+            out.add(onGround(centre, centre.getX() + Math.cos(a) * radius,
+                    centre.getZ() + Math.sin(a) * radius));
+        }
+        return out;
+    }
+
+    /**
+     * Точки конуса: дуга по радиусу и две кромки от вершины.
+     *
+     * <p>Ось и угол — те же, что у выборки целей, см. {@code coneAxis}: конус,
+     * нарисованный от другой вершины, показывает не тех, кого заденет.
+     */
+    static List<Location> conePoints(Location apex, double radius, double angleDegrees,
+                                     Heading axis) {
+        double half = Math.toRadians(angleDegrees) / 2;
+        double heading = Math.atan2(axis.z(), axis.x());
+        int arc = pointsFor(radius * half * 2, 2);
+        int edge = pointsFor(radius, 2);
+        List<Location> out = new ArrayList<>(arc + 2 * edge);
+        for (int i = 0; i <= arc; i++) {
+            double a = heading - half + 2 * half * i / arc;
+            out.add(onGround(apex, apex.getX() + Math.cos(a) * radius,
+                    apex.getZ() + Math.sin(a) * radius));
+        }
+        for (double side : new double[] {-half, half}) {
+            double a = heading + side;
+            for (int i = 1; i < edge; i++) {
+                double r = radius * i / edge;
+                out.add(onGround(apex, apex.getX() + Math.cos(a) * r,
+                        apex.getZ() + Math.sin(a) * r));
+            }
+        }
+        return out;
+    }
+
+    private static int pointsFor(double length, int written) {
+        int needed = (int) Math.ceil(length / BORDER_STEP);
+        return Math.clamp(Math.max(needed, written), 1, BORDER_MAX_POINTS);
+    }
+
+    /**
+     * Точка над землёй рядом с высотой центра.
+     *
+     * <p>Ищем верх твёрдого блока на три блока вниз и два вверх от центра:
+     * дальше — уже не та земля, на которой стоит область, а обрыв или крыша, и
+     * точку оставляем на высоте центра.
+     */
+    private static Location onGround(Location centre, double x, double z) {
+        World world = centre.getWorld();
+        int bx = (int) Math.floor(x);
+        int bz = (int) Math.floor(z);
+        int top = (int) Math.floor(centre.getY()) + 2;
+        for (int y = top; y >= top - 5; y--) {
+            if (world.getBlockAt(bx, y, bz).getType().isSolid()
+                    && !world.getBlockAt(bx, y + 1, bz).getType().isSolid()) {
+                return new Location(world, x, y + 1.1, z);
+            }
+        }
+        return new Location(world, x, centre.getY() + 0.2, z);
     }
 
     /**
@@ -901,9 +1019,9 @@ public final class BukkitSkillWorld implements SkillWorld {
         if (zone.particle() == null) {
             return;
         }
-        int points = Math.max(8, (int) Math.round(zone.radius() * 8));
+        // Число точек считает само кольцо: по полублока на точку.
         particles(zone.center(), zone.particle(), Action.Particles.Shape.RING,
-                points, zone.radius());
+                8, zone.radius());
     }
 
     @Override

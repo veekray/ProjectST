@@ -675,4 +675,119 @@ class SkillLoaderTest {
         assertTrue(errors.all().get(0).what().contains("duration"),
                 errors.all().get(0).what());
     }
+
+    // ------------------------------------------------------------------ граница области
+
+    @Test
+    @DisplayName("size: radius читается как радиус выборки шага")
+    void sizeRadiusIsRead() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 5 }
+                    do:
+                      - { action: particles, particle: enchant, shape: ring, size: radius }
+                """).orElseThrow();
+
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        Action.Particles p = assertInstanceOf(Action.Particles.class,
+                skill.steps().get(0).actions().get(0));
+        assertTrue(p.fitRadius());
+    }
+
+    @Test
+    @DisplayName("size: radius в шаге без радиуса — ошибка со строкой действия")
+    void sizeRadiusNeedsRadius() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: sound, sound: block_note_block_bell }
+                      - { action: particles, particle: enchant, shape: ring, size: radius }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("радиуса нет")
+                        && e.at().line() == 7),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("граница по радиусу шага не принимает at-origin")
+    void sizeRadiusRefusesAtOrigin() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 5 }
+                    do:
+                      - { action: particles, particle: enchant, shape: ring, size: radius, at-origin: true }
+                """);
+
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("at-origin")
+                        && e.at().line() == 6),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("конус частиц рисуется только в шаге-конусе и без своего размера")
+    void coneShapeNeedsConeStep() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: 5 }
+                    do:
+                      - { action: particles, particle: enchant, shape: cone }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("конусом")),
+                errors.all().toString());
+
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: enemies_in_cone, radius: 5, angle: 60 }
+                    do:
+                      - { action: particles, particle: enchant, shape: cone, size: 4 }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("радиус выборки")),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("конус к кастеру — свой тип цели с точкой действия")
+    void coneToCasterNeedsOrigin() {
+        assertTrue(TargetSpec.Type.ENEMIES_IN_CONE_TO_CASTER.needsOrigin());
+        assertTrue(TargetSpec.Type.ENEMIES_IN_CONE_TO_CASTER.needsAngle());
+        assertTrue(TargetSpec.Type.ENEMIES_IN_CONE_TO_CASTER.isCone());
+    }
+
+    @Test
+    @DisplayName("consume-zones: ровно одно из radius и inside")
+    void consumeNeedsRadiusOrInside() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, inside: true, radius: 4, counter: n }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("inside: true")),
+                errors.all().toString());
+
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: consume-zones, tag: seal, counter: n }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("нужен radius")),
+                errors.all().toString());
+    }
 }
