@@ -1,0 +1,240 @@
+{
+  "cast.charge": {
+    "sounds": [
+      {
+        "name": "minecraft:block.beacon.ambient",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.8
+      },
+      {
+        "name": "minecraft:block.amethyst_block.chime",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.4
+      }
+    ]
+  },
+  "cast.release": {
+    "sounds": [
+      {
+        "name": "minecraft:block.amethyst_block.hit",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 1.2
+      }
+    ]
+  },
+  "cast.break": {
+    "sounds": [
+      {
+        "name": "minecraft:block.glass.break",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.6
+      },
+      {
+        "name": "minecraft:block.amethyst_cluster.break",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.3
+      }
+    ]
+  },
+  "druid.cast": {
+    "sounds": [
+      {
+        "name": "minecraft:block.azalea_leaves.break",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 0.9
+      },
+      {
+        "name": "minecraft:block.moss.place",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "druid.roots.crack": {
+    "sounds": [
+      {
+        "name": "minecraft:block.rooted_dirt.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:block.mangrove_roots.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.7
+      }
+    ]
+  },
+  "druid.roots.creak": {
+    "sounds": [
+      {
+        "name": "minecraft:block.mangrove_roots.place",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 0.7
+      },
+      {
+        "name": "minecraft:block.hanging_roots.break",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "druid.roots.snap": {
+    "sounds": [
+      {
+        "name": "minecraft:block.hanging_roots.break",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.2
+      },
+      {
+        "name": "minecraft:block.wood.break",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.4
+      }
+    ]
+  },
+  "druid.ivy.lash": {
+    "sounds": [
+      {
+        "name": "minecraft:block.vine.step",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.7
+      },
+      {
+        "name": "minecraft:block.big_dripleaf.tilt_down",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.2
+      }
+    ]
+  },
+  "druid.ivy.splat": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.puffer_fish.blow_up",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.6
+      },
+      {
+        "name": "minecraft:block.moss.place",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 1.3
+      }
+    ]
+  },
+  "druid.spores.pop": {
+    "sounds": [
+      {
+        "name": "minecraft:block.spore_blossom.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.8
+      },
+      {
+        "name": "minecraft:item.bone_meal.use",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.9
+      }
+    ]
+  },
+  "druid.spores.hiss": {
+    "sounds": [
+      {
+        "name": "minecraft:block.cherry_leaves.fall",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.azalea_leaves.break",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.3
+      }
+    ]
+  },
+  "druid.bark.grow": {
+    "sounds": [
+      {
+        "name": "minecraft:block.wood.break",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:block.mangrove_roots.place",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 0.6
+      }
+    ]
+  },
+  "druid.bark.crack": {
+    "sounds": [
+      {
+        "name": "minecraft:block.wood.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.9
+      }
+    ]
+  },
+  "druid.beast.call": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wolf.howl",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "druid.bloom.open": {
+    "sounds": [
+      {
+        "name": "minecraft:block.spore_blossom.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.5
+      },
+      {
+        "name": "minecraft:block.big_dripleaf.tilt_down",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.5
+      }
+    ]
+  },
+  "druid.bloom.pulse": {
+    "sounds": [
+      {
+        "name": "minecraft:block.moss.place",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:block.azalea_leaves.break",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 0.7
+      }
+    ]
+  }
+}

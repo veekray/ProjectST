@@ -38,3 +38,14 @@ neoForge {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// Тесты мода — чистая математика сцен без Minecraft: что корни, лозы и облака
+// не выходят за радиус события. Рисунок проверяет глаз, числа — тест.
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

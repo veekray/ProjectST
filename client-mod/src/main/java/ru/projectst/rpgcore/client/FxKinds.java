@@ -130,6 +130,11 @@ final class FxKinds {
             return false;
         }
 
+        /** Кончается ли зона: сцена поверх неё уходит вместе с ней. */
+        boolean ending() {
+            return ending != null || dead;
+        }
+
         /** Зону сняли: истекла, съедена или игрок ушёл далеко. */
         void end(FxMessage.ZoneOff off) {
             if (ending != null) {

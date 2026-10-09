@@ -83,8 +83,13 @@ public final class FxEffects {
 
     private static void take(FxMessage.Event event) {
         switch (event) {
-            case FxMessage.Burst burst -> add(new FxKinds.Burst(
-                    FxStyle.of(burst.fx(), kindOf(burst.shape(), burst.radius())), burst));
+            case FxMessage.Burst burst -> {
+                // Своя сцена навыка — корни, лозы, щепа; нет — роль класса.
+                if (!FxScenes.burst(burst)) {
+                    add(new FxKinds.Burst(
+                            FxStyle.of(burst.fx(), kindOf(burst.shape(), burst.radius())), burst));
+                }
+            }
             case FxMessage.ZoneOn on -> {
                 FxKinds.Zone old = ZONES.remove(on.id());
                 if (old != null) {
@@ -96,6 +101,7 @@ public final class FxEffects {
                 FxKinds.Zone zone = new FxKinds.Zone(FxStyle.of(on.fx(), FxStyle.Kind.ZONE), on, now);
                 ZONES.put(on.id(), zone);
                 EFFECTS.add(zone);
+                FxScenes.zone(on, zone);
             }
             case FxMessage.ZoneOff off -> {
                 FxKinds.Zone zone = ZONES.remove(off.id());
@@ -114,18 +120,25 @@ public final class FxEffects {
                     bolt.end(end, MOTES, emitFactor());
                 }
             }
-            case FxMessage.Hit hit -> add(new FxKinds.Hit(
-                    FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
+            case FxMessage.Hit hit -> {
+                add(new FxKinds.Hit(FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
+                // Свой крит виден ещё и краями экрана: его чувствует тот, кто ударил.
+                var self = Minecraft.getInstance().player;
+                if (hit.crit() && self != null && hit.attacker() == self.getId()) {
+                    FxScreen.flash(0xFFFFE9A8, 8);
+                }
+            }
             case FxMessage.Trail trail -> add(new FxKinds.Trail(
                     FxStyle.of(trail.fx(), FxStyle.Kind.TRAIL), trail));
             // Протокол 10: сцены, каст, статусы и звук принимаются отдельными
             // службами; здесь — только то, что рисуется видами из FxKinds.
-            case FxMessage.Telegraph t -> { }
-            case FxMessage.CastStart c -> { }
-            case FxMessage.CastEnd c -> { }
-            case FxMessage.StatusOn st -> { }
-            case FxMessage.StatusOff st -> { }
-            case FxMessage.Sound snd -> { }
+            case FxMessage.Telegraph mark -> FxScenes.mark(mark);
+            case FxMessage.CastStart start -> FxCasts.start(start);
+            case FxMessage.CastEnd end -> FxCasts.end(end);
+            case FxMessage.StatusOn on -> FxStatuses.on(on);
+            case FxMessage.StatusOff off -> FxStatuses.off(off);
+            case FxMessage.Sound sound -> FxSounds.play(sound.event(), sound.x(), sound.y(),
+                    sound.z(), sound.volume(), sound.pitch());
         }
     }
 
@@ -144,6 +157,19 @@ public final class FxEffects {
         };
     }
 
+    /** Для сцен: эффект с теми же пределами, что у остальных. */
+    static void addEffect(FxKinds.Effect effect) {
+        add(effect);
+    }
+
+    static FxMotes motes() {
+        return MOTES;
+    }
+
+    static float emit() {
+        return emitFactor();
+    }
+
     /** Украшение берётся, только пока есть место. */
     private static void add(FxKinds.Effect effect) {
         if (EFFECTS.size() >= MAX_EFFECTS && effect.decor()) {
@@ -159,6 +185,10 @@ public final class FxEffects {
         BOLTS.clear();
         MOTES.clear();
         FxGround.clear();
+        FxSolids.clear();
+        FxStatuses.clear();
+        FxCasts.clear();
+        FxScreen.clear();
     }
 
     // ------------------------------------------------------------------ настройка
@@ -210,16 +240,21 @@ public final class FxEffects {
         ZONES.values().removeIf(zone -> zone.dead);
         BOLTS.values().removeIf(bolt -> bolt.dead);
         MOTES.tick();
+        FxSolids.tick(level);
+        FxStatuses.tick();
+        FxCasts.tick();
+        FxScreen.tick();
     }
 
     // ------------------------------------------------------------------ кадр
 
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
+            renderSolids(event);
             return;
         }
-        if (EFFECTS.isEmpty() && MOTES.count() == 0) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
             return;
         }
         Minecraft client = Minecraft.getInstance();
@@ -257,6 +292,12 @@ public final class FxEffects {
                 effect.dead = true;
             }
         }
+        try {
+            FxStatuses.draw(DRAW, partial);
+            FxCasts.draw(DRAW, partial);
+        } catch (RuntimeException e) {
+            warnOnce("состояния не нарисовались", e);
+        }
         if (decorations) {
             MOTES.draw(DRAW, partial, NEAR + 8);
         }
@@ -267,6 +308,30 @@ public final class FxEffects {
             pose.popPose();
         } catch (RuntimeException e) {
             warnOnce("эффекты не нарисовались", e);
+        }
+    }
+
+    /**
+     * Объекты в мире — после существ, непрозрачно и с глубиной: корень
+     * прячется за ногой, которую обвивает. Свечение — позже, своим проходом.
+     */
+    private static void renderSolids(RenderLevelStageEvent event) {
+        if (FxSolids.count() == 0) {
+            return;
+        }
+        Minecraft client = Minecraft.getInstance();
+        Vec3 eye = event.getCamera().getPosition();
+        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        boolean full = client.options.particles().get() != ParticleStatus.MINIMAL;
+        try {
+            var pose = event.getPoseStack();
+            pose.pushPose();
+            var buffers = client.renderBuffers().bufferSource();
+            FxSolids.render(pose, buffers, eye.x, eye.y, eye.z, partial, event.getFrustum(), full);
+            buffers.endBatch();
+            pose.popPose();
+        } catch (RuntimeException e) {
+            warnOnce("объекты не нарисовались", e);
         }
     }
 
