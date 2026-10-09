@@ -15,6 +15,7 @@ tier: 5
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "След перестаёт гаснуть, и каждый удар"

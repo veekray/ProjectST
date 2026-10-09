@@ -11,6 +11,7 @@ tier: 2
 
 cost: $mana
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Снаряд по прямой; печать ложится там,"

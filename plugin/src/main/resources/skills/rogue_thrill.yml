@@ -17,6 +17,7 @@ tier: 5
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Пока кураж держится, каждый удар"

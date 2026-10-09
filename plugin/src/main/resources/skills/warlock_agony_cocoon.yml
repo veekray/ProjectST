@@ -17,6 +17,7 @@ tier: 5
 
 cost: $mana
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Удар, затем цель изымается из боя:"

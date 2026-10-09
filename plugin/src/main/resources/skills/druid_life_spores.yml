@@ -13,6 +13,8 @@ tier: 2
 
 cost: $mana
 cooldown: $cooldown
+# Лечение готовят: бутон раскрывается, когда подготовка кончилась.
+cast-time: $cast_time
 
 description:
   - "Облако спор лечит вас и союзников."
@@ -23,14 +25,15 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: block_azalea_place, pitch: 1.3 }
+      - { action: sound, sound: block_azalea_place, pitch: 1.3, fx: none }
       - { action: heal, amount: $heal }
+      - { action: particles, particle: composter, shape: point, count: 8, fx: druid_spores_bud }
 
   - target: { type: allies_in_radius, radius: $radius }
     do:
       - { action: heal, amount: $heal }
-      - { action: particles, particle: composter, shape: sphere, count: 12, size: 0.4, fx: druid_rise }
-      - { action: particles, particle: composter, shape: sphere, count: 70, size: radius, fx: druid_aura }
+      - { action: particles, particle: composter, shape: sphere, count: 12, size: 0.4, fx: druid_spores_heal }
+      - { action: particles, particle: composter, shape: sphere, count: 70, size: radius, fx: druid_spores_cloud }
 
   # Усиленные споры начинают разъедать врагов. Тратит Увядание.
   - target: { type: enemies_in_radius, radius: $radius }
@@ -38,7 +41,7 @@ steps:
       - { caster: status-stacks, value: "wither:3" }
     do:
       - { action: damage, amount: $burn_damage, school: magic }
-      - { action: particles, particle: composter, shape: point, count: 14, fx: druid_flash }
+      - { action: particles, particle: composter, shape: point, count: 14, fx: druid_spores_corrode }
 
   - target: { type: self }
     if:

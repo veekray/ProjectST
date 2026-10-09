@@ -22,6 +22,7 @@ tier: 3
 
 cost: $mana
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Печать встаёт впереди, и конус от неё"

@@ -936,6 +936,37 @@ class SkillRuntimeTest {
     }
 
         @Test
+    @DisplayName("условие на кастере у предупреждённого шага решается при касте, а не при ударе")
+    void telegraphDecidesCasterConditionsAtCast() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: druid
+                steps:
+                  - target: { type: enemies_in_radius, radius: 6 }
+                    delay: 10
+                    telegraph: druid_roots_mark
+                    if:
+                      - { caster: has-status, value: charge }
+                    do:
+                      - { action: damage, amount: 9 }
+                  - target: { type: self }
+                    do:
+                      - { action: remove-status, id: charge }
+                """);
+        Fixture f = fixture(skill);
+        f.statuses.apply(CASTER, ru.projectst.rpgcore.status.StatusApplication.of(
+                "charge", 100, "test"));
+        f.world.nextTargets = List.of(A);
+
+        f.runtime.cast(CASTER, skill, 1);
+        // Соседний шаг уже снял заряд — но решение принято при касте.
+        f.world.runAllDelayed();
+
+        assertTrue(f.world.calls.stream().anyMatch(c -> c.startsWith("damage A 9.0")),
+                "усиленный удар, показанный при касте, обязан прилететь: " + f.world.calls);
+    }
+
+        @Test
     @DisplayName("частицы без fx всё равно уходят событием: мод рисует общий эффект")
     void particlesWithoutFxStillGoToTheMod() {
         SkillDef skill = parse("test_skill", """

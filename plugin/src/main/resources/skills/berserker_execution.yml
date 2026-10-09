@@ -8,6 +8,7 @@ tier: 5
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "По раненому бьёт втрое."

@@ -19,6 +19,8 @@ tier: 4
 
 cost: $mana
 cooldown: $cooldown
+# Зов — подготовка: вихрь листьев собирается, и волк встаёт, когда она кончилась.
+cast-time: $cast_time
 
 description:
   - "Волк-спутник на минуту."
@@ -46,8 +48,8 @@ steps:
         health: $health
         attacks-enemies: true
       - { action: remove-status, id: wither }
-      - { action: sound, sound: entity_wolf_growl, pitch: 0.8 }
-      - { action: particles, particle: sculk_soul, shape: sphere, count: 40, size: 1, fx: druid_puff }
+      - { action: sound, sound: entity_wolf_growl, pitch: 0.8, fx: none }
+      - { action: particles, particle: sculk_soul, shape: sphere, count: 40, size: 1, fx: druid_beast_leaves }
 
   # Опека: три Роста.
   - target: { type: self }
@@ -61,8 +63,8 @@ steps:
         health: $ward_health
         attacks-enemies: false
       - { action: remove-status, id: growth }
-      - { action: sound, sound: entity_wolf_howl, pitch: 1.2 }
-      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1, fx: druid_puff }
+      - { action: sound, sound: entity_wolf_howl, pitch: 1.2, fx: none }
+      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1, fx: druid_beast_leaves }
 
   # Зверь копит Рост, как и любой поддерживающий навык.
   - target: { type: self }

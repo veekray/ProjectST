@@ -12,6 +12,7 @@ tier: 4
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Раскидывает врагов вокруг по случайным"
@@ -25,6 +26,8 @@ steps:
       - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 1.0, pitch: 0.9 }
 
   - target: { type: enemies_in_radius, radius: $radius }
+    delay: $strike_delay
+    telegraph: trickster_shuffle_mark
     do:
       - { action: particles, particle: portal, shape: ring, count: 48, size: radius, fx: trickster_wave }
       - { action: scatter, radius: $throw }

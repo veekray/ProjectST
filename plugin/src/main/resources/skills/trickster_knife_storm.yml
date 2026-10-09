@@ -12,6 +12,7 @@ tier: 2
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Веер ножей от трикстера и от каждого"

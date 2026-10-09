@@ -147,6 +147,16 @@ public final class SkillRuntime {
      */
     private void telegraph(CastContext context, SkillDef skill, Step step, BalanceTable table,
                            int depth, int delay) {
+        // Условия на кастере решаются сейчас, как и область. Иначе соседний
+        // мгновенный шаг, снявший счётчик в момент каста, к удару превратил бы
+        // усиленный вариант в обычный: «три Роста» были при нажатии, а к удару
+        // их уже сняли. Что показано — то и прилетит.
+        for (Condition condition : step.conditions()) {
+            if (condition.scope() == Condition.Scope.CASTER
+                    && !matches(condition, context.caster(), context)) {
+                return;
+            }
+        }
         CastContext atCast = withStepOrigin(context, step, table);
         Optional<Position> centre = step.target().type() == TargetSpec.Type.ENEMIES_IN_RADIUS
                 ? world.positionOf(context.caster())
@@ -168,9 +178,15 @@ public final class SkillRuntime {
         world.effect(new FxEvent.Telegraph(step.telegraph(), classOf(skill), centre.get(),
                 radius, delay, context.caster(), particle));
         TargetSpec target = step.target();
+        List<Condition> onTargets = new ArrayList<>();
+        for (Condition condition : step.conditions()) {
+            if (condition.scope() != Condition.Scope.CASTER) {
+                onTargets.add(condition);
+            }
+        }
         Step locked = new Step(new TargetSpec(target.type().locked(), target.radius(),
                 target.angle(), target.tag(), target.limit()), step.actions(),
-                step.conditions(), OriginSpec.INHERIT, new NumberRef.Literal(0), null);
+                onTargets, OriginSpec.INHERIT, new NumberRef.Literal(0), null);
         CastContext lockedContext = atCast.withOrigin(centre.get());
         world.runLater(delay,
                 () -> runStep(lockedContext, skill, locked, table, depth, radius));

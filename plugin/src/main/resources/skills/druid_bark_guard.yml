@@ -26,8 +26,8 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: block_wood_place, pitch: 0.7 }
-      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1.4, fx: druid_rise }
+      - { action: sound, sound: block_wood_place, pitch: 0.7, fx: none }
+      - { action: particles, particle: composter, shape: sphere, count: 40, size: 1.4, fx: druid_bark_rise }
       - { action: status, id: bark_guard, duration: $duration }
 
   # Усиленная держит два ответа вместо одного. Тратит Увядание.

@@ -11,6 +11,7 @@ tier: 1
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Рыцарь вызывает врага на бой."

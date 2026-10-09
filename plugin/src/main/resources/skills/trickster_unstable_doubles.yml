@@ -12,6 +12,7 @@ tier: 3
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Подрывает всех двойников."

@@ -12,6 +12,7 @@ tier: 4
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Знамя в землю: враги, вошедшие в круг,"

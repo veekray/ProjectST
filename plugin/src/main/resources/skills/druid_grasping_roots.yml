@@ -11,6 +11,9 @@ tier: 3
 
 cost: $mana
 cooldown: $cooldown
+# Короткая подготовка — посох в землю, — затем трещина бежит до края круга, и
+# только тогда корни. Из круга можно успеть выйти.
+cast-time: $cast_time
 
 description:
   - "Корни держат всех вокруг на месте."
@@ -21,25 +24,29 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: block_rooted_dirt_place, pitch: 0.8 }
+      - { action: sound, sound: block_rooted_dirt_place, pitch: 0.8, fx: none }
 
   - target: { type: enemies_in_radius, radius: $radius }
+    delay: $strike_delay
+    telegraph: druid_roots_mark
     if:
       - { caster: status-stacks, value: "growth:3", not: true }
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $root_duration }
-      - { action: particles, particle: composter, shape: point, count: 10, fx: druid_flash }
-      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_wave }
+      - { action: particles, particle: composter, shape: point, count: 10, fx: none }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_roots_grasp }
 
   - target: { type: enemies_in_radius, radius: $radius }
+    delay: $strike_delay
+    telegraph: druid_roots_mark
     if:
       - { caster: status-stacks, value: "growth:3" }
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $empowered_root_duration }
-      - { action: particles, particle: composter, shape: point, count: 14, fx: druid_flash }
-      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_wave }
+      - { action: particles, particle: composter, shape: point, count: 14, fx: none }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_roots_grasp_strong }
 
   - target: { type: self }
     if:

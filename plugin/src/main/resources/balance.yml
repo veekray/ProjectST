@@ -38,6 +38,7 @@ balance:
     min_gap: 2.5
 
   mage_flow_loop:
+    cast_time: 6   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -52,6 +53,7 @@ balance:
     empowered_damage: 7
 
   mage_mana_bolt:
+    cast_time: 8   # подготовка, тиков
     mana:
       base: 8.0
       per-level: 0.5
@@ -88,6 +90,7 @@ balance:
     wave_push: 0.8
 
   mage_herd:
+    cast_time: 8   # подготовка, тиков
     mana:
       base: 16.0
       per-level: 0.5
@@ -106,6 +109,7 @@ balance:
     root_duration: 30
 
   mage_scatter:
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 20.0
       per-level: 0.5
@@ -118,6 +122,7 @@ balance:
     empowered_range: 18
 
   mage_collapse:
+    cast_time: 12   # подготовка, тиков
     mana:
       base: 42.0
       per-level: 0.5
@@ -141,6 +146,8 @@ balance:
   # противоположный, поэтому награда идёт за смену роли, а не за одну кнопку.
 
   druid_poison_ivy:
+    cast_time: 4   # подготовка, тиков
+    strike_delay: 8   # круг виден до удара, тиков
     mana:
       base: 10.0
       per-level: 0.5
@@ -157,6 +164,7 @@ balance:
     counter_duration: 300
 
   druid_life_spores:
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -185,6 +193,8 @@ balance:
     stun_duration: 20
 
   druid_grasping_roots:
+    cast_time: 6   # подготовка, тиков
+    strike_delay: 10   # круг виден до удара, тиков
     mana:
       base: 16.0
       per-level: 0.5
@@ -200,6 +210,7 @@ balance:
     counter_duration: 300
 
   druid_beast_call:
+    cast_time: 16   # подготовка, тиков
     mana:
       base: 26.0
       per-level: 0.5
@@ -217,6 +228,7 @@ balance:
     heal: 3
 
   druid_abyss_bloom:
+    cast_time: 20   # подготовка, тиков
     mana:
       base: 40.0
       per-level: 0.5
@@ -246,6 +258,7 @@ balance:
     duration: 600
 
   warlock_cursed_bolt:
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 10.0
       per-level: 0.5
@@ -267,6 +280,7 @@ balance:
     damage: 2
 
   warlock_reap_mark:
+    cast_time: 6   # подготовка, тиков
     mana:
       base: 8.0
       per-level: 0.5
@@ -278,6 +292,7 @@ balance:
     duration: 300
 
   warlock_dark_veil:
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 16.0
       per-level: 0.5
@@ -296,6 +311,7 @@ balance:
     weaken: -15
 
   warlock_despair_chains:
+    cast_time: 8   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -313,6 +329,7 @@ balance:
     slow_duration: 20
 
   warlock_transfusion:
+    cast_time: 8   # подготовка, тиков
     mana:
       base: 20.0
       per-level: 0.5
@@ -328,6 +345,7 @@ balance:
     heal_per: 3
 
   warlock_agony_cocoon:
+    cast_time: 16   # подготовка, тиков
     mana:
       base: 38.0
       per-level: 0.5
@@ -378,6 +396,7 @@ balance:
     stun_duration: 40
 
   rogue_fan_of_knives:
+    cast_time: 5   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 10.0
@@ -410,6 +429,7 @@ balance:
     vulnerability: -15
 
   rogue_mark_of_death:
+    cast_time: 8   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 24.0
@@ -510,6 +530,7 @@ balance:
     speed: 20
 
   assassin_reaper_brand:
+    cast_time: 6   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 14.0
@@ -526,6 +547,7 @@ balance:
       per-level: 1.6
 
   assassin_arterial_cut:
+    cast_time: 4   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 12.0
@@ -543,6 +565,7 @@ balance:
     damage: 0.025
 
   assassin_garrote:
+    cast_time: 6   # подготовка, тиков
     back_arc: 120
     spirit: 18
     cooldown:
@@ -563,6 +586,7 @@ balance:
     lock_duration: 10
 
   assassin_corpse_venom:
+    cast_time: 6   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 22.0
@@ -591,6 +615,7 @@ balance:
     duration: 40
 
   assassin_shadow_cascade:
+    cast_time: 8   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 25.0
@@ -620,6 +645,7 @@ balance:
       per-level: 1.3
 
   assassin_executioners_hour:
+    cast_time: 12   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 120.0
@@ -638,6 +664,7 @@ balance:
   # ================================================================ трикстер
 
   trickster_split:
+    cast_time: 8   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 16.0
@@ -658,6 +685,7 @@ balance:
     range: 15
 
   trickster_knife_storm:
+    cast_time: 6   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 12.0
@@ -676,6 +704,7 @@ balance:
       per-level: 0.45
 
   trickster_blinding_dust:
+    cast_time: 5   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 18.0
@@ -687,6 +716,7 @@ balance:
     weaken: -25
 
   trickster_pickpocket:
+    cast_time: 5   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 25.0
@@ -699,6 +729,7 @@ balance:
     stolen_defense: 11
 
   trickster_unstable_doubles:
+    cast_time: 6   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 20.0
@@ -724,6 +755,8 @@ balance:
     speed: 30
 
   trickster_shuffle:
+    cast_time: 10   # подготовка, тиков
+    strike_delay: 10   # круг виден до удара, тиков
     spirit: 22
     cooldown:
       base: 26.0
@@ -733,6 +766,7 @@ balance:
     throw: 6
 
   trickster_puppeteer:
+    cast_time: 14   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 45.0
@@ -744,6 +778,7 @@ balance:
     weaken: -40
 
   trickster_carnival:
+    cast_time: 14   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 140.0
@@ -767,6 +802,7 @@ balance:
   # восемнадцати — вдвое. Числа те же, что были у подкласса.
 
   hunter_quarry_mark:
+    cast_time: 4   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 10.0
@@ -777,6 +813,7 @@ balance:
     duration: 400
 
   hunter_repel_shot:
+    cast_time: 6   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 5.0
@@ -821,6 +858,7 @@ balance:
       per-level: 0.5
 
   hunter_flare_shot:
+    cast_time: 8   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 14.0
@@ -839,6 +877,7 @@ balance:
     defense_down: -20
 
   hunter_arrow_downpour:
+    cast_time: 10   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 22.0
@@ -870,6 +909,7 @@ balance:
     speed: 25
 
   hunter_rot_arrow:
+    cast_time: 8   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 15.0
@@ -893,6 +933,7 @@ balance:
       per-level: 0.25
 
   hunter_sense:
+    cast_time: 6   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 45.0
@@ -933,6 +974,7 @@ balance:
       per-level: 3.6
 
   hunter_deadly_hunt:
+    cast_time: 12   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 130.0
@@ -961,6 +1003,7 @@ balance:
     push: 0.5
 
   rogue_smoke_screen:
+    cast_time: 6   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 16.0
@@ -978,6 +1021,7 @@ balance:
     slow: -40
 
   rogue_eagle_eye:
+    cast_time: 6   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 30.0
@@ -991,6 +1035,7 @@ balance:
     glow: 45
 
   rogue_thrill:
+    cast_time: 6   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 35.0
@@ -1015,6 +1060,7 @@ balance:
     overheat_damage: 30
 
   berserker_blood_slash:
+    cast_time: 5   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 6.0
@@ -1034,6 +1080,8 @@ balance:
       per-level: 0.2
 
   berserker_quake:
+    cast_time: 8   # подготовка, тиков
+    strike_delay: 10   # круг виден до удара, тиков
     spirit: 0
     cooldown:
       base: 12.0
@@ -1048,6 +1096,7 @@ balance:
     slow_duration: 60
 
   berserker_chain_hook:
+    cast_time: 6   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 10.0
@@ -1090,6 +1139,7 @@ balance:
     duration: 200
 
   berserker_savage_roar:
+    cast_time: 6   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 18.0
@@ -1100,6 +1150,7 @@ balance:
     push: 1.4
 
   berserker_insatiable_hunger:
+    cast_time: 6   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 25.0
@@ -1109,6 +1160,7 @@ balance:
     lifesteal: 100
 
   berserker_death_spin:
+    cast_time: 8   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 16.0
@@ -1123,6 +1175,7 @@ balance:
       per-level: 0.5
 
   berserker_execution:
+    cast_time: 8   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 14.0
@@ -1179,6 +1232,7 @@ balance:
       per-level: 1.2
 
   striker_gale_palm:
+    cast_time: 5   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 8.0
@@ -1196,6 +1250,7 @@ balance:
     push_breach: 2.0
 
   striker_sweep_kick:
+    cast_time: 4   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 7.0
@@ -1209,6 +1264,7 @@ balance:
     stun_press: 30
 
   striker_wind_flurry:
+    cast_time: 4   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 9.0
@@ -1220,6 +1276,7 @@ balance:
       per-level: 0.3
 
   striker_chi_blast:
+    cast_time: 6   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 8.0
@@ -1237,6 +1294,7 @@ balance:
       per-level: 1.0
 
   striker_rising_dragon:
+    cast_time: 5   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 11.0
@@ -1253,6 +1311,7 @@ balance:
     lift_breach: 1.4
 
   striker_touch_of_karma:
+    cast_time: 6   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 18.0
@@ -1274,6 +1333,7 @@ balance:
     invuln: 8
 
   striker_zen_meditation:
+    cast_time: 8   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 22.0
@@ -1287,6 +1347,7 @@ balance:
     reduction: 100
 
   striker_asura_mode:
+    cast_time: 12   # подготовка, тиков
     spirit: 35
     cooldown:
       base: 110.0
@@ -1320,6 +1381,7 @@ balance:
     damage_each: 5
 
   knight_challenge:
+    cast_time: 4   # подготовка, тиков
     spirit: 8
     cooldown:
       base: 8.0
@@ -1330,6 +1392,7 @@ balance:
     weaken: 50
 
   knight_war_cry:
+    cast_time: 6   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 18.0
@@ -1340,6 +1403,7 @@ balance:
     weaken: 50
 
   knight_shockwave:
+    cast_time: 8   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 7.0
@@ -1384,6 +1448,7 @@ balance:
     each: 20
 
   knight_shield_bash:
+    cast_time: 5   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 12.0
@@ -1413,6 +1478,7 @@ balance:
     weaken: 50
 
   knight_banner:
+    cast_time: 12   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 35.0
@@ -1428,6 +1494,7 @@ balance:
     guard: 18
 
   knight_judgment:
+    cast_time: 12   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 30.0
@@ -1439,6 +1506,7 @@ balance:
       per-level: 2.0
 
   knight_absolute_fortress:
+    cast_time: 16   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 140.0
@@ -1472,6 +1540,7 @@ balance:
     push: 1.0
 
   warrior_cleave:
+    cast_time: 4   # подготовка, тиков
     spirit: 8
     cooldown:
       base: 4.0
@@ -1507,6 +1576,7 @@ balance:
     push: 1.2
 
   warrior_spin:
+    cast_time: 6   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 10.0
@@ -1519,6 +1589,7 @@ balance:
     push: 1.1
 
   warrior_challenge:
+    cast_time: 4   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 14.0
@@ -1531,6 +1602,7 @@ balance:
     weaken: 25
 
   warrior_rage:
+    cast_time: 6   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 20.0
@@ -1541,6 +1613,7 @@ balance:
     damage_bonus: 35
 
   warrior_combo:
+    cast_time: 5   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 9.0
@@ -1575,6 +1648,7 @@ balance:
     duration: 100
 
   warrior_war_cry:
+    cast_time: 8   # подготовка, тиков
     spirit: 30
     cooldown:
       base: 100.0

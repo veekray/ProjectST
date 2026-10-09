@@ -17,6 +17,7 @@ tier: 4
 
 cost: $mana
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Веер печатей без всякого урона."

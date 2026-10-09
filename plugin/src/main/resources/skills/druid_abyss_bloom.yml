@@ -14,6 +14,9 @@ tier: 5
 
 cost: $mana
 cooldown: $cooldown
+# Самая долгая подготовка друида: поле на всю схватку стоит того, чтобы его
+# можно было сорвать.
+cast-time: $cast_time
 
 description:
   - "Поле, которое каждую секунду меняет"
@@ -25,14 +28,14 @@ steps:
   - target: { type: self }
     origin: self
     do:
-      - { action: sound, sound: block_sculk_spread, pitch: 0.6 }
+      - { action: sound, sound: block_sculk_spread, pitch: 0.6, fx: none }
       - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true, fx: none }
       - action: zone
         tag: bloom
         radius: $radius
         duration: $duration
         particle: composter
-        fx: druid_zone
+        fx: druid_abyss_flower
         at-origin: true
         on-tick: druid_bloom_tick
         tick-interval: 20

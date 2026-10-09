@@ -13,6 +13,7 @@ tier: 4
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Страйкер замирает и быстро приходит"

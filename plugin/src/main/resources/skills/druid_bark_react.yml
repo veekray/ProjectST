@@ -22,10 +22,10 @@ steps:
       - { caster: has-status, value: bark_guard }
     do:
       - { action: status, id: stun, duration: $stun_duration }
-      - { action: particles, particle: composter, shape: point, count: 25, fx: druid_sink }
+      - { action: particles, particle: composter, shape: point, count: 25, fx: druid_bark_splinter }
 
   - target: { type: self }
     if:
       - { caster: has-status, value: bark_guard }
     do:
-      - { action: sound, sound: block_wood_break, pitch: 0.8 }
+      - { action: sound, sound: block_wood_break, pitch: 0.8, fx: none }

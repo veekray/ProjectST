@@ -60,7 +60,11 @@ final class FxScenes {
 
     private static final Map<String, MarkScene> MARKS = Map.ofEntries(
             Map.entry("druid_roots_mark", e -> mark(e, MarkLook.CRACK)),
-            Map.entry("druid_ivy_mark", e -> mark(e, MarkLook.LEAVES)));
+            Map.entry("druid_ivy_mark", e -> mark(e, MarkLook.LEAVES)),
+            // Остальные классы — пока общий круг их облика; землетрясение — с
+            // трещиной по земле, она ему по смыслу.
+            Map.entry("berserker_quake_mark", e -> mark(e, MarkLook.CRACK)),
+            Map.entry("trickster_shuffle_mark", e -> mark(e, MarkLook.PLAIN)));
 
     private static final Map<String, ZoneScene> ZONES = Map.ofEntries(
             Map.entry("druid_abyss_flower", FxScenes::abyssFlower));
@@ -422,7 +426,8 @@ final class FxScenes {
      */
     private static void mark(FxMessage.Telegraph e, MarkLook look) {
         FxEffects.addEffect(new Mark(e, look));
-        if (look == MarkLook.CRACK) {
+        // Скрип корней — только у корней: у землетрясения свой ванильный звук удара.
+        if (look == MarkLook.CRACK && e.fx().startsWith("druid_")) {
             FxSounds.play("druid.roots.creak", e.x(), e.y(), e.z(), 0.7f, 0.6f);
         }
     }

@@ -10,6 +10,7 @@ tier: 1
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Удар по ногам всех вокруг:"

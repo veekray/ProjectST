@@ -13,6 +13,7 @@ tier: 2
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Граната с дымом: в облаке враги"

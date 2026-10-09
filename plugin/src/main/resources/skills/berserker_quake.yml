@@ -8,6 +8,7 @@ tier: 1
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Удар по земле подбрасывает всех"
@@ -24,6 +25,8 @@ steps:
       - { action: sound, sound: entity_ravager_attack, volume: 1.0, pitch: 0.7 }
 
   - target: { type: enemies_in_radius, radius: $radius }
+    delay: $strike_delay
+    telegraph: berserker_quake_mark
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: 0.1, lift: 1.1 }

@@ -493,7 +493,10 @@ class ShippedContentTest {
         if (!Files.isRegularFile(MOD_CATALOG)) {
             return; // мода рядом нет — проверять нечего
         }
-        String catalog = Files.readString(MOD_CATALOG, StandardCharsets.UTF_8);
+        // Каталог мода — стили и сцены: эффект может быть и тем, и другим.
+        String catalog = Files.readString(MOD_CATALOG, StandardCharsets.UTF_8)
+                + Files.readString(MOD_CATALOG.resolveSibling("FxScenes.java"),
+                        StandardCharsets.UTF_8);
         // Неизвестный эффект мод рисует общим — игра не падает. Но эффект,
         // объявленный в своём контенте и не нарисованный, — это опечатка,
         // которую иначе нашли бы только глазами в игре.
@@ -512,6 +515,9 @@ class ShippedContentTest {
                             && !catalog.contains("Map.entry(\"" + fx + "\"")) {
                         missing.add(skill.id() + ": " + fx);
                     }
+                }
+                if (step.telegraphed() && !catalog.contains("Map.entry(\"" + step.telegraph() + "\"")) {
+                    missing.add(skill.id() + ": " + step.telegraph());
                 }
             }
         }
@@ -580,6 +586,29 @@ class ShippedContentTest {
             }
         }
         assertTrue(literal.isEmpty(), "граница области задана числом: " + literal);
+    }
+
+    @Test
+    @DisplayName("у навыков друида каждый звук — со своим видом для мода")
+    void druidSoundsHaveFx() throws IOException {
+        // Друид переведён на сцены: звук удара играет сцена. Звук без fx уходил
+        // бы игроку с модом ванильным поверх звука сцены — тот же дубль, что и
+        // две картинки.
+        java.util.Set<String> bare = new java.util.TreeSet<>();
+        for (SkillDef skill : load().skills()) {
+            if (!skill.id().startsWith("druid_")) {
+                continue;
+            }
+            for (var step : skill.steps()) {
+                for (var action : step.actions()) {
+                    if (action instanceof ru.projectst.rpgcore.skill.Action.Sound sound
+                            && sound.fx() == null) {
+                        bare.add(skill.id() + ": " + sound.sound());
+                    }
+                }
+            }
+        }
+        assertTrue(bare.isEmpty(), "звуки друида без fx: " + bare);
     }
 
     private static String fxOf(ru.projectst.rpgcore.skill.Action action) {

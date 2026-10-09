@@ -13,6 +13,7 @@ tier: 2
 
 cost: $spirit
 cooldown: $cooldown
+cast-time: $cast_time
 
 description:
   - "Вспышка в точке попадания:"
