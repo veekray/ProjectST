@@ -3,6 +3,7 @@ package ru.projectst.rpgcore.skill;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import ru.projectst.rpgcore.damage.DamageResult;
 import ru.projectst.rpgcore.damage.DamageSchool;
 
 /**
@@ -44,8 +45,15 @@ public interface SkillWorld {
 
     boolean isPlayer(UUID entity);
 
-    /** Нанести урон. Проходит через единый конвейер, других путей нет. */
-    void dealDamage(UUID caster, UUID target, double amount, DamageSchool school, String skillId);
+    /**
+     * Нанести урон. Проходит через единый конвейер, других путей нет.
+     *
+     * @return что получилось у конвейера; {@code null}, если цели уже нет.
+     *         Исполнителю нужен крит: вспышку крита рисует он, а знает о крите
+     *         только конвейер
+     */
+    DamageResult dealDamage(UUID caster, UUID target, double amount, DamageSchool school,
+                            String skillId);
 
     void heal(UUID target, double amount);
 
@@ -182,6 +190,15 @@ public interface SkillWorld {
     }
 
     void sound(Position at, String sound, double volume, double pitch);
+
+    /**
+     * Видимое событие для клиентского мода.
+     *
+     * <p>Мир сам решает, кому что показать: игрокам с модом — событие, без
+     * мода — ванильный запасной вид из него же. Исполнитель не знает, у кого
+     * стоит мод, и знать не должен.
+     */
+    void effect(FxEvent event);
 
     void runLater(int ticks, Runnable task);
 

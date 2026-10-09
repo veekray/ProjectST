@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.projectst.rpgcore.balance.BalanceBook;
 import ru.projectst.rpgcore.balance.BalanceLoader;
+import ru.projectst.rpgcore.damage.DamageResult;
 import ru.projectst.rpgcore.damage.DamageSchool;
 import ru.projectst.rpgcore.loader.ContentErrors;
 import ru.projectst.rpgcore.stat.Rounding;
@@ -145,10 +146,30 @@ class SkillRuntimeTest {
             return playersOnly || entity.equals(CASTER);
         }
 
+        /** Будет ли следующее попадание критом и отменится ли оно. */
+        boolean nextCrit;
+        boolean nextBlocked;
+
         @Override
-        public void dealDamage(UUID caster, UUID target, double amount,
-                               DamageSchool school, String skillId) {
+        public DamageResult dealDamage(UUID caster, UUID target, double amount,
+                                       DamageSchool school, String skillId) {
             calls.add("damage " + name(target) + " " + amount + " " + school);
+            if (nextBlocked) {
+                return DamageResult.blockedBy(DamageResult.Blocker.DODGE, 0);
+            }
+            return new DamageResult(amount, 0, nextCrit, null, amount, amount);
+        }
+
+        /** Что ушло моду. */
+        final List<FxEvent> effects = new ArrayList<>();
+
+        @Override
+        public void effect(FxEvent event) {
+            effects.add(event);
+        }
+
+        <T extends FxEvent> List<T> effects(Class<T> type) {
+            return effects.stream().filter(type::isInstance).map(type::cast).toList();
         }
 
         @Override
@@ -1647,5 +1668,175 @@ class SkillRuntimeTest {
         assertEquals(2, f.zones.size());
         assertTrue(f.zones.all().stream().noneMatch(z -> z.center().x() == 0.5),
                 "съедается ближайшая, а не первая поставленная");
+    }
+
+    // ------------------------------------------------------------------ эффекты мода
+
+    @Test
+    @DisplayName("радиус в событии эффекта равен радиусу выборки: 6 → 9 при +50%")
+    void fxRadiusEqualsTargetRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                      - { action: particles, particle: enchant, shape: ring, size: radius, fx: mage_flow_wave }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.calls.contains("resolve ENEMIES_IN_RADIUS r=9.0"), f.world.calls::toString);
+        List<FxEvent.Burst> bursts = f.world.effects(FxEvent.Burst.class);
+        assertEquals(1, bursts.size(), f.world.effects::toString);
+        FxEvent.Burst burst = bursts.get(0);
+        assertEquals(9.0, burst.radius(), 1e-9,
+                "граница на экране обязана совпасть с областью урона");
+        assertEquals("mage_flow_wave", burst.fx());
+        assertEquals("mage", burst.classId());
+        assertEquals("enchant", burst.particle(), "ванильный вид едет в том же событии");
+        assertTrue(f.world.calls.stream().noneMatch(c -> c.startsWith("area enchant")),
+                "с эффектом мода частицы рисует мир по событию, а не напрямую: иначе дубль");
+    }
+
+    @Test
+    @DisplayName("срок зоны в событии равен её настоящему сроку")
+    void fxZoneDurationIsRealDuration() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: zone, tag: seal, radius: 2.5, duration: 200, particle: witch, fx: mage_seal, at-origin: true }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        List<FxEvent.ZonePlaced> placed = f.world.effects(FxEvent.ZonePlaced.class);
+        assertEquals(1, placed.size());
+        Zone real = f.zones.all().iterator().next();
+        Zone sent = placed.get(0).zone();
+        assertEquals(real.expiresAtTick() - real.placedAtTick(), sent.totalTicks(),
+                "дуга таймера кончилась бы не тогда, когда гаснет зона");
+        assertEquals(200, sent.totalTicks());
+        assertEquals(real.radius(), sent.radius(), 1e-9);
+        assertEquals("mage_seal", sent.fx());
+    }
+
+    @Test
+    @DisplayName("снятая печать уходит моду с точкой, куда её стянуло")
+    void fxZoneConsumedIsReported() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    origin: forward 10
+                    do:
+                      - { action: consume-zones, tag: seal, radius: 30, counter: n, at-origin: true }
+                """);
+        Fixture f = fixture(skill);
+        f.zones.place("seal", CASTER, new Position(WORLD, 3, 64, 0), 2.5, 200, "witch",
+                "mage_seal", "mage", 0, null, null, 0);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        List<FxEvent.ZoneConsumed> gone = f.world.effects(FxEvent.ZoneConsumed.class);
+        assertEquals(1, gone.size());
+        assertEquals(10, gone.get(0).pulledTo().x(), 1e-9, "к точке действия шага");
+    }
+
+    @Test
+    @DisplayName("в событии крита стоит флаг, у обычного попадания его нет")
+    void fxHitCarriesCrit() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextTargets = List.of(A);
+
+        f.world.nextCrit = true;
+        f.runtime.cast(CASTER, skill, 1);
+        f.world.nextCrit = false;
+        f.runtime.cast(CASTER, skill, 1);
+
+        List<FxEvent.Hit> hits = f.world.effects(FxEvent.Hit.class);
+        assertEquals(2, hits.size());
+        assertTrue(hits.get(0).crit(), "крит из результата конвейера");
+        assertFalse(hits.get(1).crit(), "обычное попадание не вспыхивает критом");
+        assertEquals(A, hits.get(0).target());
+    }
+
+    @Test
+    @DisplayName("уклонённый урон не вспыхивает вовсе")
+    void fxNoHitWhenBlocked() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: enemies_in_radius, radius: $radius }
+                    do:
+                      - { action: damage, amount: 5 }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextBlocked = true;
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        assertTrue(f.world.effects(FxEvent.Hit.class).isEmpty());
+    }
+
+    @Test
+    @DisplayName("перенос со следом отдаёт след от старта до точки прибытия")
+    void fxTeleportTrail() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: teleport, forward: 6, particle: portal, fx: mage_void_trail }
+                """);
+        Fixture f = fixture(skill);
+        f.world.positions.put(CASTER, new Position(WORLD, 0, 64, 0));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        List<FxEvent.Trail> trails = f.world.effects(FxEvent.Trail.class);
+        assertEquals(1, trails.size());
+        assertEquals(0, trails.get(0).from().x(), 1e-9);
+        assertEquals(6, trails.get(0).to().x(), 1e-9);
+        assertEquals("mage_void_trail", trails.get(0).fx());
+    }
+
+    @Test
+    @DisplayName("снаряд несёт эффект и класс до мира")
+    void fxProjectileSpec() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: projectile, range: 20, particle: enchant, fx: mage_bolt, on-end: test_skill }
+                """);
+        Fixture f = fixture(skill);
+        f.world.nextProjectileTarget = null;
+
+        f.runtime.cast(CASTER, skill, 9); // уровень не важен; on-end упрётся в глубину
+
+        assertEquals("mage_bolt", f.world.lastProjectile.fx());
+        assertEquals("mage", f.world.lastProjectile.classId());
     }
 }

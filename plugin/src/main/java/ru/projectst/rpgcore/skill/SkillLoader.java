@@ -37,6 +37,13 @@ public final class SkillLoader {
     /** Значение {@code size}, означающее радиус выборки шага. */
     static final String SIZE_RADIUS = "radius";
 
+    /** Какими бывают идентификаторы эффектов мода: имя файла в его ресурсах. */
+    private static final java.util.regex.Pattern FX_ID =
+            java.util.regex.Pattern.compile("[a-z0-9_]{1,48}");
+
+    /** Метка «ключ fx был, но с ошибкой»: действие тогда не собирается. */
+    private static final String FX_INVALID = "\0";
+
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
                     + "teleport, dash, approach, particles, sound, message, cast, ray, "
@@ -477,7 +484,20 @@ public final class SkillLoader {
                 yield Optional.of(new Action.Pull(strength, ticks));
             }
 
-            case "teleport" -> require(b, path, errors, "forward", Action.Teleport::new);
+            case "teleport" -> {
+                NumberRef forward = number(b, "forward", errors, path, null);
+                String particle = b.str("particle", "");
+                if (forward == null) {
+                    errors.add(b.at(), path + ".forward", "обязательный ключ forward отсутствует");
+                    yield Optional.empty();
+                }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Teleport(forward,
+                        particle.isBlank() ? null : particle, fx));
+            }
 
             case "dash" -> {
                 NumberRef strength = number(b, "strength", errors, path, null);
@@ -563,8 +583,12 @@ public final class SkillLoader {
                         yield Optional.empty();
                     }
                 }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.Particles(particle, shape, count, size, fitRadius,
-                        atOrigin));
+                        atOrigin, fx));
             }
 
             case "sound" -> {
@@ -603,11 +627,15 @@ public final class SkillLoader {
                                     + "он ни во что не попадёт и ничего не сделает");
                     yield Optional.empty();
                 }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.Projectile(speed, range, hitRadius, gravity, pierce,
                         hitPlayers, hitMobs, stopAtBlock,
                         particle.isBlank() ? null : particle,
                         onHit.isBlank() ? null : onHit,
-                        onEnd.isBlank() ? null : onEnd, yawOffset));
+                        onEnd.isBlank() ? null : onEnd, yawOffset, fx));
             }
 
             case "summon" -> {
@@ -659,10 +687,14 @@ public final class SkillLoader {
                             "tick-interval имеет смысл только с on-tick");
                     yield Optional.empty();
                 }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.PlaceZone(tag, radius, duration, atOrigin,
                         particle.isBlank() ? null : particle, minGap,
                         onEnter.isBlank() ? null : onEnter,
-                        onTick.isBlank() ? null : onTick, tickInterval));
+                        onTick.isBlank() ? null : onTick, tickInterval, fx));
             }
 
             case "consume-zones" -> {
@@ -763,6 +795,35 @@ public final class SkillLoader {
     }
 
     // ------------------------------------------------------------------ числа
+
+    /**
+     * Эффект мода: {@code fx: <id>}.
+     *
+     * <p>Без ванильной частицы рядом эффект — ошибка, а не тихий пропуск: игрок
+     * без мода не увидел бы ничего, и зона без картинки стала бы ловушкой.
+     * Есть ли такой эффект у мода, загрузчик не знает и знать не должен —
+     * неизвестный эффект мод рисует общим по форме и цвету класса.
+     *
+     * @return идентификатор, {@code null} без ключа или {@link #FX_INVALID}
+     */
+    private static String readFx(YmlMap b, String path, ContentErrors errors, String particle) {
+        if (b.rawKind("fx") == YmlMap.Kind.ABSENT) {
+            b.str("fx", "");
+            return null;
+        }
+        String fx = b.str("fx", "").trim();
+        if (!FX_ID.matcher(fx).matches()) {
+            errors.add(b.at(), path + ".fx", "эффект называется строчными латинскими буквами, "
+                    + "цифрами и подчёркиванием, получено \"" + fx + "\"");
+            return FX_INVALID;
+        }
+        if (particle == null || particle.isBlank()) {
+            errors.add(b.at(), path + ".fx", "у эффекта мода нужна ванильная particle: "
+                    + "без неё игрок без мода не увидит ничего");
+            return FX_INVALID;
+        }
+        return fx;
+    }
 
     private static NumberRef number(YmlMap body, String key, ContentErrors errors,
                                     String path, NumberRef fallback) {

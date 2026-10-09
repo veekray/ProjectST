@@ -790,4 +790,62 @@ class SkillLoaderTest {
         assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("нужен radius")),
                 errors.all().toString());
     }
+
+    // ------------------------------------------------------------------ эффекты мода
+
+    @Test
+    @DisplayName("fx без ванильной частицы — ошибка со строкой")
+    void fxNeedsParticle() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: zone, tag: seal, radius: 2, duration: 20, fx: mage_seal }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.path().endsWith(".fx")
+                        && e.what().contains("ванильная particle") && e.at().line() == 6),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("битый идентификатор эффекта — ошибка, а не тихий пропуск")
+    void fxIdIsChecked() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: particles, particle: witch, shape: ring, size: 2, fx: "Mage Seal!" }
+                """);
+        assertTrue(errors.all().stream().anyMatch(e -> e.what().contains("строчными")
+                        && e.at().line() == 6),
+                errors.all().toString());
+    }
+
+    @Test
+    @DisplayName("fx читается у частиц, снаряда, зоны и переноса")
+    void fxIsRead() {
+        SkillDef skill = load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: particles, particle: witch, shape: ring, size: 2, fx: a }
+                      - { action: projectile, range: 10, particle: enchant, fx: b, on-end: s }
+                      - { action: zone, tag: seal, radius: 2, duration: 20, particle: witch, fx: c }
+                      - { action: teleport, forward: 6, particle: portal, fx: d }
+                """).orElseThrow();
+        assertTrue(errors.isEmpty(), () -> errors.all().toString());
+        List<Action> actions = skill.steps().get(0).actions();
+        assertEquals("a", assertInstanceOf(Action.Particles.class, actions.get(0)).fx());
+        assertEquals("b", assertInstanceOf(Action.Projectile.class, actions.get(1)).fx());
+        assertEquals("c", assertInstanceOf(Action.PlaceZone.class, actions.get(2)).fx());
+        Action.Teleport teleport = assertInstanceOf(Action.Teleport.class, actions.get(3));
+        assertEquals("d", teleport.fx());
+        assertEquals("portal", teleport.particle());
+    }
 }

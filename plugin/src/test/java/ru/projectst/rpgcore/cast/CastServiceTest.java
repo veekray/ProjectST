@@ -126,12 +126,15 @@ class CastServiceTest {
         }
 
         @Override
-        public void dealDamage(UUID caster, UUID target, double amount,
-                               DamageSchool school, String skillId) {
+        public ru.projectst.rpgcore.damage.DamageResult dealDamage(UUID caster, UUID target,
+                                                                   double amount,
+                                                                   DamageSchool school,
+                                                                   String skillId) {
             damage.add(amount);
             if (onDamage != null) {
                 onDamage.run();
             }
+            return null;
         }
 
         @Override
@@ -214,6 +217,10 @@ class CastServiceTest {
 
         @Override
         public void sound(Position at, String sound, double volume, double pitch) {
+        }
+
+        @Override
+        public void effect(ru.projectst.rpgcore.skill.FxEvent event) {
         }
 
         @Override

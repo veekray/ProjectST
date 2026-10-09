@@ -289,7 +289,19 @@ public sealed interface Action {
      * @param forward на сколько блоков вперёд по взгляду; при точке действия
      *                перемещение идёт в неё, а это значение игнорируется
      */
-    record Teleport(NumberRef forward) implements Action {
+    /**
+     * Перенос.
+     *
+     * @param particle след от точки старта до точки прибытия; {@code null} — без
+     *                 следа
+     * @param fx       след мода; {@code null} — у всех ванильный
+     */
+    record Teleport(NumberRef forward, String particle, String fx) implements Action {
+
+        public Teleport(NumberRef forward) {
+            this(forward, null, null);
+        }
+
         @Override
         public String name() {
             return "teleport";
@@ -311,13 +323,16 @@ public sealed interface Action {
      * @param size      размер числом; {@code null} при {@code fitRadius}
      * @param fitRadius размер — радиус выбора целей шага
      * @param atOrigin  рисовать в точке действия, а не на целях
+     * @param fx        эффект мода; {@code null} — у всех ванильные частицы.
+     *                  {@code particle} при нём остаётся запасным видом для
+     *                  игроков без мода
      */
     record Particles(String particle, Shape shape, NumberRef count, NumberRef size,
-                     boolean fitRadius, boolean atOrigin) implements Action {
+                     boolean fitRadius, boolean atOrigin, String fx) implements Action {
 
         public Particles(String particle, Shape shape, NumberRef count, NumberRef size,
                          boolean atOrigin) {
-            this(particle, shape, count, size, false, atOrigin);
+            this(particle, shape, count, size, false, atOrigin, null);
         }
 
         /**
@@ -358,17 +373,18 @@ public sealed interface Action {
      * @param onEnd навык в точке, где снаряд закончился, никого не задев;
      *              {@code null} — ничего. Явный второй ключ, а не флаг: промах
      *              и попадание — разные события
+     * @param fx    эффект мода; {@code null} — у всех ванильный след
      */
     record Projectile(NumberRef speed, NumberRef range, NumberRef hitRadius, NumberRef gravity,
                       int pierce, boolean hitPlayers, boolean hitMobs, boolean stopAtBlock,
-                      String particle, String onHit, String onEnd, double yawOffset)
+                      String particle, String onHit, String onEnd, double yawOffset, String fx)
             implements Action {
 
         public Projectile(NumberRef speed, NumberRef range, NumberRef hitRadius,
                           NumberRef gravity, int pierce, boolean hitPlayers, boolean hitMobs,
                           boolean stopAtBlock, String particle, String onHit, String onEnd) {
             this(speed, range, hitRadius, gravity, pierce, hitPlayers, hitMobs, stopAtBlock,
-                    particle, onHit, onEnd, 0);
+                    particle, onHit, onEnd, 0, null);
         }
 
         public Projectile {
@@ -454,11 +470,11 @@ public sealed interface Action {
      */
     record PlaceZone(String tag, NumberRef radius, NumberRef duration, boolean atOrigin,
                      String particle, NumberRef minGap, String onEnter, String onTick,
-                     int tickInterval) implements Action {
+                     int tickInterval, String fx) implements Action {
 
         public PlaceZone(String tag, NumberRef radius, NumberRef duration, boolean atOrigin,
                          String particle) {
-            this(tag, radius, duration, atOrigin, particle, null, null, null, 0);
+            this(tag, radius, duration, atOrigin, particle, null, null, null, 0, null);
         }
         public PlaceZone {
             if (tag == null || tag.isBlank()) {

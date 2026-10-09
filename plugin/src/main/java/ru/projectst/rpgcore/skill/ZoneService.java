@@ -35,6 +35,11 @@ public final class ZoneService {
         this.clock = clock;
     }
 
+    /** Текущий тик по часам службы: от него мод считает остаток срока зоны. */
+    public long now() {
+        return clock.getAsLong();
+    }
+
     public Zone place(String tag, UUID owner, Position center, double radius, int durationTicks) {
         return place(tag, owner, center, radius, durationTicks, null);
     }
@@ -59,6 +64,20 @@ public final class ZoneService {
     public Optional<Zone> place(String tag, UUID owner, Position center, double radius,
                                 int durationTicks, String particle, double minGap,
                                 String onEnter, String onTick, int tickInterval) {
+        return place(tag, owner, center, radius, durationTicks, particle, null, "", minGap,
+                onEnter, onTick, tickInterval);
+    }
+
+    /**
+     * Ставит зону с эффектом мода.
+     *
+     * @param fx      эффект мода; {@code null} — только ванильные частицы
+     * @param classId чей класс: по нему мод красит эффект
+     */
+    public Optional<Zone> place(String tag, UUID owner, Position center, double radius,
+                                int durationTicks, String particle, String fx, String classId,
+                                double minGap, String onEnter, String onTick,
+                                int tickInterval) {
         expireAll();
         if (minGap > 0 && !near(center, minGap, tag).stream()
                 .filter(zone -> owner == null || zone.ownedBy(owner)).toList().isEmpty()) {
@@ -67,8 +86,9 @@ public final class ZoneService {
         if (zones.size() >= LIMIT) {
             zones.remove(0);
         }
+        long now = clock.getAsLong();
         Zone zone = new Zone(UUID.randomUUID(), tag, owner, center, radius,
-                clock.getAsLong() + Math.max(1, durationTicks), particle,
+                now, now + Math.max(1, durationTicks), particle, fx, classId,
                 onEnter, onTick, tickInterval);
         zones.add(zone);
         return Optional.of(zone);
