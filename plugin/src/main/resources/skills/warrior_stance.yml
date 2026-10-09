@@ -41,13 +41,13 @@ steps:
     do:
       - { action: count, counter: taken, status: stance_taken }
       - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: explosion, shape: ring, count: 20, size: $radius }
 
   - target: { type: enemies_in_radius, radius: $radius }
     delay: $duration
     do:
       - { action: damage, amount: "$damage_each * @taken", school: physical }
       - { action: push, strength: 0.8, lift: 0.3 }
+      - { action: particles, particle: explosion, shape: ring, count: 20, size: radius }
 
   - target: { type: self }
     delay: $duration

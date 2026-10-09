@@ -22,7 +22,6 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: block_rooted_dirt_place, pitch: 0.8 }
-      - { action: particles, particle: composter, shape: ring, count: 40, size: $radius }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -31,6 +30,7 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $root_duration }
       - { action: particles, particle: composter, shape: point, count: 10 }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -39,6 +39,7 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $empowered_root_duration }
       - { action: particles, particle: composter, shape: point, count: 14 }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius }
 
   - target: { type: self }
     if:

@@ -72,4 +72,50 @@ public final class Facing {
         return Heading.orNull(forwardX * forward + leftX * left,
                 forwardZ * forward + leftZ * left);
     }
+
+    /**
+     * Лежит ли смещение внутри конуса по земле.
+     *
+     * <p>Одна геометрия на оба конуса — «от кастера по взгляду» и «от точки к
+     * кастеру»: различаются только вершина и ось, а угол считается одинаково.
+     * Высота не учитывается, как и у спины.
+     *
+     * @param axisX        ось конуса по X; длина не важна
+     * @param axisZ        ось конуса по Z
+     * @param dx           смещение цели от вершины по X
+     * @param dz           смещение цели от вершины по Z
+     * @param angleDegrees ширина конуса целиком: 60 — по 30 в каждую сторону
+     */
+    public static boolean insideCone(double axisX, double axisZ, double dx, double dz,
+                                     double angleDegrees) {
+        double axis = Math.sqrt(axisX * axisX + axisZ * axisZ);
+        double to = Math.sqrt(dx * dx + dz * dz);
+        if (axis < 1.0e-6 || to < 1.0e-6) {
+            // Оси нет или цель в самой вершине: угол не определён, и такое
+            // попадание засчитывается — вплотную промахнуться конусом нельзя.
+            return true;
+        }
+        double cosine = (axisX * dx + axisZ * dz) / (axis * to);
+        return Math.toDegrees(Math.acos(Math.clamp(cosine, -1.0, 1.0))) <= angleDegrees / 2;
+    }
+
+    /**
+     * Ось конуса «от точки к кастеру».
+     *
+     * <p>Если кастер стоит в самой вершине — точка сбора упёрлась в стену у
+     * него перед носом, — направления к нему нет, и конус раскрывается назад
+     * от взгляда: туда, куда раскрылся бы, отойди точка хоть на шаг.
+     *
+     * @param dx   смещение кастера от вершины по X
+     * @param dz   смещение кастера от вершины по Z
+     * @param look куда смотрит кастер; {@code null}, если неизвестно
+     * @return ось или {@code null}, если её не из чего взять
+     */
+    public static Heading coneAxisToCaster(double dx, double dz, Heading look) {
+        Heading toward = Heading.orNull(dx, dz);
+        if (toward != null) {
+            return toward;
+        }
+        return look == null ? null : new Heading(-look.x(), -look.z());
+    }
 }

@@ -77,6 +77,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
     private ZoneService zones;
     private MinionService minions;
     private BukkitSkillWorld world;
+    private ru.projectst.rpgcore.platform.FxBroadcaster fx;
 
     @Override
     public void onEnable() {
@@ -102,7 +103,10 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
 
         zones = new ZoneService(clock);
         minions = new MinionService(clock);
-        world = new BukkitSkillWorld(this, damage, stats, statuses, minions);
+        // Эффекты мода: кому события, кому ванильные частицы. Канал мода
+        // подключается к нему ниже, когда тот создан.
+        fx = new ru.projectst.rpgcore.platform.FxBroadcaster(this, clock);
+        world = new BukkitSkillWorld(this, damage, stats, statuses, minions, fx);
         SkillRuntime runtime = new SkillRuntime(world, statuses, stats,
                 content.balance(), content.skills(), zones, minions, random);
 
@@ -156,6 +160,10 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
                 content.playerClasses(), content.skills(), content.stats(), stats,
                 gearSlots, equipment, runtime.statusStats());
         clientLink.register();
+        fx.useViewers(clientLink::hasMod);
+        // Эффекты уходят пачкой в конце тика: всё, что навыки показали за тик,
+        // одним сообщением на игрока.
+        Bukkit.getScheduler().runTaskTimer(this, fx::flush, 1L, 1L);
 
         var command = getCommand("rpg");
         if (command != null) {
@@ -264,7 +272,8 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // Зоны: отрисовка, вход и собственные тики. Рисовать зону — обязанность
         // плагина, а не автора навыка: невидимая зона это ловушка, а не механика.
         Bukkit.getScheduler().runTaskTimer(this,
-                new ZoneTicker(zones, minions, content.skills(), runtime, classService, world),
+                new ZoneTicker(zones, minions, content.skills(), runtime, classService, world,
+                        fx),
                 ZoneTicker.PERIOD_TICKS, ZoneTicker.PERIOD_TICKS);
 
         getLogger().info("RpgCore включён: статов " + content.stats().size()
@@ -329,6 +338,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         // перезапуск, а сохранённый предмет лежит файлом.
         itemForge.forget(uuid);
         clientLink.forget(uuid);
+        fx.forget(uuid);
         cooldowns.forget(uuid);
         // Чужие печати после выхода их владельца не должны никого усиливать.
         zones.forgetOwner(uuid);

@@ -42,8 +42,10 @@ public final class Protocol {
      * не действует.
      * <p>8 — бафы и дебафы значками: у статуса полный срок, короткое описание и
      * то, что он даёт статам, готовыми числами.
+     * <p>9 — канал эффектов {@link #CHANNEL_FX}: границы областей, зоны, снаряды,
+     * следы и вспышки крита, всё с посчитанными сервером радиусами и сроками.
      */
-    public static final int VERSION = 8;
+    public static final int VERSION = 9;
 
     /**
      * Ключ заголовка окна снаряжения.
@@ -86,6 +88,15 @@ public final class Protocol {
 
     /** Сервер присылает всё, что нужно меню: классы, навыки, числа. */
     public static final String CHANNEL_MENU = "rpgcore:menu";
+
+    /**
+     * Сервер присылает видимые события навыков.
+     *
+     * <p>Только тем, кто поздоровался, и только о том, что рядом. Игрок без мода
+     * вместо событий видит ванильные частицы из тех же навыков — и никогда оба
+     * вида сразу.
+     */
+    public static final String CHANNEL_FX = "rpgcore:fx";
 
     /** Клиент просит действие. */
     public static final String CHANNEL_ACTION = "rpgcore:action";

@@ -1,0 +1,265 @@
+package ru.projectst.rpgcore.client;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.ParticleStatus;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ru.projectst.rpgcore.net.FxMessage;
+
+/**
+ * Живые эффекты навыков на клиенте.
+ *
+ * <p>Сервер присылает «что и где» готовыми числами — радиус выборки, срок зоны,
+ * крит, — мод решает «как красиво» и больше ничего. Граница всегда ровно по
+ * присланному радиусу; срок зоны мод лишь отсчитывает, а снимает зону сервер.
+ *
+ * <p><b>Производительность.</b> Настройка «Частицы» игрока соблюдается: «Всё» —
+ * полностью, «Меньше» — меньше искр и реже сегменты, «Минимум» — без искр и
+ * рун, только границы, дуги срока и ядро вспышки. Границы не убираются никогда:
+ * по ним играют. Дальние эффекты рисуются без искр и рун; за пределом
+ * видимости и вне кадра — не рисуются вовсе. Число эффектов и искр ограничено
+ * жёстко, и при перегрузке первыми теряются украшения: двадцать магов с
+ * печатями в одной точке — это двадцать колец и меньше искр, а не просадка.
+ *
+ * <p><b>Ни один эффект не роняет игру.</b> Ошибка в рисовании снимает этот
+ * эффект с одной строкой в журнале, и только его.
+ */
+@EventBusSubscriber(modid = RpgCoreClient.MOD_ID, value = Dist.CLIENT)
+public final class FxEffects {
+
+    private static final Logger LOG = LoggerFactory.getLogger("rpgcore");
+
+    /** Больше эффектов одновременно не держим: украшения сверх этого не берутся. */
+    static final int MAX_EFFECTS = 320;
+    /** Зоны — состояние, но и их предел есть: чужие сверх него не берутся. */
+    static final int MAX_ZONES = 200;
+    /** Искр одновременно. */
+    static final int MAX_MOTES = 2500;
+
+    /** Ближе — всё; дальше — без искр и рун. */
+    private static final double NEAR = 24;
+    /** Дальше не рисуется: сервер шлёт на сорок восемь, плюс запас на размер. */
+    private static final double FAR = 72;
+
+    private static final List<FxKinds.Effect> EFFECTS = new ArrayList<>();
+    private static final Map<Integer, FxKinds.Zone> ZONES = new HashMap<>();
+    private static final Map<Integer, FxKinds.Bolt> BOLTS = new HashMap<>();
+    private static final FxMotes MOTES = new FxMotes(MAX_MOTES);
+    private static final FxDraw DRAW = new FxDraw();
+
+    /** Тики клиента с запуска: часы для сроков зон. */
+    private static long now;
+    private static boolean warned;
+
+    private FxEffects() {
+    }
+
+    // ------------------------------------------------------------------ события
+
+    /** События одного сообщения с сервера, в главном потоке клиента. */
+    static void accept(List<FxMessage.Event> events) {
+        for (FxMessage.Event event : events) {
+            try {
+                take(event);
+            } catch (RuntimeException e) {
+                warnOnce("эффект не принят", e);
+            }
+        }
+    }
+
+    private static void take(FxMessage.Event event) {
+        switch (event) {
+            case FxMessage.Burst burst -> add(new FxKinds.Burst(
+                    FxStyle.of(burst.fx(), kindOf(burst.shape())), burst));
+            case FxMessage.ZoneOn on -> {
+                FxKinds.Zone old = ZONES.remove(on.id());
+                if (old != null) {
+                    old.dead = true;
+                }
+                if (!on.own() && ZONES.size() >= MAX_ZONES) {
+                    return;
+                }
+                FxKinds.Zone zone = new FxKinds.Zone(FxStyle.of(on.fx(), FxStyle.Kind.ZONE), on, now);
+                ZONES.put(on.id(), zone);
+                EFFECTS.add(zone);
+            }
+            case FxMessage.ZoneOff off -> {
+                FxKinds.Zone zone = ZONES.remove(off.id());
+                if (zone != null) {
+                    zone.end(off);
+                }
+            }
+            case FxMessage.Projectile p -> {
+                FxKinds.Bolt bolt = new FxKinds.Bolt(FxStyle.of(p.fx(), FxStyle.Kind.BOLT), p);
+                BOLTS.put(p.id(), bolt);
+                EFFECTS.add(bolt);
+            }
+            case FxMessage.ProjectileEnd end -> {
+                FxKinds.Bolt bolt = BOLTS.remove(end.id());
+                if (bolt != null) {
+                    bolt.end(end, MOTES, emitFactor());
+                }
+            }
+            case FxMessage.Hit hit -> add(new FxKinds.Hit(
+                    FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
+            case FxMessage.Trail trail -> add(new FxKinds.Trail(
+                    FxStyle.of(trail.fx(), FxStyle.Kind.TRAIL), trail));
+        }
+    }
+
+    /** Общий вид для формы, если своего эффекта у мода нет. */
+    private static FxStyle.Kind kindOf(FxMessage.Shape shape) {
+        return switch (shape) {
+            case RING -> FxStyle.Kind.WAVE;
+            case CONE -> FxStyle.Kind.CONE;
+            case POINT, SPHERE, LINE -> FxStyle.Kind.FLASH;
+        };
+    }
+
+    /** Украшение берётся, только пока есть место. */
+    private static void add(FxKinds.Effect effect) {
+        if (EFFECTS.size() >= MAX_EFFECTS && effect.decor()) {
+            return;
+        }
+        EFFECTS.add(effect);
+    }
+
+    /** Выход с сервера: всё живое забывается. */
+    static void clear() {
+        EFFECTS.clear();
+        ZONES.clear();
+        BOLTS.clear();
+        MOTES.clear();
+        FxGround.clear();
+    }
+
+    // ------------------------------------------------------------------ настройка
+
+    /** Сколько искр рождать: от настройки «Частицы» и от тесноты. */
+    private static float emitFactor() {
+        ParticleStatus status = Minecraft.getInstance().options.particles().get();
+        float base = switch (status) {
+            case ALL -> 1f;
+            case DECREASED -> 0.4f;
+            case MINIMAL -> 0f;
+        };
+        // Когда эффектов много, каждый рождает меньше: двадцать печатей в одной
+        // точке не должны соревноваться за пул искр.
+        float crowd = EFFECTS.size() > 96 ? 0.4f : 1f;
+        return base * crowd * (1f - MOTES.pressure() * 0.7f);
+    }
+
+    // ------------------------------------------------------------------ тик
+
+    @SubscribeEvent
+    public static void onTick(ClientTickEvent.Post event) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) {
+            if (!EFFECTS.isEmpty() || MOTES.count() > 0) {
+                clear();
+            }
+            return;
+        }
+        if (Minecraft.getInstance().isPaused()) {
+            return;
+        }
+        now++;
+        FxGround.tick();
+        float emit = emitFactor();
+        Iterator<FxKinds.Effect> it = EFFECTS.iterator();
+        while (it.hasNext()) {
+            FxKinds.Effect effect = it.next();
+            try {
+                effect.tick(level, MOTES, emit);
+            } catch (RuntimeException e) {
+                warnOnce("эффект сломался на тике", e);
+                effect.dead = true;
+            }
+            if (effect.dead) {
+                it.remove();
+            }
+        }
+        ZONES.values().removeIf(zone -> zone.dead);
+        BOLTS.values().removeIf(bolt -> bolt.dead);
+        MOTES.tick();
+    }
+
+    // ------------------------------------------------------------------ кадр
+
+    @SubscribeEvent
+    public static void onRender(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+            return;
+        }
+        if (EFFECTS.isEmpty() && MOTES.count() == 0) {
+            return;
+        }
+        Minecraft client = Minecraft.getInstance();
+        ClientLevel level = client.level;
+        if (level == null) {
+            return;
+        }
+        Camera camera = event.getCamera();
+        Vec3 eye = camera.getPosition();
+        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        ParticleStatus status = client.options.particles().get();
+        float detail = switch (status) {
+            case ALL -> 1f;
+            case DECREASED -> 0.7f;
+            case MINIMAL -> 0.5f;
+        };
+        boolean decorations = status != ParticleStatus.MINIMAL;
+        DRAW.begin(level, eye.x, eye.y, eye.z, camera.rotation(), detail);
+        Frustum frustum = event.getFrustum();
+        FxKinds.Detail near = new FxKinds.Detail(decorations, 1f);
+        FxKinds.Detail far = new FxKinds.Detail(false, 0f);
+        for (FxKinds.Effect effect : EFFECTS) {
+            try {
+                var box = effect.bounds();
+                if (!frustum.isVisible(box)) {
+                    continue;
+                }
+                double distance = Math.sqrt(box.distanceToSqr(eye));
+                if (distance > FAR) {
+                    continue;
+                }
+                effect.draw(DRAW, partial, distance > NEAR ? far : near);
+            } catch (RuntimeException e) {
+                warnOnce("эффект сломался при рисовании", e);
+                effect.dead = true;
+            }
+        }
+        if (decorations) {
+            MOTES.draw(DRAW, partial, NEAR + 8);
+        }
+        try {
+            var pose = event.getPoseStack();
+            pose.pushPose();
+            DRAW.flush(pose.last().pose(), client.renderBuffers().bufferSource());
+            pose.popPose();
+        } catch (RuntimeException e) {
+            warnOnce("эффекты не нарисовались", e);
+        }
+    }
+
+    private static void warnOnce(String what, RuntimeException e) {
+        if (!warned) {
+            warned = true;
+            LOG.warn("RpgCore: {} — {}", what, e.toString(), e);
+        }
+    }
+}

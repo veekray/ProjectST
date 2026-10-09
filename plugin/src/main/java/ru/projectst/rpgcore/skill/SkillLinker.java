@@ -124,7 +124,9 @@ public final class SkillLinker {
                 // Цель, которой нужна точка действия, не имеет смысла в навыке,
                 // который её не задаёт. Это ловится здесь, а не пустым списком
                 // целей в бою.
-                if (step.target().type().needsOrigin() && !providesOrigin(skills, skill)) {
+                // Шаг со своей точкой (origin: self, forward N) задаёт её сам.
+                if (step.target().type().needsOrigin() && step.origin().inherited()
+                        && !providesOrigin(skills, skill)) {
                     errors.add(where, stepPath + ".target.type",
                             "цель " + step.target().type().name().toLowerCase(java.util.Locale.ROOT)
                                     + " требует точку действия, но навык её не задаёт: "

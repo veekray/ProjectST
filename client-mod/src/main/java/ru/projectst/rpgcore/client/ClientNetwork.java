@@ -64,6 +64,8 @@ public final class ClientNetwork {
         state = null;
         menu = null;
         accepted = false;
+        // Зоны и снаряды прошлого сервера не должны дорисовываться на следующем.
+        FxEffects.clear();
     }
 
     static void onWelcome(WelcomePayload payload, IPayloadContext context) {
@@ -123,6 +125,26 @@ public final class ClientNetwork {
         }
         classOffered = true;
         client.setScreen(new CharacterScreen());
+    }
+
+    /**
+     * Видимые события навыков.
+     *
+     * <p>До рукопожатия не читаются: версия формата ещё не подтверждена, а
+     * чужие байты, прочитанные наугад, — это кольцо не того радиуса.
+     */
+    static void onFx(FxPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!accepted) {
+                return;
+            }
+            try {
+                FxEffects.accept(StateCodec.readFx(payload.data()));
+            } catch (RuntimeException e) {
+                // Испорченная пачка теряется целиком: лучше не показать вспышку,
+                // чем показать её не там.
+            }
+        });
     }
 
     static void onState(StatePayload payload, IPayloadContext context) {

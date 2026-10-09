@@ -1,0 +1,134 @@
+package ru.projectst.rpgcore.client;
+
+import java.util.Map;
+
+/**
+ * Как выглядит эффект: вид, цвета и сроки.
+ *
+ * <p>Каталог — здесь, а не на сервере: сервер говорит «что и где» числами, мод
+ * решает «как красиво». Поэтому новый эффект добавляется строкой сюда, и плагин
+ * об этом не знает. Эффект, которого в каталоге нет, рисуется общим по своему
+ * виду и цвету класса, — так же, как значок навыка без картинки рисуется ромбом
+ * цвета класса: новый навык в контенте не должен требовать новой сборки мода.
+ *
+ * <p>Граница области у всех видов, где она есть, рисуется ровно по радиусу из
+ * события. Цвета и сроки меняют только украшения вокруг неё.
+ *
+ * @param kind    вид: что именно рисуется
+ * @param primary основной цвет (RGB); 0 — цвет класса
+ * @param accent  цвет искр, таймера и блика (RGB); 0 — светлее основного
+ * @param grow    за сколько тиков волна дорастает до радиуса
+ * @param hold    сколько тиков граница держится чёткой линией
+ * @param fade    за сколько тиков гаснет
+ * @param runes   пояс рун внутри границы
+ * @param motes   сколько искр, доля от обычного
+ * @param size    размер ядра снаряда или вспышки, в блоках
+ */
+public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, int fade,
+                      boolean runes, float motes, float size) {
+
+    /** Что рисуется. Один вид — одна функция в {@link FxKinds}. */
+    public enum Kind {
+        /** Зона на земле: граница, дуга срока, заливка. */
+        ZONE,
+        /** Волна от центра до границы; граница держится. */
+        WAVE,
+        /** Кольцо, стягивающееся в центр: печать съедена. */
+        IMPLODE,
+        /** Круг удара, который ещё не ударил. */
+        TELEGRAPH,
+        /** Сектор конуса: дуга, кромки, заливка. */
+        CONE,
+        /** Вспышка в точке. */
+        FLASH,
+        /** Снаряд: ядро и шлейф. */
+        BOLT,
+        /** След перемещения. */
+        TRAIL,
+        /** Попадание по цели. */
+        HIT
+    }
+
+    // ------------------------------------------------------------------ маг
+
+    /** Синевато-фиолетовая магия: тот же синий, что у значков мага, сдвинутый к аркане. */
+    private static final int ARCANE = 0x7A86FF;
+    private static final int ARCANE_LIGHT = 0xC9B8FF;
+    private static final int VOID = 0xB15CFF;
+    private static final int VOID_LIGHT = 0xF0C8FF;
+
+    private static final Map<String, FxStyle> CATALOG = Map.ofEntries(
+            // Печать: зона на земле. Граница чёткая, руны медленно ходят по кругу.
+            Map.entry("mage_seal", new FxStyle(Kind.ZONE, ARCANE, ARCANE_LIGHT, 0, 0, 8, true, 1f, 0)),
+            // Ядро съело печать: кольцо стягивается в мага и вспыхивает столбом.
+            Map.entry("mage_seal_eat", new FxStyle(Kind.IMPLODE, VOID, VOID_LIGHT, 8, 0, 6, false, 1f, 1.2f)),
+            // Петля: волна до радиуса толчка, граница держится, чтобы её прочитали.
+            Map.entry("mage_flow_wave", new FxStyle(Kind.WAVE, ARCANE, ARCANE_LIGHT, 6, 8, 6, false, 1f, 0)),
+            Map.entry("mage_flow_wave_strong", new FxStyle(Kind.WAVE, VOID, VOID_LIGHT, 6, 10, 8, true, 1.6f, 0)),
+            // Разряд: светящееся ядро со шлейфом.
+            Map.entry("mage_bolt", new FxStyle(Kind.BOLT, ARCANE, ARCANE_LIGHT, 0, 0, 6, false, 1f, 0.45f)),
+            Map.entry("mage_bolt_strong", new FxStyle(Kind.BOLT, VOID, VOID_LIGHT, 0, 0, 8, false, 1.6f, 0.7f)),
+            Map.entry("mage_bolt_hit", new FxStyle(Kind.WAVE, ARCANE, ARCANE_LIGHT, 4, 3, 5, false, 0.8f, 0)),
+            Map.entry("mage_bolt_hit_strong", new FxStyle(Kind.WAVE, VOID, VOID_LIGHT, 4, 3, 6, false, 1.2f, 0)),
+            // Россыпь: мелкие осколки-глифы, печать в точке падения.
+            Map.entry("mage_scatter_shard", new FxStyle(Kind.BOLT, ARCANE, ARCANE_LIGHT, 0, 0, 5, false, 0.6f, 0.3f)),
+            // Шаг в пустоту: лента от старта до прибытия, гаснет за полсекунды.
+            Map.entry("mage_void_trail", new FxStyle(Kind.TRAIL, VOID, VOID_LIGHT, 0, 4, 12, false, 1f, 0.55f)),
+            Map.entry("mage_void_trail_strong", new FxStyle(Kind.TRAIL, VOID, VOID_LIGHT, 0, 6, 14, false, 1.6f, 0.8f)),
+            Map.entry("mage_void_wave", new FxStyle(Kind.WAVE, VOID, VOID_LIGHT, 5, 8, 6, false, 1.2f, 0)),
+            // Сгон: сектор ровно по радиусу и углу выборки, искры текут к печати.
+            Map.entry("mage_herd_cone", new FxStyle(Kind.CONE, ARCANE, ARCANE_LIGHT, 4, 10, 8, false, 1f, 0)),
+            Map.entry("mage_herd_cone_strong", new FxStyle(Kind.CONE, VOID, VOID_LIGHT, 4, 12, 8, false, 1.4f, 0)),
+            Map.entry("mage_root_snap", new FxStyle(Kind.IMPLODE, VOID, VOID_LIGHT, 6, 0, 6, false, 1f, 0.8f)),
+            // Коллапс: круг удара телеграфирует секунду, затем схлопывается волной.
+            Map.entry("mage_collapse_field", new FxStyle(Kind.TELEGRAPH, VOID, VOID_LIGHT, 0, 20, 4, true, 1.4f, 0)),
+            Map.entry("mage_collapse_blast", new FxStyle(Kind.WAVE, VOID, VOID_LIGHT, 5, 6, 10, false, 2f, 0)),
+            // Попадание и крит — общие для всех классов, цвет от класса.
+            Map.entry("hit", new FxStyle(Kind.HIT, 0, 0, 0, 0, 6, false, 1f, 0.6f)),
+            Map.entry("crit", new FxStyle(Kind.HIT, 0, 0xFFE9A8, 0, 0, 10, false, 2.5f, 1.6f)));
+
+    /** Общие эффекты по виду: для идентификатора, которого нет в каталоге. */
+    private static final Map<Kind, FxStyle> GENERIC = Map.of(
+            Kind.ZONE, new FxStyle(Kind.ZONE, 0, 0, 0, 0, 8, false, 0.6f, 0),
+            Kind.WAVE, new FxStyle(Kind.WAVE, 0, 0, 6, 8, 6, false, 0.8f, 0),
+            Kind.CONE, new FxStyle(Kind.CONE, 0, 0, 4, 10, 8, false, 0.6f, 0),
+            Kind.FLASH, new FxStyle(Kind.FLASH, 0, 0, 3, 2, 6, false, 0.6f, 0.8f),
+            Kind.BOLT, new FxStyle(Kind.BOLT, 0, 0, 0, 0, 6, false, 0.8f, 0.4f),
+            Kind.TRAIL, new FxStyle(Kind.TRAIL, 0, 0, 0, 4, 12, false, 0.8f, 0.5f));
+
+    /**
+     * Стиль эффекта по идентификатору.
+     *
+     * @param fallback вид общего эффекта, если идентификатора нет в каталоге
+     */
+    public static FxStyle of(String fx, Kind fallback) {
+        FxStyle known = fx == null ? null : CATALOG.get(fx);
+        if (known != null) {
+            return known;
+        }
+        return GENERIC.getOrDefault(fallback, GENERIC.get(Kind.FLASH));
+    }
+
+    /** Есть ли у мода свой эффект: нужно тесту контента и отладке. */
+    public static boolean known(String fx) {
+        return CATALOG.containsKey(fx);
+    }
+
+    /** Основной цвет с учётом класса, ARGB с полной непрозрачностью. */
+    public int primaryFor(String classId) {
+        int rgb = primary != 0 ? primary : SkillIcons.colourOfClass(classId) & 0xFFFFFF;
+        return 0xFF000000 | rgb;
+    }
+
+    /** Цвет блика: свой или основной, высветленный к белому. */
+    public int accentFor(String classId) {
+        if (accent != 0) {
+            return 0xFF000000 | accent;
+        }
+        int base = primaryFor(classId);
+        int r = ((base >> 16) & 0xFF) + 255 >> 1;
+        int g = ((base >> 8) & 0xFF) + 255 >> 1;
+        int b = (base & 0xFF) + 255 >> 1;
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+}

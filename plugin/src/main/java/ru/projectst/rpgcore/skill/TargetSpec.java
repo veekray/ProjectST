@@ -37,6 +37,16 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String ta
         ENEMIES_IN_CONE(true, true),
 
         /**
+         * Враги в конусе с вершиной в точке действия, раскрытом к кастеру.
+         *
+         * <p>Сгон мага: вершина — печать в точке сбора, и конус накрывает
+         * дорогу от неё до мага и дальше за него. Отдельный тип, а не флаг у
+         * {@link #ENEMIES_IN_CONE}: у двух конусов разные вершина и ось, и
+         * спутать их ключом было бы проще, чем заметить разницу.
+         */
+        ENEMIES_IN_CONE_TO_CASTER(true, true),
+
+        /**
          * Враги вокруг точки действия.
          *
          * <p>Если точка не задана, список пуст — и это сознательно. Молчаливый
@@ -92,10 +102,15 @@ public record TargetSpec(Type type, NumberRef radius, NumberRef angle, String ta
             return this == SELF || this == ALLIES_IN_RADIUS || this == ALLIES_NEAR_ORIGIN;
         }
 
+        /** Конус ли это: ему нужны угол и ось. */
+        public boolean isCone() {
+            return this == ENEMIES_IN_CONE || this == ENEMIES_IN_CONE_TO_CASTER;
+        }
+
         /** Нужна ли этому типу точка действия. */
         public boolean needsOrigin() {
             return this == ENEMIES_NEAR_ORIGIN || this == ALL_NEAR_ORIGIN
-                    || this == ALLIES_NEAR_ORIGIN;
+                    || this == ALLIES_NEAR_ORIGIN || this == ENEMIES_IN_CONE_TO_CASTER;
         }
 
         /** Нужен ли этому типу тег зоны. */

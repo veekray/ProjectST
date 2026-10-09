@@ -17,21 +17,25 @@ import java.util.UUID;
  * @param owner     кто поставил; свои и чужие зоны различаются явно
  * @param center    центр
  * @param radius    радиус
+ * @param placedAtTick  тик, когда зону поставили: от него считается полный срок
  * @param expiresAtTick тик, после которого зоны нет
- * @param particle  чем рисуется; {@code null} — невидимая. Единственная
- *                  presentation-деталь в модели, и осознанно: зона, которую
- *                  игрок не видит, — это ловушка, а не механика
+ * @param particle  чем рисуется; {@code null} — невидимая. Presentation-деталь
+ *                  в модели осознанно: зона, которую игрок не видит, — это
+ *                  ловушка, а не механика
+ * @param fx        эффект мода; {@code null} — у всех ванильные частицы
+ * @param classId   чей класс поставил: по нему мод красит эффект; пусто — ничей
  * @param onEnter   навык, который выполняется на вошедшего; {@code null} — нет
  * @param onTick    навык, который зона выполняет сама; {@code null} — нет
  * @param tickInterval промежуток между тиками зоны
  */
 public record Zone(UUID id, String tag, UUID owner, Position center, double radius,
-                   long expiresAtTick, String particle, String onEnter, String onTick,
-                   int tickInterval) {
+                   long placedAtTick, long expiresAtTick, String particle, String fx,
+                   String classId, String onEnter, String onTick, int tickInterval) {
 
     public Zone(UUID id, String tag, UUID owner, Position center, double radius,
                 long expiresAtTick, String particle) {
-        this(id, tag, owner, center, radius, expiresAtTick, particle, null, null, 0);
+        this(id, tag, owner, center, radius, 0, expiresAtTick, particle, null, "",
+                null, null, 0);
     }
 
     public Zone {
@@ -41,12 +45,25 @@ public record Zone(UUID id, String tag, UUID owner, Position center, double radi
         if (radius <= 0) {
             throw new IllegalArgumentException("радиус зоны должен быть положительным");
         }
+        if (classId == null) {
+            classId = "";
+        }
     }
 
     /** Лежит ли точка внутри зоны. Сравнение в одном мире, разумеется. */
     public boolean contains(Position point) {
         return center.worldId().equals(point.worldId())
                 && center.distanceTo(point) <= radius;
+    }
+
+    /**
+     * Полный срок зоны в тиках — тот, с которым её поставили.
+     *
+     * <p>Его же получает мод для дуги-таймера: срок, переписанный в событие
+     * отдельно, однажды разошёлся бы с тем, когда зона на самом деле гаснет.
+     */
+    public int totalTicks() {
+        return (int) Math.max(1, expiresAtTick - placedAtTick);
     }
 
     public boolean expired(long now) {

@@ -22,9 +22,9 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.7 }
-      - { action: particles, particle: sweep_attack, shape: ring, count: 16, size: $radius }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.3 }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 16, size: radius }

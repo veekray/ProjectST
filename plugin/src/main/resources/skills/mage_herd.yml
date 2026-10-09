@@ -1,10 +1,14 @@
 # 4. Сгон — конус сгоняет врагов к точке сбора, а не к магу.
 #
 # Точка сбора всегда в девяти блоках впереди, и это написано в шаге одной
-# строкой: origin: forward 9. Раньше тянуло «к ближайшей своей печати», и это
-# была двойная ошибка — печать навык кладёт сам под ноги, поэтому сгон к печати
-# совпадал со сгоном к себе; а усиленная ветка была обречена, потому что ядро
-# съедает печать до ветвления, и тянуть становилось не к чему.
+# строкой: origin: forward 9. Печать ставится в точке сбора первой, и конус идёт
+# от неё: вершина в печати, раскрыт назад, к магу и дальше за него
+# (enemies_in_cone_to_caster). Поэтому сгоняются те, кто между магом и печатью,
+# а не те, кто уже за ней. Раньше конус шёл от мага по взгляду, и печать в его
+# вершине не стояла: картинка «сгоняю в печать» не совпадала с тем, кого тянет.
+#
+# Усиленный каст печати не ставит (земля потрачена ядром), но конус идёт из той
+# же точки сбора — там, где встала бы печать.
 #
 # Притяжение идёт тремя слабыми тиками вместо одного сильного: один импульс
 # проносит цель мимо точки сбора, а каждый следующий пересчитывает направление,
@@ -20,8 +24,8 @@ cost: $mana
 cooldown: $cooldown
 
 description:
-  - "Конус сгоняет врагов к точке впереди,"
-  - "а не к вам. Там же остаётся печать."
+  - "Печать встаёт впереди, и конус от неё"
+  - "сгоняет к ней врагов между вами и печатью."
   - "На своей печати: шире и приковывает."
 
 steps:
@@ -31,38 +35,39 @@ steps:
       - { action: cast, skill: mage_seal_core, at-targets: true }
       - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 0.8, pitch: 1.3 }
 
-  # Обычный: собирает и оставляет печать в точке сбора.
-  - target: { type: enemies_in_cone, radius: $radius, angle: $angle }
+  # Обычный: сначала печать в точке сбора, потом конус от неё.
+  - target: { type: self }
+    origin: forward $gather_distance
+    if:
+      - { caster: has-status, value: empowered, not: true }
+    do:
+      - { action: cast, skill: mage_seal_drop, at-targets: true }
+
+  - target: { type: enemies_in_cone_to_caster, radius: $radius, angle: $angle }
     origin: forward $gather_distance
     if:
       - { caster: has-status, value: empowered, not: true }
     do:
       - { action: pull, strength: $pull, ticks: 3 }
       - { action: particles, particle: enchant, shape: point, count: 10 }
-
-  - target: { type: self }
-    origin: forward $gather_distance
-    if:
-      - { caster: has-status, value: empowered, not: true }
-    do:
-      - { action: particles, particle: enchant, shape: ring, count: 20, size: 2, at-origin: true }
-      - { action: cast, skill: mage_seal_drop, at-targets: true }
+      - { action: particles, particle: enchant, shape: cone, count: 30, fx: mage_herd_cone }
 
   # Усиленный: шире конус, тянет сильнее и приковывает.
-  - target: { type: enemies_in_cone, radius: $empowered_radius, angle: $empowered_angle }
+  - target: { type: enemies_in_cone_to_caster, radius: $empowered_radius, angle: $empowered_angle }
     origin: forward $gather_distance
     if:
       - { caster: has-status, value: empowered }
     do:
       - { action: pull, strength: $empowered_pull, ticks: 3 }
       - { action: particles, particle: witch, shape: point, count: 14 }
+      - { action: particles, particle: witch, shape: cone, count: 30, fx: mage_herd_cone_strong }
 
   # Корни вешаем после притяжения: иначе они погасят его на первом же тике.
-  - target: { type: enemies_in_cone, radius: $empowered_radius, angle: $empowered_angle }
+  - target: { type: enemies_in_cone_to_caster, radius: $empowered_radius, angle: $empowered_angle }
     origin: forward $gather_distance
     delay: 12
     if:
       - { caster: has-status, value: empowered }
     do:
       - { action: status, id: root, duration: $root_duration }
-      - { action: particles, particle: witch, shape: ring, count: 26, size: 2.5, at-origin: true }
+      - { action: particles, particle: witch, shape: ring, count: 26, size: 2.5, at-origin: true, fx: mage_root_snap }

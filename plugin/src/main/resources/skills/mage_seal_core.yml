@@ -7,6 +7,10 @@
 # шапки были обычными метаскиллами и попадали в меню наравне с настоящими
 # навыками, а отличить одно от другого можно было только по имени.
 #
+# Съедается ровно одна печать — та, на которой маг стоит, и в той границе, в
+# какой её видно (inside: true, по радиусу самой печати). Раньше съедалось всё
+# своё в четырёх блоках вокруг, и одно нажатие тратило две соседние печати.
+#
 # Флаг усиления снимается первым шагом: иначе он дожил бы до следующего каста,
 # и второй навык подряд оказывался бы усиленным бесплатно. Ровно так и было,
 # пока в старом стеке шапка не начала делать auraRemove первой строкой.
@@ -27,8 +31,8 @@ steps:
     if:
       - { caster: in-zone, value: "seal:own" }
     do:
-      - { action: consume-zones, tag: seal, radius: $eat_radius, counter: eaten }
+      - { action: consume-zones, tag: seal, inside: true, limit: 1, counter: eaten }
       - { action: status, id: empowered, duration: $duration }
-      - { action: particles, particle: witch, shape: ring, count: 24, size: 1.5, at-origin: true }
+      - { action: particles, particle: witch, shape: ring, count: 24, size: 1.5, at-origin: true, fx: mage_seal_eat }
       - { action: particles, particle: enchant, shape: sphere, count: 30, size: 0.5, at-origin: true }
       - { action: sound, sound: block_enchantment_table_use, pitch: 1.4 }
