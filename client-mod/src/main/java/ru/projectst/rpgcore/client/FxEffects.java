@@ -57,6 +57,13 @@ public final class FxEffects {
     private static final double FAR = 72;
 
     private static final List<FxKinds.Effect> EFFECTS = new ArrayList<>();
+    /**
+     * Рождённые во время тика: сцена на тике может завести новый эффект (стрела
+     * ливня — свою остановку), а в список, который сейчас перебирается,
+     * добавлять нельзя — итератор упал бы и уронил игру целиком.
+     */
+    private static final List<FxKinds.Effect> PENDING = new ArrayList<>();
+    private static boolean ticking;
     private static final Map<Integer, FxKinds.Zone> ZONES = new HashMap<>();
     private static final Map<Integer, FxKinds.Bolt> BOLTS = new HashMap<>();
     private static final FxMotes MOTES = new FxMotes(MAX_MOTES);
@@ -202,7 +209,11 @@ public final class FxEffects {
 
     /** Украшение берётся, только пока есть место. */
     private static void add(FxKinds.Effect effect) {
-        if (EFFECTS.size() >= MAX_EFFECTS && effect.decor()) {
+        if (EFFECTS.size() + PENDING.size() >= MAX_EFFECTS && effect.decor()) {
+            return;
+        }
+        if (ticking) {
+            PENDING.add(effect);
             return;
         }
         EFFECTS.add(effect);
@@ -211,6 +222,7 @@ public final class FxEffects {
     /** Выход с сервера: всё живое забывается. */
     static void clear() {
         EFFECTS.clear();
+        PENDING.clear();
         ZONES.clear();
         BOLTS.clear();
         MOTES.clear();
@@ -255,19 +267,26 @@ public final class FxEffects {
         now++;
         FxGround.tick();
         float emit = emitFactor();
-        Iterator<FxKinds.Effect> it = EFFECTS.iterator();
-        while (it.hasNext()) {
-            FxKinds.Effect effect = it.next();
-            try {
-                effect.tick(level, MOTES, emit);
-            } catch (RuntimeException e) {
-                warnOnce("эффект сломался на тике", e);
-                effect.dead = true;
+        ticking = true;
+        try {
+            Iterator<FxKinds.Effect> it = EFFECTS.iterator();
+            while (it.hasNext()) {
+                FxKinds.Effect effect = it.next();
+                try {
+                    effect.tick(level, MOTES, emit);
+                } catch (RuntimeException e) {
+                    warnOnce("эффект сломался на тике", e);
+                    effect.dead = true;
+                }
+                if (effect.dead) {
+                    it.remove();
+                }
             }
-            if (effect.dead) {
-                it.remove();
-            }
+        } finally {
+            ticking = false;
         }
+        EFFECTS.addAll(PENDING);
+        PENDING.clear();
         ZONES.values().removeIf(zone -> zone.dead);
         BOLTS.values().removeIf(bolt -> bolt.dead);
         MOTES.tick();
@@ -307,21 +326,26 @@ public final class FxEffects {
         Frustum frustum = event.getFrustum();
         FxKinds.Detail near = new FxKinds.Detail(decorations, 1f);
         FxKinds.Detail far = new FxKinds.Detail(false, 0f);
-        for (FxKinds.Effect effect : EFFECTS) {
-            try {
-                var box = effect.bounds();
-                if (!frustum.isVisible(box)) {
-                    continue;
+        ticking = true;
+        try {
+            for (FxKinds.Effect effect : EFFECTS) {
+                try {
+                    var box = effect.bounds();
+                    if (!frustum.isVisible(box)) {
+                        continue;
+                    }
+                    double distance = Math.sqrt(box.distanceToSqr(eye));
+                    if (distance > FAR) {
+                        continue;
+                    }
+                    effect.draw(DRAW, partial, distance > NEAR ? far : near);
+                } catch (RuntimeException e) {
+                    warnOnce("эффект сломался при рисовании", e);
+                    effect.dead = true;
                 }
-                double distance = Math.sqrt(box.distanceToSqr(eye));
-                if (distance > FAR) {
-                    continue;
-                }
-                effect.draw(DRAW, partial, distance > NEAR ? far : near);
-            } catch (RuntimeException e) {
-                warnOnce("эффект сломался при рисовании", e);
-                effect.dead = true;
             }
+        } finally {
+            ticking = false;
         }
         try {
             FxStatuses.draw(DRAW, partial);

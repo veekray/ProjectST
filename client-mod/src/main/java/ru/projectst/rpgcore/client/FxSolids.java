@@ -56,6 +56,9 @@ final class FxSolids {
     static final double FAR = 64;
 
     private static final List<Solid> SOLIDS = new ArrayList<>();
+    /** Рождённые во время тика объектов: в перебираемый список добавлять нельзя. */
+    private static final List<Solid> PENDING = new ArrayList<>();
+    private static boolean ticking;
 
     private FxSolids() {
     }
@@ -66,10 +69,15 @@ final class FxSolids {
 
     /** Берёт объект, если есть место; украшения при тесноте не берутся. */
     static void add(Solid solid) {
-        if (SOLIDS.size() >= MAX && solid.decor) {
+        int count = SOLIDS.size() + PENDING.size();
+        if (count >= MAX && solid.decor) {
             return;
         }
-        if (SOLIDS.size() >= MAX + 128) {
+        if (count >= MAX + 128) {
+            return;
+        }
+        if (ticking) {
+            PENDING.add(solid);
             return;
         }
         SOLIDS.add(solid);
@@ -77,21 +85,29 @@ final class FxSolids {
 
     static void clear() {
         SOLIDS.clear();
+        PENDING.clear();
     }
 
     static void tick(Level level) {
-        Iterator<Solid> it = SOLIDS.iterator();
-        while (it.hasNext()) {
-            Solid solid = it.next();
-            try {
-                solid.tick(level);
-            } catch (RuntimeException e) {
-                solid.dead = true;
+        ticking = true;
+        try {
+            Iterator<Solid> it = SOLIDS.iterator();
+            while (it.hasNext()) {
+                Solid solid = it.next();
+                try {
+                    solid.tick(level);
+                } catch (RuntimeException e) {
+                    solid.dead = true;
+                }
+                if (solid.dead) {
+                    it.remove();
+                }
             }
-            if (solid.dead) {
-                it.remove();
-            }
+        } finally {
+            ticking = false;
         }
+        SOLIDS.addAll(PENDING);
+        PENDING.clear();
     }
 
     /** Кадр: все объекты в кадре и не дальше {@link #FAR}. */
