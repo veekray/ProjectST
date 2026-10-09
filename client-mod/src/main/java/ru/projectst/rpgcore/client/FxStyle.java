@@ -174,11 +174,11 @@ public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, in
             Map.entry("mage_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1f, 0.8f)),
             Map.entry("mage_puff", new FxStyle(Kind.FLASH, 0, 0, 2, 1, 5, false, 0.6f, 0.5f)),
             // Скверна: руны, дымка гуще и тянется дольше.
-            Map.entry("warlock_aura", new FxStyle(Kind.WAVE, 0, 0, 6, 6, 12, true, 1.54f, 0)),
             Map.entry("warlock_bolt", new FxStyle(Kind.BOLT, 0, 0, 0, 0, 6, false, 1.1f, 0.45f)),
             Map.entry("warlock_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.1f, 0.8f)),
             Map.entry("warlock_rise", new FxStyle(Kind.RISE, 0, 0, 4, 8, 10, true, 1.1f, 0)),
             Map.entry("warlock_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 14, false, 1.1f, 0)),
+            Map.entry("warlock_wave", new FxStyle(Kind.WAVE, 0, 0, 7, 8, 9, true, 1.32f, 0)),
             Map.entry("warlock_zone", new FxStyle(Kind.ZONE, 0, 0, 0, 0, 8, true, 1.1f, 0)),
             // Природа: без рун, листьев много — поле живое.
             Map.entry("druid_aura", new FxStyle(Kind.WAVE, 0, 0, 5, 6, 9, false, 1.82f, 0)),
@@ -197,21 +197,19 @@ public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, in
             Map.entry("rogue_wave", new FxStyle(Kind.WAVE, 0, 0, 4, 8, 6, false, 1.2f, 0)),
             Map.entry("rogue_zone", new FxStyle(Kind.ZONE, 0, 0, 0, 0, 8, false, 1f, 0)),
             // Тень: скупо, искр меньше, гаснет медленно.
-            Map.entry("assassin_aura", new FxStyle(Kind.WAVE, 0, 0, 6, 6, 12, false, 1.26f, 0)),
             Map.entry("assassin_blast", new FxStyle(Kind.FLASH, 0, 0, 3, 3, 9, false, 2.7f, 2.2f)),
             Map.entry("assassin_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 0.9f, 0.8f)),
             Map.entry("assassin_rise", new FxStyle(Kind.RISE, 0, 0, 4, 8, 10, false, 0.9f, 0)),
             Map.entry("assassin_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 14, false, 0.9f, 0)),
             Map.entry("assassin_wave", new FxStyle(Kind.WAVE, 0, 0, 7, 8, 9, false, 1.08f, 0)),
             // Иллюзия: руны и россыпь звёзд.
-            Map.entry("trickster_aura", new FxStyle(Kind.WAVE, 0, 0, 5, 6, 9, true, 1.82f, 0)),
+            Map.entry("trickster_wave", new FxStyle(Kind.WAVE, 0, 0, 6, 8, 6, true, 1.56f, 0)),
             Map.entry("trickster_blast", new FxStyle(Kind.FLASH, 0, 0, 3, 3, 9, false, 3.9f, 2.2f)),
             Map.entry("trickster_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.3f, 0.8f)),
             Map.entry("trickster_puff", new FxStyle(Kind.FLASH, 0, 0, 2, 1, 5, false, 0.78f, 0.5f)),
             Map.entry("trickster_rise", new FxStyle(Kind.RISE, 0, 0, 4, 8, 10, true, 1.3f, 0)),
             Map.entry("trickster_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 10, false, 1.3f, 0)),
             // Охота: тонкие быстрые снаряды, наконечники.
-            Map.entry("hunter_aura", new FxStyle(Kind.WAVE, 0, 0, 5, 6, 9, false, 1.4f, 0)),
             Map.entry("hunter_blast", new FxStyle(Kind.FLASH, 0, 0, 3, 3, 9, false, 3f, 2.2f)),
             Map.entry("hunter_bolt", new FxStyle(Kind.BOLT, 0, 0, 0, 0, 6, false, 1f, 0.3f)),
             Map.entry("hunter_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1f, 0.8f)),
@@ -220,14 +218,12 @@ public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, in
             Map.entry("hunter_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 10, false, 1f, 0)),
             Map.entry("hunter_wave", new FxStyle(Kind.WAVE, 0, 0, 6, 8, 6, false, 1.2f, 0)),
             // Ярость: углей больше всех, вспышки резкие.
-            Map.entry("berserker_aura", new FxStyle(Kind.WAVE, 0, 0, 3, 6, 9, false, 2.1f, 0)),
             Map.entry("berserker_bolt", new FxStyle(Kind.BOLT, 0, 0, 0, 0, 6, false, 1.5f, 0.35f)),
             Map.entry("berserker_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.5f, 0.8f)),
             Map.entry("berserker_puff", new FxStyle(Kind.FLASH, 0, 0, 2, 1, 5, false, 0.9f, 0.5f)),
             Map.entry("berserker_rise", new FxStyle(Kind.RISE, 0, 0, 4, 8, 10, false, 1.5f, 0)),
             Map.entry("berserker_wave", new FxStyle(Kind.WAVE, 0, 0, 4, 8, 6, false, 1.8f, 0)),
             // Гроза: быстрые волны, молнии.
-            Map.entry("striker_aura", new FxStyle(Kind.WAVE, 0, 0, 3, 6, 9, false, 1.82f, 0)),
             Map.entry("striker_bolt", new FxStyle(Kind.BOLT, 0, 0, 0, 0, 6, false, 1.3f, 0.55f)),
             Map.entry("striker_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.3f, 0.8f)),
             Map.entry("striker_puff", new FxStyle(Kind.FLASH, 0, 0, 2, 1, 5, false, 0.78f, 0.5f)),
@@ -235,7 +231,6 @@ public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, in
             Map.entry("striker_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 10, false, 1.3f, 0)),
             Map.entry("striker_wave", new FxStyle(Kind.WAVE, 0, 0, 4, 8, 6, false, 1.56f, 0)),
             // Свет: руны и долгие ровные круги.
-            Map.entry("knight_aura", new FxStyle(Kind.WAVE, 0, 0, 6, 6, 12, true, 1.54f, 0)),
             Map.entry("knight_blast", new FxStyle(Kind.FLASH, 0, 0, 3, 3, 9, false, 3.3f, 2.2f)),
             Map.entry("knight_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.1f, 0.8f)),
             Map.entry("knight_rise", new FxStyle(Kind.RISE, 0, 0, 4, 8, 10, true, 1.1f, 0)),

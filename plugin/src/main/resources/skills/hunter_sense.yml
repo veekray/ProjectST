@@ -23,5 +23,5 @@ steps:
     do:
       - { action: status, id: sense, duration: $duration }
       - { action: sound, sound: entity_warden_sonic_charge, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: end_rod, shape: ring, count: 32, size: 3.0, fx: hunter_aura }
+      - { action: particles, particle: end_rod, shape: ring, count: 32, size: 1.2, fx: hunter_rise }
       - { action: message, text: "&6Чутьё &7— вижу всё живое вокруг" }

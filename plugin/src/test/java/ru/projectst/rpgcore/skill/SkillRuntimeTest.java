@@ -1766,6 +1766,31 @@ class SkillRuntimeTest {
     }
 
     @Test
+    @DisplayName("зона растёт от стата радиуса вместе со своим тиком: 6 → 9 при +50%")
+    void zoneRadiusFollowsSkillRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: druid
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: zone, tag: bloom, radius: 6, duration: 200, min-gap: 2, particle: composter, fx: druid_zone, at-origin: true }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Тик зоны выбирает цели обычным шагом, а там стат уже есть: зона на
+        // шести блоках лечила бы на девяти, и кольцо врало бы на треть.
+        Zone real = f.zones.all().iterator().next();
+        assertEquals(9.0, real.radius(), 1e-9, "зона обязана расти вместе с тиком");
+        Zone sent = f.world.effects(FxEvent.ZonePlaced.class).get(0).zone();
+        assertEquals(9.0, sent.radius(), 1e-9, "кольцо зоны — её настоящий радиус");
+    }
+
+    @Test
     @DisplayName("снятая печать уходит моду с точкой, куда её стянуло")
     void fxZoneConsumedIsReported() {
         SkillDef skill = parse("test_skill", """

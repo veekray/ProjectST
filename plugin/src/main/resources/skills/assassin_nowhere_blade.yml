@@ -43,7 +43,7 @@ steps:
       - { caster: has-status, value: shadow }
     do:
       - { action: damage, amount: $damage_exposed, school: true }
-      - { action: particles, particle: crit, shape: ring, count: 24, size: 3.0, fx: assassin_wave }
+      - { action: particles, particle: crit, shape: cone, count: 24, fx: assassin_wave }
       - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.6 }
 
   - target: { type: self }

@@ -559,6 +559,29 @@ class ShippedContentTest {
         assertTrue(lonelyNone.isEmpty(), "fx: none без своего эффекта в шаге: " + lonelyNone);
     }
 
+    @Test
+    @DisplayName("граница области рисуется радиусом выборки, а не числом в файле")
+    void areaEffectsFollowTheTargetRadius() throws IOException {
+        // Круг, вписанный числом в шаг «на себя», не знает ни баланса, ни стата
+        // радиуса: урон бьёт на девяти блоках, а круг стоит на четырёх. Роль
+        // _wave и _aura говорит «это граница области» — значит, её размер
+        // обязан быть size: radius в шаге, который эту область выбирает.
+        java.util.Set<String> literal = new java.util.TreeSet<>();
+        for (SkillDef skill : load().skills()) {
+            for (var step : skill.steps()) {
+                for (var action : step.actions()) {
+                    if (action instanceof ru.projectst.rpgcore.skill.Action.Particles a
+                            && a.fx() != null
+                            && (a.fx().endsWith("_wave") || a.fx().endsWith("_aura"))
+                            && !a.fitRadius()) {
+                        literal.add(skill.id() + ": " + a.fx());
+                    }
+                }
+            }
+        }
+        assertTrue(literal.isEmpty(), "граница области задана числом: " + literal);
+    }
+
     private static String fxOf(ru.projectst.rpgcore.skill.Action action) {
         return switch (action) {
             case ru.projectst.rpgcore.skill.Action.Particles a -> a.fx();

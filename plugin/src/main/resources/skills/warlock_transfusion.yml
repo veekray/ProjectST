@@ -31,13 +31,13 @@ steps:
     do:
       - { action: remove-status, id: soul, stacks: 1 }
       - { action: sound, sound: entity_wither_ambient, volume: 0.8, pitch: 1.7 }
-      - { action: particles, particle: soul, shape: sphere, count: 50, size: 2, fx: warlock_aura }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
       - { caster: has-status, value: soul }
       - { target: has-status, value: curse }
     do:
+      - { action: particles, particle: soul, shape: ring, count: 50, size: radius, fx: warlock_wave }
       - { action: count, counter: cursed }
       - { action: particles, particle: soul, shape: point, count: 12, fx: warlock_flash }
 

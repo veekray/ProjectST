@@ -28,7 +28,7 @@ steps:
     do:
       - { action: dismiss, tag: double }
       - { action: sound, sound: entity_illusioner_cast_spell, volume: 1.0, pitch: 1.1 }
-      - { action: particles, particle: portal, shape: ring, count: 24, size: 2.0, fx: trickster_aura }
+      - { action: particles, particle: portal, shape: ring, count: 24, size: 1.2, fx: trickster_rise }
 
   - target: { type: self }
     if:

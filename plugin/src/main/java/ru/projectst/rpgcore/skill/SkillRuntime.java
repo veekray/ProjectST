@@ -571,9 +571,16 @@ public final class SkillRuntime {
             }
 
             case Action.PlaceZone a -> {
-                double radius = resolve(a.radius(), table, context, 1);
+                // Зона растёт от стата радиуса так же, как выборка шага. Иначе
+                // кольцо зоны стояло бы на шести блоках, а её тик — лечение
+                // друида, вуаль колдуна, знамя рыцаря — выбирал бы цели на
+                // девяти: тик выбирает цели обычным шагом, и стат там уже есть.
+                // Промежуток между зонами растёт вместе с ними, иначе крупные
+                // печати ложились бы друг на друга.
+                double scale = radiusScale(context.caster());
+                double radius = resolve(a.radius(), table, context, 1) * scale;
                 int ticks = (int) resolve(a.duration(), table, context, 20);
-                double gap = resolve(a.minGap(), table, context, 0);
+                double gap = resolve(a.minGap(), table, context, 0) * scale;
                 java.util.function.Consumer<Position> place = p -> zones.place(a.tag(),
                                 context.caster(), p, radius, ticks, a.particle(), a.fx(),
                                 classOf(skill), gap, a.onEnter(), a.onTick(), a.tickInterval())

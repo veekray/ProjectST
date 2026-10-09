@@ -26,7 +26,7 @@ steps:
     origin: self
     do:
       - { action: sound, sound: block_sculk_spread, pitch: 0.6 }
-      - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true, fx: druid_aura }
+      - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true, fx: none }
       - action: zone
         tag: bloom
         radius: $radius

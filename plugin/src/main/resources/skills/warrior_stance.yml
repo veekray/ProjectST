@@ -34,7 +34,7 @@ steps:
         value: $reduction
         status: warrior_stance
       - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: ash, shape: ring, count: 20, size: 2.0, fx: warrior_aura }
+      - { action: particles, particle: ash, shape: ring, count: 20, size: 1.2, fx: warrior_rise }
 
   - target: { type: self }
     delay: $duration

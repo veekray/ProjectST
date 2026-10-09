@@ -24,4 +24,4 @@ steps:
     do:
       - { action: status, id: retribution, duration: $window }
       - { action: sound, sound: block_metal_hit, volume: 1.0, pitch: 2.0 }
-      - { action: particles, particle: crit, shape: ring, count: 16, size: 1.0, fx: knight_aura }
+      - { action: particles, particle: crit, shape: ring, count: 16, size: 1.2, fx: knight_rise }

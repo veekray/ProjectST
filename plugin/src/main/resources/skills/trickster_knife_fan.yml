@@ -15,7 +15,5 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: particles, particle: crit, shape: point, count: 8, size: 0.3, fx: trickster_flash }
+      - { action: particles, particle: crit, shape: ring, count: 16, size: radius, fx: trickster_wave }
 
-  - target: { type: self }
-    do:
-      - { action: particles, particle: crit, shape: ring, count: 16, size: 2.0, at-origin: true, fx: trickster_aura }

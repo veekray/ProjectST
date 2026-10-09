@@ -33,4 +33,4 @@ steps:
         value: $root
         status: shield_up
       - { action: sound, sound: item_shield_block, volume: 0.8, pitch: 0.5 }
-      - { action: particles, particle: end_rod, shape: ring, count: 16, size: 1.2, fx: warrior_aura }
+      - { action: particles, particle: end_rod, shape: ring, count: 16, size: 1.2, fx: warrior_rise }
