@@ -17,5 +17,5 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
-      - { action: particles, particle: crit, shape: ring, count: 40, size: radius }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: hunter_flash }
+      - { action: particles, particle: crit, shape: ring, count: 40, size: radius, fx: hunter_wave }

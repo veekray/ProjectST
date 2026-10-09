@@ -21,7 +21,7 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 1.3 }
-      - { action: particles, particle: crit, shape: ring, count: 15, size: 2.5 }
+      - { action: particles, particle: crit, shape: ring, count: 15, size: 2.5, fx: striker_aura }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
@@ -38,7 +38,7 @@ steps:
       - { caster: has-status, value: stance_press }
     do:
       - { action: status, id: stun, duration: $stun_press }
-      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3, fx: striker_sink }
 
   - target: { type: self }
     do:

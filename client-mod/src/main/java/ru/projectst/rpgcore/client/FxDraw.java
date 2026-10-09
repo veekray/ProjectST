@@ -50,7 +50,40 @@ final class FxDraw {
         /** Лента следа: мягче границы. */
         BEAM,
         /** Заливка круга: прозрачная середина, светлее к краю. */
-        FILL;
+        FILL,
+
+        // Мотивы искр: у каждого класса своя форма, класс узнаётся по ней
+        // раньше, чем по цвету. Число — во сколько раз искра крупнее звёздочки:
+        // у листа и дымки рисунок тоньше, и в размер звёздочки он не читается.
+
+        /** Уголь: ядро и язык пламени. */
+        EMBER(1.5f, 0.02f),
+        /** Лист с прожилкой: кувыркается в полёте. */
+        LEAF(1.7f, 0.14f),
+        /** Завиток дымки. */
+        WISP(2.2f, 0.05f),
+        /** Осколок-ромб с бликом. */
+        SHARD(1.4f, 0.1f),
+        /** Шестилучевая звезда. */
+        STAR(1.3f, 0.06f),
+        /** Наконечник-галка. */
+        CHEVRON(1.4f, 0.03f),
+        /** Ломаная молнии. */
+        ZAP(1.7f, 0.2f);
+
+        /** Во сколько раз искра этой формы крупнее звёздочки. */
+        final float moteScale;
+        /** Сколько радиан за тик искра этой формы поворачивается. */
+        final float moteSpin;
+
+        Tex() {
+            this(1f, 0.04f);
+        }
+
+        Tex(float moteScale, float moteSpin) {
+            this.moteScale = moteScale;
+            this.moteSpin = moteSpin;
+        }
 
         final ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
                 RpgCoreClient.MOD_ID, "textures/fx/" + name().toLowerCase(java.util.Locale.ROOT) + ".png");

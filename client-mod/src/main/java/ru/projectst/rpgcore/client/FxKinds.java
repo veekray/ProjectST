@@ -36,6 +36,8 @@ final class FxKinds {
         final FxStyle style;
         final int primary;
         final int accent;
+        /** Форма искр: мотив класса или своя у стиля. */
+        final FxDraw.Tex motif;
         int age;
         boolean dead;
 
@@ -43,6 +45,13 @@ final class FxKinds {
             this.style = style;
             this.primary = style.primaryFor(classId);
             this.accent = style.accentFor(classId);
+            this.motif = style.motifFor(classId);
+        }
+
+        /** Искра в мотиве эффекта: у берсерка — уголь, у друида — лист. */
+        void mote(FxMotes motes, double x, double y, double z, float vx, float vy, float vz,
+                  float size, int argb, int ticks, float slow) {
+            motes.spawn(x, y, z, vx, vy, vz, size, argb, ticks, slow, motif);
         }
 
         /** Можно ли выбросить при перегрузке: украшения — да, зоны и снаряды — нет. */
@@ -105,7 +114,7 @@ final class FxKinds {
         private double toZ;
 
         Zone(FxStyle style, FxMessage.ZoneOn on, long now) {
-            super(style, on.classId());
+            super(style, FxStyle.owner(on.classId(), on.fx()));
             this.x = on.x();
             this.y = on.y();
             this.z = on.z();
@@ -154,7 +163,7 @@ final class FxKinds {
                     double r = Math.sqrt(FxMotes.random()) * radius;
                     double mx = x + Math.cos(a) * r;
                     double mz = z + Math.sin(a) * r;
-                    motes.spawn(mx, FxGround.top(level, mx, mz, y) + 0.1, mz,
+                    mote(motes, mx, FxGround.top(level, mx, mz, y) + 0.1, mz,
                             FxMotes.jitter(0.004f), 0.03f + FxMotes.random() * 0.02f,
                             FxMotes.jitter(0.004f), 0.18f, accent, 26 + (int) (FxMotes.random() * 14),
                             0.99f);
@@ -236,9 +245,13 @@ final class FxKinds {
         final int life;
         final double heading;
         final double half;
+        /** Высота вспышки: у точки на земле поднята к груди, см. {@link #settle}. */
+        private double y;
+        /** Земля под центром: от неё растут столбы подъёма и оседания. */
+        private double ground;
 
         Burst(FxStyle style, FxMessage.Burst event) {
-            super(style, event.classId());
+            super(style, FxStyle.owner(event.classId(), event.fx()));
             this.event = event;
             // Форма решает геометрию: конус без оси не нарисовать кольцом и
             // наоборот, какой бы вид ни стоял в каталоге.
@@ -252,6 +265,28 @@ final class FxKinds {
             this.life = Math.max(2, style.grow() + style.hold() + style.fade());
             this.heading = Math.atan2(event.axisZ(), event.axisX());
             this.half = Math.toRadians(event.angle()) / 2;
+            this.y = event.y();
+            this.ground = event.y();
+        }
+
+        /**
+         * Привязка к земле в первый тик: тогда уже есть мир.
+         *
+         * <p>Сервер шлёт точку цели — это ноги. Вспышка у ног прячется в траве и
+         * читается как грязь на земле, поэтому точка у самой земли поднимается к
+         * груди. Точка в воздухе — попадание снаряда, конец луча — остаётся где
+         * была.
+         */
+        private void settle(Level level) {
+            ground = FxGround.top(level, event.x(), event.z(), event.y());
+            if (kind == FxStyle.Kind.FLASH && event.y() - ground < 0.35) {
+                y = ground + 0.9;
+            }
+        }
+
+        /** Радиус подъёма и оседания: не меньше, чем человек в полный рост. */
+        private double around() {
+            return Math.clamp(event.radius(), 0.7, 8.0);
         }
 
         @Override
@@ -277,11 +312,50 @@ final class FxKinds {
                 dead = true;
                 return;
             }
+            if (age == 1) {
+                settle(level);
+            }
             double x = event.x();
-            double y = event.y();
+            double y = this.y;
             double z = event.z();
             double r = event.radius();
             switch (kind) {
+                case RISE -> {
+                    if (age < style.grow() + style.hold()) {
+                        // Искры поднимаются от земли по всему кругу и чуть
+                        // закручиваются: сила собирается вокруг цели.
+                        double rr = around();
+                        int n = emitCount((float) (0.5 + rr * 0.45) * style.motes(), emit);
+                        for (int i = 0; i < n; i++) {
+                            double a = FxMotes.random() * Math.PI * 2;
+                            double d = Math.sqrt(FxMotes.random()) * rr;
+                            double sx = x + Math.cos(a) * d;
+                            double sz = z + Math.sin(a) * d;
+                            float swirl = 0.02f;
+                            mote(motes, sx, FxGround.top(level, sx, sz, ground) + 0.1, sz,
+                                    (float) -Math.sin(a) * swirl, 0.05f + FxMotes.random() * 0.05f,
+                                    (float) Math.cos(a) * swirl, 0.2f, FxMotes.random() < 0.3f
+                                            ? primary : accent,
+                                    18 + (int) (FxMotes.random() * 12), 0.97f);
+                        }
+                    }
+                }
+                case SINK -> {
+                    if (age < style.grow() + style.hold()) {
+                        // Искры падают на цель сверху: на неё что-то легло.
+                        double rr = around() * 0.8;
+                        int n = emitCount((float) (0.5 + rr * 0.45) * style.motes(), emit);
+                        for (int i = 0; i < n; i++) {
+                            double a = FxMotes.random() * Math.PI * 2;
+                            double d = Math.sqrt(FxMotes.random()) * rr;
+                            mote(motes, x + Math.cos(a) * d, ground + 2.3 + FxMotes.random() * 0.6,
+                                    z + Math.sin(a) * d, FxMotes.jitter(0.008f),
+                                    -0.06f - FxMotes.random() * 0.05f, FxMotes.jitter(0.008f),
+                                    0.2f, FxMotes.random() < 0.5f ? primary : accent,
+                                    20 + (int) (FxMotes.random() * 8), 0.99f);
+                        }
+                    }
+                }
                 case WAVE -> {
                     if (age == 1) {
                         int n = Math.min(70, emitCount((float) (r * 6) * style.motes(), emit));
@@ -290,7 +364,7 @@ final class FxKinds {
                             double a = FxMotes.random() * Math.PI * 2;
                             double sx = x + Math.cos(a) * r * 0.2;
                             double sz = z + Math.sin(a) * r * 0.2;
-                            motes.spawn(sx, FxGround.top(level, sx, sz, y) + 0.25, sz,
+                            mote(motes, sx, FxGround.top(level, sx, sz, y) + 0.25, sz,
                                     (float) Math.cos(a) * speed, 0.02f + FxMotes.random() * 0.03f,
                                     (float) Math.sin(a) * speed, 0.22f, accent,
                                     style.grow() + 6, 0.82f);
@@ -307,7 +381,7 @@ final class FxKinds {
                             double sx = x + Math.cos(a) * d;
                             double sz = z + Math.sin(a) * d;
                             float speed = 0.45f;
-                            motes.spawn(sx, FxGround.top(level, sx, sz, y) + 0.2, sz,
+                            mote(motes, sx, FxGround.top(level, sx, sz, y) + 0.2, sz,
                                     (float) -Math.cos(a) * speed, 0.005f,
                                     (float) -Math.sin(a) * speed, 0.2f, accent,
                                     (int) Math.min(22, d / speed), 1f);
@@ -322,7 +396,7 @@ final class FxKinds {
                             double sx = x + Math.cos(a) * r;
                             double sz = z + Math.sin(a) * r;
                             float speed = (float) (r / 14);
-                            motes.spawn(sx, FxGround.top(level, sx, sz, y) + 0.3, sz,
+                            mote(motes, sx, FxGround.top(level, sx, sz, y) + 0.3, sz,
                                     (float) -Math.cos(a) * speed, 0.01f,
                                     (float) -Math.sin(a) * speed, 0.22f, accent, 14, 1f);
                         }
@@ -332,7 +406,7 @@ final class FxKinds {
                     if (age == style.grow()) {
                         int n = Math.min(40, emitCount(16 * style.motes(), emit));
                         for (int i = 0; i < n; i++) {
-                            motes.spawn(x, y + 0.2, z, FxMotes.jitter(0.06f),
+                            mote(motes, x, y + 0.2, z, FxMotes.jitter(0.06f),
                                     0.12f + FxMotes.random() * 0.12f, FxMotes.jitter(0.06f),
                                     0.25f, accent, 16, 0.9f);
                         }
@@ -342,7 +416,7 @@ final class FxKinds {
                     if (age == 1) {
                         int n = Math.min(30, emitCount(10 * style.motes(), emit));
                         for (int i = 0; i < n; i++) {
-                            motes.spawn(x, y, z, FxMotes.jitter(0.15f), FxMotes.jitter(0.15f),
+                            mote(motes, x, y, z, FxMotes.jitter(0.15f), FxMotes.jitter(0.15f),
                                     FxMotes.jitter(0.15f), 0.2f, accent, 10, 0.85f);
                         }
                     }
@@ -354,12 +428,51 @@ final class FxKinds {
         void draw(FxDraw draw, float partial, Detail detail) {
             float t = age + partial;
             double x = event.x();
-            double y = event.y();
+            double y = this.y;
             double z = event.z();
             double r = event.radius();
             float hold = holdAlpha(t);
             int core = FxDraw.mix(primary, accent, 0.6f);
             switch (kind) {
+                case RISE -> {
+                    double rr = around();
+                    float g = style.grow() <= 0 ? 1f : Math.clamp(t / style.grow(), 0f, 1f);
+                    float alpha = Math.clamp(t / 3f, 0f, 1f) * hold;
+                    // Круг у ног разворачивается, над ним встаёт мягкий столб света.
+                    draw.sector(FxDraw.Tex.FILL, x, ground, z, rr, 0, Math.PI * 2, primary,
+                            0.2f * alpha, LIFT - 0.01f);
+                    draw.circle(FxDraw.Tex.RING, x, ground, z, rr * (0.6 + 0.4 * ease(g)), 0.3,
+                            core, 0.9f * alpha, 0.5f, 0, LIFT);
+                    double top = ground + 0.2 + 2.3 * ease(g);
+                    draw.ribbon(FxDraw.Tex.BEAM, new double[] {x, x},
+                            new double[] {ground + 0.05, top}, new double[] {z, z}, 2,
+                            (float) (rr * 1.3), primary, 0.4f * alpha, 0f, -t * 0.05f);
+                    draw.ribbon(FxDraw.Tex.BEAM, new double[] {x, x},
+                            new double[] {ground + 0.05, top * 0.8 + ground * 0.2},
+                            new double[] {z, z}, 2, (float) (rr * 0.45), accent, 0.5f * alpha,
+                            0f, -t * 0.08f);
+                    if (style.runes() && detail.full() && rr > 1.2) {
+                        double band = Math.min(0.7, rr * 0.3);
+                        draw.circle(FxDraw.Tex.RUNES, x, ground, z, rr - band, band, primary,
+                                0.5f * alpha, (float) (1 / (band * 8)), t * 0.01f, LIFT);
+                    }
+                }
+                case SINK -> {
+                    double rr = around();
+                    float g = style.grow() <= 0 ? 1f : Math.clamp(t / style.grow(), 0f, 1f);
+                    float alpha = Math.clamp(t / 3f, 0f, 1f) * hold;
+                    // Кольцо сжимается на цель и ложится на землю; над головой —
+                    // знак того, что на ней теперь висит.
+                    draw.sector(FxDraw.Tex.FILL, x, ground, z, rr, 0, Math.PI * 2, primary,
+                            0.22f * alpha, LIFT - 0.01f);
+                    draw.circle(FxDraw.Tex.RING, x, ground, z, rr * (1.7 - 0.7 * ease(g)), 0.34,
+                            primary, 0.85f * alpha, 0.5f, 0, LIFT);
+                    draw.circle(FxDraw.Tex.RING, x, ground, z, rr * 0.55, 0.2, accent,
+                            0.6f * alpha * g, 0.5f, 0, LIFT + 0.01f);
+                    double mark = ground + 2.5 - 0.25 * ease(g);
+                    draw.sprite(FxDraw.Tex.GLOW, x, mark, z, 1.1f, 0, primary, 0.6f * alpha);
+                    draw.sprite(motif, x, mark, z, 0.7f, t * 0.03f, accent, 0.9f * alpha);
+                }
                 case WAVE -> {
                     float g = style.grow() <= 0 ? 1f : Math.clamp(t / style.grow(), 0f, 1f);
                     double wave = r * ease(g);
@@ -434,9 +547,13 @@ final class FxKinds {
                 }
                 default -> {
                     float g = Math.clamp(t / Math.max(1, style.grow()), 0f, 1f);
-                    float size = (float) Math.max(style.size(), r * 2) * (0.5f + 0.5f * ease(g));
-                    draw.sprite(FxDraw.Tex.GLOW, x, y, z, size, 0, primary, 0.8f * hold);
-                    draw.sprite(FxDraw.Tex.SPARK, x, y, z, size * 0.7f, t * 0.08f, accent, hold);
+                    // Облако в шесть блоков вспышкой не рисуется: это была бы
+                    // стена света во весь экран. Крупнее двух блоков — уже волна.
+                    float size = (float) Math.min(2.4, Math.max(style.size(), r * 2))
+                            * (0.5f + 0.5f * ease(g));
+                    draw.sprite(FxDraw.Tex.GLOW, x, y, z, size * 1.3f, 0, primary, 0.7f * hold);
+                    draw.sprite(FxDraw.Tex.GLOW, x, y, z, size * 0.5f, 0, accent, 0.9f * hold);
+                    draw.sprite(FxDraw.Tex.SPARK, x, y, z, size * 0.8f, t * 0.08f, accent, hold);
                 }
             }
         }
@@ -476,7 +593,7 @@ final class FxKinds {
         private int endAge;
 
         Bolt(FxStyle style, FxMessage.Projectile p) {
-            super(style, p.classId());
+            super(style, FxStyle.owner(p.classId(), p.fx()));
             this.speed = Math.max(0.05f, p.speed());
             this.range = p.range();
             this.gravity = p.gravity();
@@ -522,7 +639,7 @@ final class FxKinds {
             record();
             int n = Math.min(40, emitCount((end.hit() ? 18 : 10) * style.motes(), emit));
             for (int i = 0; i < n; i++) {
-                motes.spawn(x, y, z, FxMotes.jitter(0.18f), FxMotes.jitter(0.18f),
+                mote(motes, x, y, z, FxMotes.jitter(0.18f), FxMotes.jitter(0.18f),
                         FxMotes.jitter(0.18f), 0.2f, accent, 10 + (int) (FxMotes.random() * 6),
                         0.84f);
             }
@@ -562,7 +679,7 @@ final class FxKinds {
             record();
             int n = emitCount(1.4f * style.motes(), emit);
             for (int i = 0; i < n; i++) {
-                motes.spawn(x, y, z, FxMotes.jitter(0.03f), FxMotes.jitter(0.03f),
+                mote(motes, x, y, z, FxMotes.jitter(0.03f), FxMotes.jitter(0.03f),
                         FxMotes.jitter(0.03f), style.size() * 0.4f, accent, 9, 0.9f);
             }
         }
@@ -622,7 +739,7 @@ final class FxKinds {
         final int life;
 
         Trail(FxStyle style, FxMessage.Trail event) {
-            super(style, event.classId());
+            super(style, FxStyle.owner(event.classId(), event.fx()));
             this.event = event;
             this.life = Math.max(2, style.hold() + style.fade());
         }
@@ -642,7 +759,7 @@ final class FxKinds {
                 int n = Math.min(60, emitCount((float) (length * 2.5) * style.motes(), emit));
                 for (int i = 0; i < n; i++) {
                     double k = FxMotes.random();
-                    motes.spawn(event.fromX() + ddx * k, event.fromY() + ddy * k + 0.4 + FxMotes.random() * 1.2,
+                    mote(motes, event.fromX() + ddx * k, event.fromY() + ddy * k + 0.4 + FxMotes.random() * 1.2,
                             event.fromZ() + ddz * k, FxMotes.jitter(0.02f),
                             0.015f + FxMotes.random() * 0.02f, FxMotes.jitter(0.02f), 0.2f, accent,
                             14 + (int) (FxMotes.random() * 10), 0.96f);
@@ -739,7 +856,7 @@ final class FxKinds {
                 int n = Math.min(30, emitCount((crit ? 10 : 3) * style.motes(), emit));
                 float spread = crit ? 0.22f : 0.12f;
                 for (int i = 0; i < n; i++) {
-                    motes.spawn(lastX, lastY, lastZ, FxMotes.jitter(spread),
+                    mote(motes, lastX, lastY, lastZ, FxMotes.jitter(spread),
                             FxMotes.jitter(spread) + 0.05f, FxMotes.jitter(spread),
                             crit ? 0.28f : 0.18f, accent, 10 + (int) (FxMotes.random() * 8), 0.85f);
                 }

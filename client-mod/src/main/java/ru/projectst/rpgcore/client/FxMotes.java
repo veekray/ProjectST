@@ -31,6 +31,10 @@ final class FxMotes {
     private final short[] age;
     private final short[] life;
     private final float[] drag;
+    /** Форма искры: номер в {@link FxDraw.Tex}. */
+    private final byte[] tex;
+    /** Поворот при рождении: свой у каждой, иначе все листья лежали бы одинаково. */
+    private final float[] roll;
     private int count;
 
     FxMotes(int capacity) {
@@ -49,6 +53,8 @@ final class FxMotes {
         age = new short[capacity];
         life = new short[capacity];
         drag = new float[capacity];
+        tex = new byte[capacity];
+        roll = new float[capacity];
     }
 
     int count() {
@@ -68,6 +74,16 @@ final class FxMotes {
      */
     void spawn(double sx, double sy, double sz, float svx, float svy, float svz, float ssize,
                int argb, int ticks, float slow) {
+        spawn(sx, sy, sz, svx, svy, svz, ssize, argb, ticks, slow, FxDraw.Tex.SPARK);
+    }
+
+    /**
+     * Новая искра своей формы.
+     *
+     * @param shape мотив класса: уголь, лист, дымка и так далее
+     */
+    void spawn(double sx, double sy, double sz, float svx, float svy, float svz, float ssize,
+               int argb, int ticks, float slow, FxDraw.Tex shape) {
         if (count >= capacity) {
             return;
         }
@@ -83,6 +99,8 @@ final class FxMotes {
         age[i] = 0;
         life[i] = (short) Math.max(1, ticks);
         drag[i] = slow;
+        tex[i] = (byte) shape.ordinal();
+        roll[i] = random() * (float) (Math.PI * 2);
     }
 
     void tick() {
@@ -121,6 +139,8 @@ final class FxMotes {
         age[i] = age[last];
         life[i] = life[last];
         drag[i] = drag[last];
+        tex[i] = tex[last];
+        roll[i] = roll[last];
     }
 
     void clear() {
@@ -142,10 +162,16 @@ final class FxMotes {
             }
             float t = (age[i] + partial) / life[i];
             float alpha = t < 0.15f ? t / 0.15f : 1f - (t - 0.15f) / 0.85f;
-            float s = size[i] * (1f - 0.4f * t);
-            draw.sprite(FxDraw.Tex.SPARK, ix, iy, iz, s, i * 0.7f, colour[i], alpha);
+            FxDraw.Tex shape = SHAPES[tex[i]];
+            float s = size[i] * shape.moteScale * (1f - 0.4f * t);
+            // Поворот — от собственного возраста искры, а не от места в массиве:
+            // место меняется, когда соседняя гаснет, и искра дёргалась бы.
+            float r = roll[i] + (age[i] + partial) * shape.moteSpin;
+            draw.sprite(shape, ix, iy, iz, s, r, colour[i], alpha);
         }
     }
+
+    private static final FxDraw.Tex[] SHAPES = FxDraw.Tex.values();
 
     static float jitter(float spread) {
         return (ThreadLocalRandom.current().nextFloat() * 2f - 1f) * spread;

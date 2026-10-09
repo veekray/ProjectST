@@ -24,14 +24,14 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_evoker_prepare_summon, volume: 1.0, pitch: 1.2 }
-      - { action: particles, particle: portal, shape: ring, count: 40, size: 6.0 }
+      - { action: particles, particle: portal, shape: ring, count: 40, size: 6.0, fx: trickster_aura }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
       - { target: is-player, not: true }
     do:
       - { action: confuse, radius: $confuse_radius }
-      - { action: particles, particle: portal, shape: point, count: 12, size: 0.3 }
+      - { action: particles, particle: portal, shape: point, count: 12, size: 0.3, fx: trickster_flash }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -44,4 +44,4 @@ steps:
         op: percent
         value: $weaken
         status: weakened
-      - { action: particles, particle: portal, shape: point, count: 15, size: 0.3 }
+      - { action: particles, particle: portal, shape: point, count: 15, size: 0.3, fx: trickster_sink }

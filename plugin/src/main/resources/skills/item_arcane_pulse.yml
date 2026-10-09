@@ -23,4 +23,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: enchant
+        fx: item_bolt
         on-hit: item_arcane_pulse_hit

@@ -34,7 +34,7 @@ steps:
         value: $reduction
         status: warrior_stance
       - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: ash, shape: ring, count: 20, size: 2.0 }
+      - { action: particles, particle: ash, shape: ring, count: 20, size: 2.0, fx: warrior_aura }
 
   - target: { type: self }
     delay: $duration
@@ -47,7 +47,7 @@ steps:
     do:
       - { action: damage, amount: "$damage_each * @taken", school: physical }
       - { action: push, strength: 0.8, lift: 0.3 }
-      - { action: particles, particle: explosion, shape: ring, count: 20, size: radius }
+      - { action: particles, particle: explosion, shape: ring, count: 20, size: radius, fx: warrior_wave }
 
   - target: { type: self }
     delay: $duration

@@ -848,4 +848,22 @@ class SkillLoaderTest {
         assertEquals("d", teleport.fx());
         assertEquals("portal", teleport.particle());
     }
+
+    @Test
+    @DisplayName("fx: none бывает у частиц, но не у снаряда: его у игрока с модом не стало бы видно")
+    void fxNoneOnlyForParticles() {
+        load("""
+                id: s
+                class: mage
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: particles, particle: witch, shape: ring, size: 2, fx: none }
+                      - { action: projectile, range: 10, particle: enchant, fx: none, on-end: s }
+                """);
+        assertEquals(1, errors.all().size(), errors.all().toString());
+        assertTrue(errors.all().get(0).what().contains("только у частиц")
+                        && errors.all().get(0).at().line() == 7,
+                errors.all().toString());
+    }
 }

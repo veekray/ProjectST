@@ -16,4 +16,4 @@ steps:
       - { target: has-status, value: venom }
     do:
       - { action: damage, amount: $damage, school: true }
-      - { action: particles, particle: squid_ink, shape: point, count: 4, size: 0.2 }
+      - { action: particles, particle: squid_ink, shape: point, count: 4, size: 0.2, fx: assassin_flash }

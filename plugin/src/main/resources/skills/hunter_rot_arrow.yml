@@ -27,4 +27,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: squid_ink
+        fx: hunter_bolt
         on-hit: hunter_rot_hit

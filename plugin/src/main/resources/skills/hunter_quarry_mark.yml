@@ -34,7 +34,7 @@ steps:
       - { action: status, id: quarry, duration: $duration }
       - { action: glow, duration: $duration }
       - { action: sound, sound: item_crossbow_quick_charge_1, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: crit, shape: sphere, count: 25, size: 0.5 }
+      - { action: particles, particle: crit, shape: sphere, count: 25, size: 0.5, fx: hunter_sink }
 
   - target: { type: self }
     do:

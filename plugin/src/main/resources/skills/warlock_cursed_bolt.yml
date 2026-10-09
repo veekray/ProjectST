@@ -30,4 +30,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: squid_ink
+        fx: warlock_bolt
         on-hit: warlock_bolt_hit

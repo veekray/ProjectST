@@ -26,8 +26,12 @@ import ru.projectst.rpgcore.skill.Zone;
  *
  * <p><b>Каждый видит один вид.</b> Ванильная частица, разосланная миром всем
  * подряд, легла бы у игрока с модом поверх его эффекта, и печать мага
- * рисовалась бы дважды. Поэтому для навыков с {@code fx} частицы уходят
- * адресно, только тем, у кого мода нет, а события — только тем, у кого он есть.
+ * рисовалась бы дважды. Поэтому частицы навыков уходят адресно, только тем, у
+ * кого мода нет, а события — только тем, у кого он есть.
+ *
+ * <p><b>Игрок с модом не видит ванильных частиц навыков вовсе.</b> Даже у
+ * действия без {@code fx} он получает событие, и мод рисует общий эффект по
+ * форме в цветах класса. Ванильный вид — только запасной, для игроков без мода.
  *
  * <p><b>Зону узнаёт и тот, кто подошёл позже.</b> Печать живёт десять секунд,
  * и игрок, вошедший в радиус на пятой, не получил события о постановке. Служба
@@ -182,7 +186,7 @@ public final class FxBroadcaster {
         long now = clock.getAsLong();
         Set<Integer> alive = new HashSet<>();
         for (Zone zone : active) {
-            if (zone.fx() != null) {
+            if (zone.visible()) {
                 alive.add(handleOf(zone));
             }
         }
@@ -195,7 +199,7 @@ public final class FxBroadcaster {
             Set<Integer> mine = known.computeIfAbsent(player.getUniqueId(),
                     id -> new HashSet<>());
             for (Zone zone : active) {
-                if (zone.fx() == null) {
+                if (!zone.visible()) {
                     continue;
                 }
                 int handle = handleOf(zone);

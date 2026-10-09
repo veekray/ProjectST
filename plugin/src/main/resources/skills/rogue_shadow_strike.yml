@@ -27,7 +27,7 @@ steps:
     do:
       - { action: approach, distance: $behind_distance, behind: true }
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: portal, shape: sphere, count: 30, size: 0.6 }
+      - { action: particles, particle: portal, shape: sphere, count: 30, size: 0.6, fx: rogue_flash }
       - { action: sound, sound: entity_enderman_teleport, pitch: 1.2 }
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }

@@ -38,5 +38,5 @@ steps:
         op: flat
         value: $speed
         status: unshakable
-      - { action: particles, particle: end_rod, shape: point, count: 10, size: 0.4 }
-      - { action: particles, particle: angry_villager, shape: ring, count: 36, size: radius }
+      - { action: particles, particle: end_rod, shape: point, count: 10, size: 0.4, fx: warrior_rise }
+      - { action: particles, particle: angry_villager, shape: ring, count: 36, size: radius, fx: warrior_aura }

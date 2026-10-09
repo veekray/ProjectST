@@ -25,5 +25,5 @@ steps:
       - { action: status, id: carnival, duration: $duration }
       - { action: cast, skill: trickster_split, at-targets: true }
       - { action: sound, sound: entity_illusioner_cast_spell, volume: 1.4, pitch: 0.7 }
-      - { action: particles, particle: portal, shape: ring, count: 48, size: 5.0 }
+      - { action: particles, particle: portal, shape: ring, count: 48, size: 5.0, fx: trickster_aura }
       - { action: message, text: "&dКарнавал &7— теперь нас шестеро" }

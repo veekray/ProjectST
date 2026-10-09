@@ -33,7 +33,7 @@ steps:
         value: $reduction
         status: ignore_pain
       - { action: sound, sound: entity_iron_golem_hurt, volume: 1.0, pitch: 0.6 }
-      - { action: particles, particle: ash, shape: sphere, count: 25, size: 0.5 }
+      - { action: particles, particle: ash, shape: sphere, count: 25, size: 0.5, fx: berserker_rise }
 
   # Срок вышел — платим по счёту.
   - target: { type: self }
@@ -43,4 +43,4 @@ steps:
       - { action: sacrifice, percent: "$debt_cost * @debt" }
       - { action: remove-status, id: pain_debt }
       - { action: sound, sound: entity_player_hurt, volume: 0.8, pitch: 0.6 }
-      - { action: particles, particle: damage_indicator, shape: sphere, count: 20, size: 0.5 }
+      - { action: particles, particle: damage_indicator, shape: sphere, count: 20, size: 0.5, fx: berserker_puff }

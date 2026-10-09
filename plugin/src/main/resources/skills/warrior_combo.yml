@@ -35,14 +35,14 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: cast, skill: warrior_combo_mark, at-targets: false }
-      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_flash }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
     delay: 5
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: cast, skill: warrior_combo_mark, at-targets: false }
-      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_flash }
 
   # Третий — обычный, если связка не сложилась.
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
@@ -61,7 +61,7 @@ steps:
       - { action: damage, amount: $damage_full, school: physical }
       - { action: push, strength: $push, lift: 0.3 }
       - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5, fx: warrior_flash }
 
   - target: { type: self }
     delay: 11

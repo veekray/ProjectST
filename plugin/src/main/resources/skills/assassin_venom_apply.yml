@@ -20,7 +20,7 @@ steps:
         op: flat
         value: $heal_cut
         status: venom
-      - { action: particles, particle: squid_ink, shape: point, count: 10, size: 0.3 }
+      - { action: particles, particle: squid_ink, shape: point, count: 10, size: 0.3, fx: assassin_sink }
 
   - target: { type: trigger }
     if:

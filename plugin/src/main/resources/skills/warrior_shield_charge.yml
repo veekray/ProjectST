@@ -32,4 +32,4 @@ steps:
       - { action: status, id: stun, duration: $stun }
       - { action: push, strength: $push, lift: 0.4 }
       - { action: sound, sound: block_anvil_land, volume: 0.8, pitch: 1.2 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4 }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4, fx: warrior_flash }

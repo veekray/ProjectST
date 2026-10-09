@@ -11,4 +11,4 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: magic }
-      - { action: particles, particle: enchant, shape: sphere, count: 14, size: 0.3 }
+      - { action: particles, particle: enchant, shape: sphere, count: 14, size: 0.3, fx: item_flash }

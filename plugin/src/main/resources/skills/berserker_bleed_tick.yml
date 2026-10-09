@@ -16,4 +16,4 @@ steps:
       - { target: has-status, value: berserk_bleed }
     do:
       - { action: damage, amount: $damage, school: true }
-      - { action: particles, particle: damage_indicator, shape: point, count: 5, size: 0.2 }
+      - { action: particles, particle: damage_indicator, shape: point, count: 5, size: 0.2, fx: berserker_flash }

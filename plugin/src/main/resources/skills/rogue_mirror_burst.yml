@@ -20,7 +20,7 @@ steps:
         op: flat
         value: $vulnerability
         status: exposed
-      - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1 }
+      - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1, fx: rogue_sink }
 
   - target: { type: self }
     do:

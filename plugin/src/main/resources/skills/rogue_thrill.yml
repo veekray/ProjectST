@@ -34,4 +34,4 @@ steps:
         value: $speed
         status: thrill
       - { action: sound, sound: entity_player_breath, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: happy_villager, shape: sphere, count: 15, size: 0.5 }
+      - { action: particles, particle: happy_villager, shape: sphere, count: 15, size: 0.5, fx: rogue_rise }

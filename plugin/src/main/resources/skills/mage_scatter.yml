@@ -29,7 +29,7 @@ steps:
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
       - { action: sound, sound: block_amethyst_cluster_break, pitch: 0.9 }
-      - { action: particles, particle: enchant, shape: sphere, count: 25, size: 0.4 }
+      - { action: particles, particle: enchant, shape: sphere, count: 25, size: 0.4, fx: mage_puff }
 
   # Обычный: три печати веером.
   - target: { type: self }

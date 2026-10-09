@@ -28,5 +28,5 @@ steps:
     do:
       - { action: status, id: challenge, duration: $duration, amount: $weaken }
       - { action: glow, duration: $duration }
-      - { action: particles, particle: angry_villager, shape: point, count: 8, size: 0.3 }
-      - { action: particles, particle: angry_villager, shape: ring, count: 30, size: radius }
+      - { action: particles, particle: angry_villager, shape: point, count: 8, size: 0.3, fx: knight_sink }
+      - { action: particles, particle: angry_villager, shape: ring, count: 30, size: radius, fx: knight_wave }

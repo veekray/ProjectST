@@ -491,7 +491,7 @@ public final class SkillLoader {
                     errors.add(b.at(), path + ".forward", "обязательный ключ forward отсутствует");
                     yield Optional.empty();
                 }
-                String fx = readFx(b, path, errors, particle);
+                String fx = readFx(b, path, errors, particle, false);
                 if (fx == FX_INVALID) {
                     yield Optional.empty();
                 }
@@ -583,7 +583,7 @@ public final class SkillLoader {
                         yield Optional.empty();
                     }
                 }
-                String fx = readFx(b, path, errors, particle);
+                String fx = readFx(b, path, errors, particle, true);
                 if (fx == FX_INVALID) {
                     yield Optional.empty();
                 }
@@ -627,7 +627,7 @@ public final class SkillLoader {
                                     + "он ни во что не попадёт и ничего не сделает");
                     yield Optional.empty();
                 }
-                String fx = readFx(b, path, errors, particle);
+                String fx = readFx(b, path, errors, particle, false);
                 if (fx == FX_INVALID) {
                     yield Optional.empty();
                 }
@@ -687,7 +687,7 @@ public final class SkillLoader {
                             "tick-interval имеет смысл только с on-tick");
                     yield Optional.empty();
                 }
-                String fx = readFx(b, path, errors, particle);
+                String fx = readFx(b, path, errors, particle, false);
                 if (fx == FX_INVALID) {
                     yield Optional.empty();
                 }
@@ -804,9 +804,15 @@ public final class SkillLoader {
      * Есть ли такой эффект у мода, загрузчик не знает и знать не должен —
      * неизвестный эффект мод рисует общим по форме и цвету класса.
      *
+     * <p>{@code fx: none} — только у частиц: украшение, которое мод не рисует,
+     * потому что рядом в том же шаге уже есть свой эффект. Снаряд, зону или
+     * след так спрятать нельзя: у игрока с модом их не стало бы видно вовсе.
+     *
+     * @param allowNone можно ли {@code none}
      * @return идентификатор, {@code null} без ключа или {@link #FX_INVALID}
      */
-    private static String readFx(YmlMap b, String path, ContentErrors errors, String particle) {
+    private static String readFx(YmlMap b, String path, ContentErrors errors, String particle,
+                                 boolean allowNone) {
         if (b.rawKind("fx") == YmlMap.Kind.ABSENT) {
             b.str("fx", "");
             return null;
@@ -815,6 +821,11 @@ public final class SkillLoader {
         if (!FX_ID.matcher(fx).matches()) {
             errors.add(b.at(), path + ".fx", "эффект называется строчными латинскими буквами, "
                     + "цифрами и подчёркиванием, получено \"" + fx + "\"");
+            return FX_INVALID;
+        }
+        if (!allowNone && FxEvent.NONE.equals(fx)) {
+            errors.add(b.at(), path + ".fx", "fx: none бывает только у частиц: "
+                    + "снаряд, зона и след у игрока с модом обязаны быть видны");
             return FX_INVALID;
         }
         if (particle == null || particle.isBlank()) {

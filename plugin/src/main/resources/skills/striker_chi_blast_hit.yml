@@ -23,5 +23,5 @@ steps:
 
   - target: { type: trigger }
     do:
-      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.3 }
+      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.3, fx: striker_flash }
       - { action: sound, sound: entity_evoker_cast_spell, volume: 0.8, pitch: 2.0 }

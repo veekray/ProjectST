@@ -33,4 +33,4 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: block_crack, shape: ring, count: 30, size: radius }
+      - { action: particles, particle: cloud, shape: ring, count: 30, size: radius, fx: berserker_wave }

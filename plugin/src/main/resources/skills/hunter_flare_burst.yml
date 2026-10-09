@@ -19,7 +19,7 @@ steps:
         op: flat
         value: $defense_down
         status: exposed
-      - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0 }
+      - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0, fx: hunter_flash }
 
   - target: { type: self }
     do:

@@ -29,6 +29,7 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: end_rod
+        fx: hunter_bolt
         on-hit: hunter_flare_burst
 
   - target: { type: self }

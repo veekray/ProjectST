@@ -39,4 +39,4 @@ steps:
         attacks-enemies: false
       - { action: cast, skill: assassin_shadow_grant, at-targets: true }
       - { action: sound, sound: entity_illusioner_prepare_mirror, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: squid_ink, shape: sphere, count: 30, size: 0.5 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 30, size: 0.5, fx: assassin_rise }

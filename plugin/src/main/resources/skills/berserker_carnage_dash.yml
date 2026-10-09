@@ -27,4 +27,4 @@ steps:
     delay: 3
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: damage_indicator, shape: point, count: 10, size: 0.3 }
+      - { action: particles, particle: damage_indicator, shape: point, count: 10, size: 0.3, fx: berserker_flash }

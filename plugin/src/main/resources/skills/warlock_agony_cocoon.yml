@@ -37,7 +37,7 @@ steps:
       - { action: damage, amount: $damage_per_soul * @souls, school: magic }
       - { action: status, id: banish, duration: $duration }
       - { action: status, id: banish, duration: $duration_per_soul * @souls }
-      - { action: particles, particle: soul, shape: sphere, count: 60, size: 1.2 }
+      - { action: particles, particle: soul, shape: sphere, count: 60, size: 1.2, fx: warlock_flash }
       - { action: sound, sound: entity_wither_hurt, pitch: 0.5 }
 
   - target: { type: self }

@@ -31,7 +31,7 @@ steps:
         value: $reduction
         status: fortress
       - { action: sound, sound: block_beacon_activate, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: end_rod, shape: ring, count: 48, size: 6.0 }
+      - { action: particles, particle: end_rod, shape: ring, count: 48, size: 6.0, fx: knight_aura }
       - { action: message, text: "&6Абсолютная Фортеция" }
 
   - target: { type: enemies_in_radius, radius: $radius }

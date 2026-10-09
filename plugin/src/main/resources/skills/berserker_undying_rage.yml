@@ -40,4 +40,4 @@ steps:
         value: $damage_bonus
         status: undying
       - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: lava, shape: sphere, count: 40, size: 1.0 }
+      - { action: particles, particle: lava, shape: sphere, count: 40, size: 1.0, fx: berserker_rise }

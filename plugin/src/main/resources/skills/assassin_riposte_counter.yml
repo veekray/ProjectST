@@ -16,7 +16,7 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.7 }
-      - { action: particles, particle: crit, shape: point, count: 25, size: 0.4 }
+      - { action: particles, particle: crit, shape: point, count: 25, size: 0.4, fx: assassin_flash }
 
   - target: { type: self }
     if:

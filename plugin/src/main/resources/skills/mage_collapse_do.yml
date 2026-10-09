@@ -15,14 +15,14 @@ steps:
   - target: { type: enemies_near_origin, radius: $hit_radius }
     do:
       - { action: particles, particle: witch, shape: ring, count: 44, size: radius, fx: mage_collapse_field }
-      - { action: particles, particle: portal, shape: sphere, count: 80, size: 3, at-origin: true }
+      - { action: particles, particle: portal, shape: sphere, count: 80, size: 3, at-origin: true, fx: none }
 
   # Тянет тех, кого накрыли печати, а не всех вокруг мага: расстановка поля
   # решает, кого соберёт. Цели считаются ДО того, как печати сгорят.
   - target: { type: enemies_near_zone, tag: seal, radius: $seal_reach }
     do:
       - { action: pull, strength: $pull, ticks: 3 }
-      - { action: particles, particle: portal, shape: sphere, count: 20, size: 0.4 }
+      - { action: particles, particle: portal, shape: sphere, count: 20, size: 0.4, fx: mage_flash }
 
   # Теперь поле тратится целиком, и число печатей идёт в счётчик.
   - target: { type: self }
@@ -37,8 +37,8 @@ steps:
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: damage, amount: $damage_per_seal * @seals, school: magic }
-      - { action: particles, particle: witch, shape: sphere, count: 40, size: 0.5 }
-      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.4 }
+      - { action: particles, particle: witch, shape: sphere, count: 40, size: 0.5, fx: none }
+      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.4, fx: none }
       - { action: particles, particle: witch, shape: ring, count: 44, size: radius, fx: mage_collapse_blast }
 
   - target: { type: self }

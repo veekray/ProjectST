@@ -29,8 +29,8 @@ steps:
   - target: { type: allies_in_radius, radius: $radius }
     do:
       - { action: heal, amount: $heal }
-      - { action: particles, particle: composter, shape: sphere, count: 12, size: 0.4 }
-      - { action: particles, particle: composter, shape: sphere, count: 70, size: radius }
+      - { action: particles, particle: composter, shape: sphere, count: 12, size: 0.4, fx: druid_rise }
+      - { action: particles, particle: composter, shape: sphere, count: 70, size: radius, fx: druid_aura }
 
   # Усиленные споры начинают разъедать врагов. Тратит Увядание.
   - target: { type: enemies_in_radius, radius: $radius }
@@ -38,7 +38,7 @@ steps:
       - { caster: status-stacks, value: "wither:3" }
     do:
       - { action: damage, amount: $burn_damage, school: magic }
-      - { action: particles, particle: composter, shape: point, count: 14 }
+      - { action: particles, particle: composter, shape: point, count: 14, fx: druid_flash }
 
   - target: { type: self }
     if:

@@ -29,8 +29,8 @@ steps:
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $root_duration }
-      - { action: particles, particle: composter, shape: point, count: 10 }
-      - { action: particles, particle: composter, shape: ring, count: 40, size: radius }
+      - { action: particles, particle: composter, shape: point, count: 10, fx: druid_flash }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_wave }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -38,8 +38,8 @@ steps:
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: root, duration: $empowered_root_duration }
-      - { action: particles, particle: composter, shape: point, count: 14 }
-      - { action: particles, particle: composter, shape: ring, count: 40, size: radius }
+      - { action: particles, particle: composter, shape: point, count: 14, fx: druid_flash }
+      - { action: particles, particle: composter, shape: ring, count: 40, size: radius, fx: druid_wave }
 
   - target: { type: self }
     if:

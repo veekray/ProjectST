@@ -15,5 +15,5 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: soul, duration: $duration }
-      - { action: particles, particle: soul, shape: sphere, count: 12, size: 0.4 }
+      - { action: particles, particle: soul, shape: sphere, count: 12, size: 0.4, fx: warlock_rise }
       - { action: sound, sound: entity_vex_ambient, volume: 0.6, pitch: 1.4 }

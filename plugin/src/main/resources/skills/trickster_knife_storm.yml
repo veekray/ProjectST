@@ -23,12 +23,12 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: crit, shape: ring, count: 20, size: 2.0 }
+      - { action: particles, particle: crit, shape: ring, count: 20, size: 2.0, fx: trickster_aura }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3, fx: trickster_flash }
 
   - target: { type: own_minions, tag: double }
     do:

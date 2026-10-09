@@ -31,7 +31,7 @@ steps:
         value: $crit_power
         status: executioner
       - { action: sound, sound: entity_wither_spawn, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: squid_ink, shape: ring, count: 40, size: 4.0 }
+      - { action: particles, particle: squid_ink, shape: ring, count: 40, size: 4.0, fx: assassin_aura }
 
   # Час кончился — Тень гаснет вместе с ним, а не остаётся подарком.
   - target: { type: self }

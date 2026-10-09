@@ -320,7 +320,9 @@ public final class BukkitSkillWorld implements SkillWorld {
             plugin.getLogger().warning("неизвестный эффект зелья: " + effect);
             return;
         }
-        target.addPotionEffect(new PotionEffect(type, durationTicks, amplifier, false, true));
+        // Без пузырьков: это ванильные частицы, которые сыпались бы с цели
+        // поверх эффектов мода весь срок зелья. Значок у игрока остаётся.
+        target.addPotionEffect(new PotionEffect(type, durationTicks, amplifier, false, false, true));
     }
 
     @Override
@@ -796,10 +798,11 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
 
         void start() {
-            if (spec.fx() != null) {
+            if (spec.fx() != null || spec.particle() != null) {
                 // Полёт мод ведёт сам: одно событие на вылет и одно на конец,
                 // а не позиция каждый тик. Видят те, кто рядом с точкой вылета
-                // или с серединой пути.
+                // или с серединой пути. Без fx — тоже событием: мод рисует общий
+                // снаряд цветом класса, ванильный след идёт только без мода.
                 handle = fx.nextHandle();
                 Location middle = at.clone().add(direction.clone().multiply(spec.range() / 2));
                 watchers = fx.viewers(middle, FxBroadcaster.RANGE + spec.range() / 2).modded();
@@ -827,9 +830,9 @@ public final class BukkitSkillWorld implements SkillWorld {
             double remaining = Math.min(spec.speed(), spec.range() - travelled);
             int segments = (int) Math.ceil(remaining / MAX_SEGMENT);
             double step = remaining / Math.max(1, segments);
-            // Ванильный след снаряда с эффектом — только тем, у кого мода нет;
+            // Ванильный след снаряда — только тем, у кого мода нет;
             // кто это, решается раз за тик, а не на каждый отрезок.
-            List<Player> trailViewers = spec.fx() == null ? null : fx.viewers(at).vanilla();
+            List<Player> trailViewers = fx.viewers(at).vanilla();
 
             for (int i = 0; i < segments; i++) {
                 Location before = at.clone();
@@ -914,18 +917,20 @@ public final class BukkitSkillWorld implements SkillWorld {
     @Override
     public void particles(Position at, String particle, Action.Particles.Shape shape,
                           int count, double size, double angle, Heading axis) {
-        particlesFor(null, at, particle, shape, count, size, angle, axis);
+        // Даже прямой вызов не рассылает ванильные частицы всем подряд: игрок
+        // с модом получает общий эффект, остальные — частицы.
+        effect(new FxEvent.Burst(null, "", at, shape, size, angle, axis, particle, count));
     }
 
     /**
      * Частицы адресно.
      *
-     * @param viewers кому показать; {@code null} — всем вокруг, как рассылает мир
+     * @param viewers кому показать: только игроки без мода
      */
     private void particlesFor(List<Player> viewers, Position at, String particle,
                               Action.Particles.Shape shape, int count, double size,
                               double angle, Heading axis) {
-        if (viewers != null && viewers.isEmpty()) {
+        if (viewers == null || viewers.isEmpty()) {
             return;
         }
         Optional<Location> location = toLocation(at);
@@ -981,11 +986,12 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
-    /** Одна рассылка частиц: всем вокруг или только перечисленным. */
+    /** Одна рассылка частиц перечисленным игрокам. */
     private static void spawn(World world, List<Player> viewers, Particle type, Location at,
                               int count, double spread) {
+        // Рассылки «всем вокруг» нет намеренно: так ванильная частица дошла бы
+        // и до игрока с модом. Кому показывать, решает FxBroadcaster.
         if (viewers == null) {
-            world.spawnParticle(type, at, count, spread, spread, spread, 0);
             return;
         }
         for (Player viewer : viewers) {
@@ -1086,17 +1092,14 @@ public final class BukkitSkillWorld implements SkillWorld {
         if (zone.particle() == null) {
             return;
         }
-        // Зона с эффектом мода: ванильное кольцо — только тем, у кого мода нет.
-        // Игрок с модом получил зону событием, и второе кольцо поверх эффекта
-        // было бы тем самым дублем.
-        List<Player> viewers = null;
-        if (zone.fx() != null) {
-            Optional<Location> centre = toLocation(zone.center());
-            if (centre.isEmpty()) {
-                return;
-            }
-            viewers = fx.viewers(centre.get()).vanilla();
+        // Ванильное кольцо — только тем, у кого мода нет. Игрок с модом получил
+        // зону событием, своим эффектом или общим, и второе кольцо поверх было
+        // бы тем самым дублем.
+        Optional<Location> centre = toLocation(zone.center());
+        if (centre.isEmpty()) {
+            return;
         }
+        List<Player> viewers = fx.viewers(centre.get()).vanilla();
         // Число точек считает само кольцо: по полублока на точку.
         particlesFor(viewers, zone.center(), zone.particle(), Action.Particles.Shape.RING,
                 8, zone.radius(), 0, null);
@@ -1114,12 +1117,16 @@ public final class BukkitSkillWorld implements SkillWorld {
                 }
                 FxBroadcaster.Viewers viewers = fx.viewers(at.get());
                 Heading axis = burst.axis();
-                fx.send(viewers.modded(), new FxMessage.Burst(burst.fx(), burst.classId(),
-                        FxMessage.Shape.valueOf(burst.shape().name()),
-                        burst.at().x(), burst.at().y(), burst.at().z(),
-                        (float) burst.radius(), (float) burst.angle(),
-                        axis == null ? 0f : (float) axis.x(),
-                        axis == null ? 0f : (float) axis.z()));
+                // fx: none — украшение для игроков без мода: у игрока с модом
+                // в том же шаге уже есть свой эффект.
+                if (!FxEvent.NONE.equals(burst.fx())) {
+                    fx.send(viewers.modded(), new FxMessage.Burst(burst.fx(), burst.classId(),
+                            FxMessage.Shape.valueOf(burst.shape().name()),
+                            burst.at().x(), burst.at().y(), burst.at().z(),
+                            (float) burst.radius(), (float) burst.angle(),
+                            axis == null ? 0f : (float) axis.x(),
+                            axis == null ? 0f : (float) axis.z()));
+                }
                 particlesFor(viewers.vanilla(), burst.at(), burst.particle(), burst.shape(),
                         burst.count(), burst.radius(), burst.angle(), axis);
             }
@@ -1172,15 +1179,10 @@ public final class BukkitSkillWorld implements SkillWorld {
         Location middle = from.get().clone().add(to.get()).multiply(0.5);
         FxBroadcaster.Viewers viewers = fx.viewers(middle);
         List<Player> vanilla = viewers.vanilla();
-        if (trail.fx() != null) {
-            fx.send(viewers.modded(), new FxMessage.Trail(trail.fx(), trail.classId(),
-                    trail.from().x(), trail.from().y(), trail.from().z(),
-                    trail.to().x(), trail.to().y(), trail.to().z()));
-        } else {
-            // Без эффекта мода ванильный след видят все: заменить его нечем.
-            vanilla = new ArrayList<>(vanilla);
-            vanilla.addAll(viewers.modded());
-        }
+        // Без fx мод рисует общий след цветом класса: ванильный — только без мода.
+        fx.send(viewers.modded(), new FxMessage.Trail(trail.fx(), trail.classId(),
+                trail.from().x(), trail.from().y(), trail.from().z(),
+                trail.to().x(), trail.to().y(), trail.to().z()));
         Vector path = to.get().toVector().subtract(from.get().toVector());
         int points = Math.clamp((int) Math.ceil(path.length() / TRAIL_STEP), 1, 80);
         for (int i = 0; i <= points; i++) {

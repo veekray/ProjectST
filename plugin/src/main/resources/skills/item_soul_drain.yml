@@ -20,7 +20,7 @@ steps:
     do:
       - { action: count, counter: cursed }
       - { action: damage, amount: $damage, school: magic }
-      - { action: particles, particle: soul, shape: point, count: 8 }
+      - { action: particles, particle: soul, shape: point, count: 8, fx: item_flash }
 
   - target: { type: self }
     if:

@@ -27,4 +27,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: crit
+        fx: berserker_bolt
         on-hit: berserker_hook_hit

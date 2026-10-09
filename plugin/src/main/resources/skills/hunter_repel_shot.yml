@@ -32,4 +32,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: crit
+        fx: hunter_bolt
         on-hit: hunter_repel_hit

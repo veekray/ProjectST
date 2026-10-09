@@ -32,8 +32,8 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: status, id: stun, duration: $stun_duration }
       - { action: potion, effect: poison, duration: $poison_duration, amplifier: 1 }
-      - { action: particles, particle: composter, shape: point, count: 10 }
-      - { action: particles, particle: composter, shape: ring, count: 30, size: radius }
+      - { action: particles, particle: composter, shape: point, count: 10, fx: druid_flash }
+      - { action: particles, particle: composter, shape: ring, count: 30, size: radius, fx: druid_wave }
 
   # Усиленный: шире и вешает замедление. Тратит Рост.
   - target: { type: enemies_in_radius, radius: $empowered_radius }
@@ -44,8 +44,8 @@ steps:
       - { action: status, id: stun, duration: $stun_duration }
       - { action: potion, effect: poison, duration: $poison_duration, amplifier: 1 }
       - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 1 }
-      - { action: particles, particle: composter, shape: point, count: 12 }
-      - { action: particles, particle: composter, shape: ring, count: 44, size: radius }
+      - { action: particles, particle: composter, shape: point, count: 12, fx: druid_flash }
+      - { action: particles, particle: composter, shape: ring, count: 44, size: radius, fx: druid_wave }
 
   - target: { type: self }
     if:

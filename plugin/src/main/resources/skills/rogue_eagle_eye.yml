@@ -32,4 +32,4 @@ steps:
         value: $crit
         status: eagle_eye
       - { action: sound, sound: entity_parrot_imitate_ender_dragon, volume: 1.0, pitch: 1.2 }
-      - { action: particles, particle: glow, shape: sphere, count: 30, size: 0.5 }
+      - { action: particles, particle: glow, shape: sphere, count: 30, size: 0.5, fx: rogue_rise }

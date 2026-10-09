@@ -38,7 +38,7 @@ steps:
       - { caster: has-status, value: stance_calm }
     do:
       - { action: dash, strength: $leap_calm, lift: 0.25 }
-      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.4 }
+      - { action: particles, particle: end_rod, shape: point, count: 15, size: 0.4, fx: striker_puff }
 
   - target: { type: self }
     do:
@@ -57,7 +57,7 @@ steps:
       - { caster: has-status, value: stance_calm }
     do:
       - { action: damage, amount: $damage_calm, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4 }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4, fx: striker_flash }
 
   # След ставится последним шагом: иначе он сбил бы собственную проверку.
   - target: { type: self }

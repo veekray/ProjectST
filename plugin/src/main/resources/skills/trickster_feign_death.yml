@@ -37,4 +37,4 @@ steps:
         tag: corpse
         attacks-enemies: false
       - { action: sound, sound: entity_player_death, volume: 1.0, pitch: 1.0 }
-      - { action: particles, particle: cloud, shape: sphere, count: 40, size: 0.5 }
+      - { action: particles, particle: cloud, shape: sphere, count: 40, size: 0.5, fx: trickster_rise }

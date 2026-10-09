@@ -23,10 +23,10 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 1.0, pitch: 0.9 }
-      - { action: particles, particle: portal, shape: ring, count: 48, size: 8.0 }
+      - { action: particles, particle: portal, shape: ring, count: 48, size: 8.0, fx: trickster_aura }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: scatter, radius: $throw }
-      - { action: particles, particle: portal, shape: point, count: 25, size: 0.5 }
+      - { action: particles, particle: portal, shape: point, count: 25, size: 0.5, fx: trickster_flash }
       - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.5 }

@@ -36,5 +36,5 @@ steps:
         value: $reduction
         status: meditation
       - { action: sound, sound: block_amethyst_block_chime, volume: 1.0, pitch: 1.2 }
-      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5 }
+      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5, fx: striker_rise }
       - { action: cast, skill: striker_mark_calm, at-targets: true }

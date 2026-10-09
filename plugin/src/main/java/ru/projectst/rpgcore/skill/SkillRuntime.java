@@ -499,23 +499,21 @@ public final class SkillRuntime {
 
             case Action.Particles a -> {
                 int count = (int) a.count().resolve(table, level, context.counters());
+                // Событием — всегда, даже без fx: игрок с модом не должен видеть
+                // ни одной ванильной частицы навыка. Без fx мод рисует общий
+                // эффект по форме в цветах класса, а ванильный вид из того же
+                // события достаётся только тем, у кого мода нет.
                 if (a.fitRadius()) {
                     for (AreaMark mark : areaMarks(context, area)) {
-                        if (a.fx() != null) {
-                            world.effect(new FxEvent.Burst(a.fx(), classOf(skill), mark.centre(),
-                                    a.shape(), area.radius(), area.angle(), mark.axis(),
-                                    a.particle(), count));
-                        } else {
-                            world.particles(mark.centre(), a.particle(), a.shape(), count,
-                                    area.radius(), area.angle(), mark.axis());
-                        }
+                        world.effect(new FxEvent.Burst(a.fx(), classOf(skill), mark.centre(),
+                                a.shape(), area.radius(), area.angle(), mark.axis(),
+                                a.particle(), count));
                     }
                     return;
                 }
                 double size = resolve(a.size(), table, context, 1);
-                java.util.function.Consumer<Position> draw = a.fx() == null
-                        ? p -> world.particles(p, a.particle(), a.shape(), count, size)
-                        : p -> world.effect(new FxEvent.Burst(a.fx(), classOf(skill), p,
+                java.util.function.Consumer<Position> draw =
+                        p -> world.effect(new FxEvent.Burst(a.fx(), classOf(skill), p,
                                 a.shape(), size, 0, null, a.particle(), count));
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(draw);
@@ -581,7 +579,7 @@ public final class SkillRuntime {
                                 classOf(skill), gap, a.onEnter(), a.onTick(), a.tickInterval())
                         // Событие несёт саму поставленную зону: срок и радиус в
                         // нём — те, с которыми она живёт, а не пересчитанные.
-                        .filter(zone -> zone.fx() != null)
+                        .filter(Zone::visible)
                         .ifPresent(zone -> world.effect(new FxEvent.ZonePlaced(zone)));
                 if (a.atOrigin()) {
                     positionFor(context).ifPresent(place);
@@ -611,7 +609,7 @@ public final class SkillRuntime {
                     // печати в точку сбора, ядро — в мага.
                     Position pulledTo = context.origin() != null ? context.origin() : at;
                     for (Zone zone : taken) {
-                        if (zone.fx() != null) {
+                        if (zone.visible()) {
                             world.effect(new FxEvent.ZoneConsumed(zone, pulledTo));
                         }
                     }

@@ -28,5 +28,5 @@ steps:
         value: $base
         status: shield_wall
       - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: end_rod, shape: ring, count: 24, size: 1.5 }
+      - { action: particles, particle: end_rod, shape: ring, count: 24, size: 1.5, fx: knight_aura }
       - { action: cast, skill: knight_shield_wall_bonus, at-targets: true }

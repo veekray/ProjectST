@@ -19,7 +19,7 @@ steps:
         value: $heal_cut
         status: rot
       - { action: sound, sound: entity_arrow_hit, volume: 1.0, pitch: 0.6 }
-      - { action: particles, particle: squid_ink, shape: point, count: 15, size: 0.3 }
+      - { action: particles, particle: squid_ink, shape: point, count: 15, size: 0.3, fx: hunter_flash }
 
   - target: { type: self }
     do:

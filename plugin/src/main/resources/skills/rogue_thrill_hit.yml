@@ -15,5 +15,5 @@ steps:
       - { caster: has-status, value: thrill }
     do:
       - { action: restore, amount: $spirit_back }
-      - { action: particles, particle: happy_villager, shape: point, count: 5, size: 0.3 }
+      - { action: particles, particle: happy_villager, shape: point, count: 5, size: 0.3, fx: rogue_rise }
       - { action: sound, sound: entity_experience_orb_pickup, volume: 0.4, pitch: 2.0 }

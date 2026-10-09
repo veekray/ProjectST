@@ -38,6 +38,7 @@ steps:
         radius: $trigger_radius
         duration: $duration
         particle: smoke
+        fx: rogue_zone
         at-origin: true
         on-enter: rogue_mirror_burst
       - { action: potion, effect: invisibility, duration: $vanish_duration, amplifier: 0 }

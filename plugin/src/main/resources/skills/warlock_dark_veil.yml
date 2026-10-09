@@ -29,6 +29,7 @@ steps:
         radius: $radius
         duration: $duration
         particle: squid_ink
+        fx: warlock_zone
         at-origin: true
         on-tick: warlock_veil_tick
         tick-interval: 20

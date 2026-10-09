@@ -31,4 +31,4 @@ steps:
     do:
       - { action: status, id: reaper_brand, duration: $brand_duration }
       - { action: sound, sound: block_respawn_anchor_charge, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: squid_ink, shape: sphere, count: 25, size: 0.5 }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 25, size: 0.5, fx: assassin_sink }

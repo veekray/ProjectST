@@ -23,7 +23,7 @@ steps:
       - { target: has-status, value: chains }
     do:
       - { action: pull, strength: $pull, ticks: 1 }
-      - { action: particles, particle: crit, shape: point, count: 6 }
+      - { action: particles, particle: crit, shape: point, count: 6, fx: warlock_flash }
 
   - target: { type: enemies_in_radius, radius: $near_radius }
     if:

@@ -38,7 +38,7 @@ steps:
       - { caster: has-status, value: empowered, not: true }
     do:
       - { action: push, strength: $push, lift: 0.35 }
-      - { action: particles, particle: enchant, shape: point, count: 12 }
+      - { action: particles, particle: enchant, shape: point, count: 12, fx: none }
       - { action: particles, particle: enchant, shape: ring, count: 40, size: radius, fx: mage_flow_wave }
 
   - target: { type: self }
@@ -54,5 +54,5 @@ steps:
     do:
       - { action: damage, amount: $empowered_damage, school: magic }
       - { action: push, strength: $empowered_push, lift: 0.45 }
-      - { action: particles, particle: witch, shape: point, count: 20 }
+      - { action: particles, particle: witch, shape: point, count: 20, fx: none }
       - { action: particles, particle: witch, shape: ring, count: 50, size: radius, fx: mage_flow_wave_strong }

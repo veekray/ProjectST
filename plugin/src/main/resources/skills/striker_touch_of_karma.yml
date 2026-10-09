@@ -23,7 +23,7 @@ steps:
   - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
     do:
       - { action: status, id: karma_mark, duration: $delay }
-      - { action: particles, particle: witch, shape: point, count: 15, size: 0.4 }
+      - { action: particles, particle: witch, shape: point, count: 15, size: 0.4, fx: striker_sink }
       - { action: sound, sound: block_beacon_power_select, volume: 1.0, pitch: 1.6 }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
@@ -35,7 +35,7 @@ steps:
       - { action: damage, amount: $burst, school: true, basis: target_max_health }
       - { action: remove-status, id: karma_mark }
       - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6 }
+      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6, fx: striker_flash }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 40, limit: 1 }
     delay: $delay_calm
@@ -46,7 +46,7 @@ steps:
       - { action: damage, amount: $burst, school: true, basis: target_max_health }
       - { action: remove-status, id: karma_mark }
       - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6 }
+      - { action: particles, particle: witch, shape: sphere, count: 30, size: 0.6, fx: striker_flash }
 
   # Карма тратит Покой: финишер снимает след, а своего не оставляет.
   - target: { type: self }

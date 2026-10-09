@@ -29,4 +29,5 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: smoke
+        fx: rogue_bolt
         on-hit: rogue_smoke_burst

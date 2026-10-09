@@ -26,12 +26,13 @@ steps:
     origin: self
     do:
       - { action: sound, sound: block_sculk_spread, pitch: 0.6 }
-      - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true }
+      - { action: particles, particle: composter, shape: sphere, count: 120, size: 3, at-origin: true, fx: druid_aura }
       - action: zone
         tag: bloom
         radius: $radius
         duration: $duration
         particle: composter
+        fx: druid_zone
         at-origin: true
         on-tick: druid_bloom_tick
         tick-interval: 20

@@ -19,4 +19,4 @@ steps:
         status: stun
       - { action: damage, amount: $damage, school: physical }
       - { action: sound, sound: block_iron_door_close, volume: 1.0, pitch: 0.6 }
-      - { action: particles, particle: crit, shape: point, count: 25, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 25, size: 0.3, fx: hunter_flash }

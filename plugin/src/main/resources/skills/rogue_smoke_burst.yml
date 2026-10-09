@@ -18,8 +18,8 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4 }
-      - { action: particles, particle: smoke, shape: sphere, count: 60, size: radius }
+      - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4, fx: rogue_flash }
+      - { action: particles, particle: smoke, shape: sphere, count: 60, size: radius, fx: rogue_wave }
 
   - target: { type: self }
     do:

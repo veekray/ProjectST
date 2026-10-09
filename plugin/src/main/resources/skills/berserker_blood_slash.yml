@@ -26,4 +26,4 @@ steps:
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: status, id: berserk_bleed, duration: $bleed_duration }
-      - { action: particles, particle: damage_indicator, shape: point, count: 15, size: 0.4 }
+      - { action: particles, particle: damage_indicator, shape: point, count: 15, size: 0.4, fx: berserker_flash }

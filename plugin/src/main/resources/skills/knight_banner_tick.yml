@@ -11,8 +11,8 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: status, id: challenge, duration: $duration, amount: $weaken }
-      - { action: particles, particle: angry_villager, shape: point, count: 4, size: 0.3 }
-      - { action: particles, particle: end_rod, shape: ring, count: 30, size: radius }
+      - { action: particles, particle: angry_villager, shape: point, count: 4, size: 0.3, fx: knight_sink }
+      - { action: particles, particle: end_rod, shape: ring, count: 30, size: radius, fx: knight_wave }
 
   - target: { type: allies_near_origin, radius: $radius }
     do:
@@ -22,4 +22,4 @@ steps:
         op: flat
         value: $guard
         status: banner_guard
-      - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3 }
+      - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3, fx: knight_rise }

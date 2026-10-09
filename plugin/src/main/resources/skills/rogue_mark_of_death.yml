@@ -28,7 +28,7 @@ steps:
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
       - { action: status, id: death_mark, duration: $duration }
-      - { action: particles, particle: witch, shape: sphere, count: 20, size: 0.5 }
+      - { action: particles, particle: witch, shape: sphere, count: 20, size: 0.5, fx: rogue_sink }
       - { action: sound, sound: block_respawn_anchor_charge, pitch: 0.5 }
 
   # Взрыв, когда метка дотикала.
@@ -44,7 +44,7 @@ steps:
     do:
       - { action: damage, amount: $damage, school: magic }
       - { action: damage, amount: $damage_per_hit * @hits, school: magic }
-      - { action: particles, particle: witch, shape: sphere, count: 50, size: 1 }
+      - { action: particles, particle: witch, shape: sphere, count: 50, size: 1, fx: rogue_flash }
       - { action: sound, sound: entity_generic_explode, pitch: 1.5 }
 
   - target: { type: self }

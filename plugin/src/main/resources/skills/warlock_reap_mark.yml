@@ -23,5 +23,5 @@ steps:
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
       - { action: status, id: reaper_mark, duration: $duration }
-      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 22, size: 0.5 }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 22, size: 0.5, fx: warlock_sink }
       - { action: sound, sound: particle_soul_escape, pitch: 0.8 }

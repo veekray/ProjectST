@@ -508,12 +508,64 @@ class ShippedContentTest {
                         case ru.projectst.rpgcore.skill.Action.Teleport a -> a.fx();
                         default -> null;
                     };
-                    if (fx != null && !catalog.contains("Map.entry(\"" + fx + "\"")) {
+                    if (fx != null && !ru.projectst.rpgcore.skill.FxEvent.NONE.equals(fx)
+                            && !catalog.contains("Map.entry(\"" + fx + "\"")) {
                         missing.add(skill.id() + ": " + fx);
                     }
                 }
             }
         }
         assertTrue(missing.isEmpty(), "эффектов нет в каталоге мода (FxStyle): " + missing);
+    }
+
+    @Test
+    @DisplayName("у каждого видимого действия поставляемого контента есть эффект мода")
+    void everyShippedVisualHasFx() throws IOException {
+        // Игрок с модом не должен видеть ванильных частиц навыков. Сервер и так
+        // шлёт ему общий эффект вместо частиц без fx, но общий — это заглушка:
+        // навык, который в бою выглядит заглушкой, тоже ошибка, просто тихая.
+        java.util.Set<String> bare = new java.util.TreeSet<>();
+        java.util.Set<String> lonelyNone = new java.util.TreeSet<>();
+        for (SkillDef skill : load().skills()) {
+            for (var step : skill.steps()) {
+                boolean stepHasOwnFx = false;
+                for (var action : step.actions()) {
+                    String fx = fxOf(action);
+                    if (fx != null && !ru.projectst.rpgcore.skill.FxEvent.NONE.equals(fx)) {
+                        stepHasOwnFx = true;
+                    }
+                }
+                for (var action : step.actions()) {
+                    boolean visible = switch (action) {
+                        case ru.projectst.rpgcore.skill.Action.Particles a -> true;
+                        case ru.projectst.rpgcore.skill.Action.Projectile a -> a.particle() != null;
+                        case ru.projectst.rpgcore.skill.Action.PlaceZone a -> a.particle() != null;
+                        case ru.projectst.rpgcore.skill.Action.Teleport a -> a.particle() != null;
+                        default -> false;
+                    };
+                    String fx = fxOf(action);
+                    if (visible && fx == null) {
+                        bare.add(skill.id() + ": " + action.name());
+                    }
+                    // none — «украшение рядом со своим эффектом». Без своего
+                    // эффекта в шаге игрок с модом не увидел бы ничего.
+                    if (ru.projectst.rpgcore.skill.FxEvent.NONE.equals(fx) && !stepHasOwnFx) {
+                        lonelyNone.add(skill.id());
+                    }
+                }
+            }
+        }
+        assertTrue(bare.isEmpty(), "видимые действия без fx: " + bare);
+        assertTrue(lonelyNone.isEmpty(), "fx: none без своего эффекта в шаге: " + lonelyNone);
+    }
+
+    private static String fxOf(ru.projectst.rpgcore.skill.Action action) {
+        return switch (action) {
+            case ru.projectst.rpgcore.skill.Action.Particles a -> a.fx();
+            case ru.projectst.rpgcore.skill.Action.Projectile a -> a.fx();
+            case ru.projectst.rpgcore.skill.Action.PlaceZone a -> a.fx();
+            case ru.projectst.rpgcore.skill.Action.Teleport a -> a.fx();
+            default -> null;
+        };
     }
 }

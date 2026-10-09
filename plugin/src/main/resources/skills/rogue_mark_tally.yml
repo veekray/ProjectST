@@ -20,4 +20,4 @@ steps:
       - { target: has-status, value: death_mark }
     do:
       - { action: cast, skill: rogue_mark_stack, at-targets: false }
-      - { action: particles, particle: crit, shape: point, count: 10 }
+      - { action: particles, particle: crit, shape: point, count: 10, fx: rogue_flash }

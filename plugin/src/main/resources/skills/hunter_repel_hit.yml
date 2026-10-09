@@ -49,7 +49,7 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4 }
+      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4, fx: hunter_sink }
       - { action: sound, sound: entity_breeze_wind_burst, volume: 1.0, pitch: 0.9 }
 
   # Издали отбрасывает вдвое и оглушает: на такой дистанции это уже не толчок.

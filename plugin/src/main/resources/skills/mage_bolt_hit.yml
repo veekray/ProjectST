@@ -11,6 +11,6 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: magic }
-      - { action: particles, particle: enchant, shape: sphere, count: 18, size: 0.3 }
+      - { action: particles, particle: enchant, shape: sphere, count: 18, size: 0.3, fx: none }
       - { action: particles, particle: enchant, shape: ring, count: 12, size: radius, fx: mage_bolt_hit }
       - { action: sound, sound: entity_illusioner_mirror_move, volume: 0.8, pitch: 1.5 }

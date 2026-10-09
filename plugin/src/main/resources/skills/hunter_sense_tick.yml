@@ -28,4 +28,4 @@ steps:
         op: flat
         value: $defense_down
         status: exposed
-      - { action: particles, particle: crit, shape: point, count: 4, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 4, size: 0.3, fx: hunter_sink }

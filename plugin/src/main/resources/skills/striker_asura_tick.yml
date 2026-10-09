@@ -39,4 +39,4 @@ steps:
     if:
       - { caster: has-status, value: asura }
     do:
-      - { action: particles, particle: soul_fire_flame, shape: point, count: 6, size: 0.4 }
+      - { action: particles, particle: soul_fire_flame, shape: point, count: 6, size: 0.4, fx: striker_puff }

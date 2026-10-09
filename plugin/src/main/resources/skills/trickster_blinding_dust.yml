@@ -23,7 +23,7 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.7 }
-      - { action: particles, particle: smoke, shape: sphere, count: 60, size: 2.0 }
+      - { action: particles, particle: smoke, shape: sphere, count: 60, size: 2.0, fx: trickster_aura }
       - { action: status, id: dust_cover, duration: $duration }
       - action: modify-stat
         stat: dodge_rating
@@ -40,4 +40,4 @@ steps:
         op: percent
         value: $weaken
         status: weakened
-      - { action: particles, particle: smoke, shape: point, count: 15, size: 0.4 }
+      - { action: particles, particle: smoke, shape: point, count: 15, size: 0.4, fx: trickster_sink }

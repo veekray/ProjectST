@@ -136,6 +136,85 @@ def rune_alpha(u, v):
     return stroke + halo + rails
 
 
+# ------------------------------------------------------------------ мотивы
+#
+# Искры у каждого класса свои: класс узнаётся по форме искр раньше, чем по
+# цвету. Все белые, цвет даёт вершина, как и у остальных текстур.
+
+
+def ember(u, v):
+    # Уголь: горячее ядро и язык пламени вверх.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    core = math.exp(-((x / 0.22) ** 2 + ((y - 0.25) / 0.22) ** 2))
+    width = 0.32 * clamp((1.1 - y) / 1.4)
+    tongue = math.exp(-(x / max(0.05, width)) ** 2) * clamp((y + 0.95) / 0.5) \
+        * clamp((0.6 - y) / 0.35 + 1)
+    return 0.75 * core + 0.6 * tongue * math.exp(-((y - 0.1) / 0.8) ** 2)
+
+
+def leaf(u, v):
+    # Лист: миндаль с прожилкой посередине и мягким ореолом.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    half = 0.42 * (1 - y * y)
+    if half <= 0:
+        return 0
+    inside = clamp((half - abs(x)) / 0.06)
+    vein = 0.45 * math.exp(-(x / 0.035) ** 2) * clamp((0.85 - abs(y)) / 0.2)
+    halo = 0.25 * math.exp(-((x / (half + 0.25)) ** 2 + (y / 1.1) ** 2) * 2)
+    return inside * (0.75 - vein) + halo
+
+
+def wisp(u, v):
+    # Дымка: мягкий завиток — серп из двух пятен, без резких краёв.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    d = math.hypot(x, y)
+    ring = math.exp(-((d - 0.45) / 0.2) ** 2)
+    a = math.atan2(y, x)
+    sweep = 0.5 + 0.5 * math.cos(a - 0.6)
+    tail = math.exp(-((x + 0.15) ** 2 + (y - 0.35) ** 2) / 0.05)
+    return 0.7 * ring * sweep ** 1.5 + 0.5 * tail + 0.25 * math.exp(-(d / 0.5) ** 2)
+
+
+def shard(u, v):
+    # Осколок: ромб со светлыми гранями и бликом-крестом.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    m = abs(x) / 0.38 + abs(y) / 0.9
+    body = clamp((1 - m) / 0.08) * (0.35 + 0.65 * clamp(m))
+    edge = math.exp(-((1 - m) / 0.06) ** 2) * 0.8
+    glint = math.exp(-(x / 0.04) ** 2) * math.exp(-(y / 0.35) ** 2) \
+        + math.exp(-(y / 0.04) ** 2) * math.exp(-(x / 0.35) ** 2)
+    return body + edge + 0.5 * glint
+
+
+def star(u, v):
+    # Звезда: шесть лучей и яркое ядро — переливчатая искра.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    d = math.hypot(x, y)
+    a = math.atan2(y, x)
+    rays = abs(math.cos(3 * a)) ** 40 * math.exp(-(d / 0.8) ** 2)
+    return rays + math.exp(-(d / 0.16) ** 2) + 0.3 * math.exp(-(d / 0.4) ** 2)
+
+
+def chevron(u, v):
+    # Наконечник: галка остриём вверх, со свечением.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    d = seg(x, y, -0.55, 0.35, 0, -0.45)
+    d = min(d, seg(x, y, 0, -0.45, 0.55, 0.35))
+    return math.exp(-(d / 0.09) ** 2) + 0.35 * math.exp(-(d / 0.28) ** 2)
+
+
+ZAP_PATH = [(0.1, -0.85), (-0.25, -0.2), (0.15, -0.05), (-0.2, 0.55), (0.05, 0.9)]
+
+
+def zap(u, v):
+    # Молния: ломаная с ярким стержнем и ореолом.
+    x, y = (u - 0.5) * 2, (v - 0.5) * 2
+    d = 9.0
+    for (ax, ay), (bx, by) in zip(ZAP_PATH, ZAP_PATH[1:]):
+        d = min(d, seg(x, y, ax, ay, bx, by))
+    return math.exp(-(d / 0.05) ** 2) + 0.4 * math.exp(-(d / 0.22) ** 2)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     textures = {
@@ -145,6 +224,13 @@ def main():
         'spark': (64, 64, spark),
         'fill': (64, 64, fill),
         'runes': (512, 64, rune_alpha),
+        'ember': (32, 32, ember),
+        'leaf': (32, 32, leaf),
+        'wisp': (32, 32, wisp),
+        'shard': (32, 32, shard),
+        'star': (32, 32, star),
+        'chevron': (32, 32, chevron),
+        'zap': (32, 32, zap),
     }
     for name, (w, h, fn) in textures.items():
         write_png(os.path.join(OUT, name + '.png'), image(w, h, fn))

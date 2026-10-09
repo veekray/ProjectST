@@ -22,4 +22,4 @@ steps:
       - { action: status, id: shadow, duration: $shadow_duration }
       - { action: message, text: "&8&oТень готова" }
       - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.9 }
-      - { action: particles, particle: squid_ink, shape: point, count: 12, size: 0.3 }
+      - { action: particles, particle: squid_ink, shape: point, count: 12, size: 0.3, fx: assassin_rise }

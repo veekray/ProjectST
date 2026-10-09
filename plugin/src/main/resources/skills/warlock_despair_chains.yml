@@ -22,5 +22,5 @@ steps:
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
       - { action: status, id: chains, duration: $duration }
-      - { action: particles, particle: crit, shape: point, count: 12 }
+      - { action: particles, particle: crit, shape: point, count: 12, fx: warlock_sink }
       - { action: sound, sound: block_chain_place, pitch: 0.6 }

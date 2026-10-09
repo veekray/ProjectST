@@ -26,6 +26,7 @@ steps:
         range: $range
         hit-radius: 1.0
         particle: end_rod
+        fx: striker_bolt
         on-hit: striker_chi_blast_hit
 
   - target: { type: self }

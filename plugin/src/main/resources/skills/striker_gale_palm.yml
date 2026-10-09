@@ -21,7 +21,7 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_breeze_shoot, volume: 1.0, pitch: 1.2 }
-      - { action: particles, particle: sweep_attack, shape: point, count: 10, size: 1.0 }
+      - { action: particles, particle: sweep_attack, shape: point, count: 10, size: 1.0, fx: striker_puff }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 60 }
     if:
@@ -36,7 +36,7 @@ steps:
     do:
       - { action: damage, amount: $damage_breach, school: physical }
       - { action: push, strength: $push_breach, lift: 0.4 }
-      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: 3.0 }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: 3.0, fx: striker_wave }
 
   - target: { type: self }
     do:

@@ -3,6 +3,7 @@ package ru.projectst.rpgcore.skill;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -166,6 +167,13 @@ class SkillRuntimeTest {
         @Override
         public void effect(FxEvent event) {
             effects.add(event);
+            // Частицы навыка уходят событием всегда, с fx и без: строка в
+            // журнале — чтобы тесты читали, что и где нарисовано.
+            if (event instanceof FxEvent.Burst b) {
+                lastAxis = b.axis();
+                calls.add("burst " + b.particle() + " " + b.shape() + " r=" + b.radius()
+                        + (b.angle() > 0 ? " a=" + b.angle() : "") + " @" + b.at().x());
+            }
         }
 
         <T extends FxEvent> List<T> effects(Class<T> type) {
@@ -890,6 +898,33 @@ class SkillRuntimeTest {
     }
 
     @Test
+    @DisplayName("частицы без fx всё равно уходят событием: мод рисует общий эффект")
+    void particlesWithoutFxStillGoToTheMod() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: warrior
+                steps:
+                  - target: { type: self }
+                    do:
+                      - { action: particles, particle: crit, shape: sphere, count: 8, size: 0.4 }
+                """);
+        Fixture f = fixture(skill);
+
+        f.runtime.cast(CASTER, skill, 1);
+
+        // Прямой вызов particles разослал бы ванильные частицы всем, включая
+        // игроков с модом. Событие даёт миру решить: мод — эффект, без мода —
+        // частицы.
+        assertFalse(f.world.calls.stream().anyMatch(c -> c.startsWith("particles")),
+                "ванильные частицы мимо события: " + f.world.calls);
+        var bursts = f.world.effects(FxEvent.Burst.class);
+        assertEquals(1, bursts.size(), "одно событие на действие");
+        assertNull(bursts.get(0).fx(), "без fx — общий эффект мода");
+        assertEquals("warrior", bursts.get(0).classId(), "общий эффект красится классом");
+        assertEquals("crit", bursts.get(0).particle(), "ванильный вид — для игроков без мода");
+    }
+
+    @Test
     @DisplayName("частицы в точке действия рисуются там, а не на целях")
     void particlesAtOrigin() {
         SkillDef hit = parse("boom", """
@@ -912,7 +947,7 @@ class SkillRuntimeTest {
 
         f.runtime.cast(CASTER, skill, 1);
 
-        assertTrue(f.world.calls.contains("particles flame RING x20 @10.0"),
+        assertTrue(f.world.calls.contains("burst flame RING r=3.0 @10.0"),
                 f.world.calls.toString());
     }
 
@@ -956,7 +991,7 @@ class SkillRuntimeTest {
 
         assertFalse(f.world.calls.stream().anyMatch(c -> c.startsWith("damage")),
                 "бить некого");
-        assertTrue(f.world.calls.contains("particles flame SPHERE x8 @1.0"),
+        assertTrue(f.world.calls.contains("burst flame SPHERE r=1.0 @1.0"),
                 "промах обязан быть видно: " + f.world.calls);
         assertTrue(f.world.calls.contains("sound boom @1.0"), f.world.calls.toString());
     }
@@ -1608,7 +1643,7 @@ class SkillRuntimeTest {
 
         // Шесть из баланса плюс половина — девять и у выборки, и у кольца.
         assertTrue(f.world.calls.contains("resolve ENEMIES_IN_RADIUS r=9.0"), f.world.calls::toString);
-        assertTrue(f.world.calls.contains("area enchant RING r=9.0 @4.0"),
+        assertTrue(f.world.calls.contains("burst enchant RING r=9.0 @4.0"),
                 "кольцо осталось бы на шести блоках, хотя бьёт на девяти: " + f.world.calls);
     }
 
@@ -1633,7 +1668,7 @@ class SkillRuntimeTest {
 
         assertTrue(f.world.calls.contains("resolve ENEMIES_IN_CONE_TO_CASTER r=6.0 origin=9.0"),
                 f.world.calls::toString);
-        assertTrue(f.world.calls.contains("area enchant CONE r=6.0 a=60.0 @9.0"),
+        assertTrue(f.world.calls.contains("burst enchant CONE r=6.0 a=60.0 @9.0"),
                 f.world.calls::toString);
         assertEquals(-1, f.world.lastAxis.x(), 1e-9);
         assertEquals(0, f.world.lastAxis.z(), 1e-9);
@@ -1699,7 +1734,8 @@ class SkillRuntimeTest {
         assertEquals("mage_flow_wave", burst.fx());
         assertEquals("mage", burst.classId());
         assertEquals("enchant", burst.particle(), "ванильный вид едет в том же событии");
-        assertTrue(f.world.calls.stream().noneMatch(c -> c.startsWith("area enchant")),
+        assertTrue(f.world.calls.stream().noneMatch(
+                        c -> c.startsWith("area ") || c.startsWith("particles ")),
                 "с эффектом мода частицы рисует мир по событию, а не напрямую: иначе дубль");
     }
 

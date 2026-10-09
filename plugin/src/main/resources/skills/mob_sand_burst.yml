@@ -17,4 +17,4 @@ steps:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.4 }
       - { action: potion, effect: blindness, duration: $blind_duration, amplifier: 0 }
-      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: radius }
+      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: radius, fx: mob_wave }

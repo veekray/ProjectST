@@ -22,7 +22,7 @@ import java.util.UUID;
  * @param particle  чем рисуется; {@code null} — невидимая. Presentation-деталь
  *                  в модели осознанно: зона, которую игрок не видит, — это
  *                  ловушка, а не механика
- * @param fx        эффект мода; {@code null} — у всех ванильные частицы
+ * @param fx        эффект мода; {@code null} — мод рисует общую зону цветом класса
  * @param classId   чей класс поставил: по нему мод красит эффект; пусто — ничей
  * @param onEnter   навык, который выполняется на вошедшего; {@code null} — нет
  * @param onTick    навык, который зона выполняет сама; {@code null} — нет
@@ -64,6 +64,16 @@ public record Zone(UUID id, String tag, UUID owner, Position center, double radi
      */
     public int totalTicks() {
         return (int) Math.max(1, expiresAtTick - placedAtTick);
+    }
+
+    /**
+     * Видна ли зона вообще.
+     *
+     * <p>Видимую зону мод получает всегда, со своим эффектом или общим: игрок с
+     * модом не должен видеть ванильное кольцо ни у одной зоны.
+     */
+    public boolean visible() {
+        return fx != null || particle != null;
     }
 
     public boolean expired(long now) {

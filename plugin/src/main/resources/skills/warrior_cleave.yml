@@ -23,9 +23,9 @@ steps:
   - target: { type: self }
     do:
       - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.9 }
-      - { action: particles, particle: sweep_attack, shape: point, count: 5, size: 0.6 }
+      - { action: particles, particle: sweep_attack, shape: point, count: 5, size: 0.6, fx: warrior_puff }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 80 }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3 }
+      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3, fx: warrior_flash }

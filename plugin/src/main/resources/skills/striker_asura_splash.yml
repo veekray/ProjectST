@@ -11,4 +11,4 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: soul_fire_flame, shape: point, count: 8, size: 0.3 }
+      - { action: particles, particle: soul_fire_flame, shape: point, count: 8, size: 0.3, fx: striker_flash }

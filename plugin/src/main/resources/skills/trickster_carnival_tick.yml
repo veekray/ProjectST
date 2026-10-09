@@ -20,4 +20,4 @@ steps:
       - { caster: has-minion, value: double }
     do:
       - { action: clear-threat, radius: $radius }
-      - { action: particles, particle: portal, shape: point, count: 6, size: 0.5 }
+      - { action: particles, particle: portal, shape: point, count: 6, size: 0.5, fx: trickster_puff }

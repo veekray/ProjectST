@@ -84,7 +84,7 @@ public final class FxEffects {
     private static void take(FxMessage.Event event) {
         switch (event) {
             case FxMessage.Burst burst -> add(new FxKinds.Burst(
-                    FxStyle.of(burst.fx(), kindOf(burst.shape())), burst));
+                    FxStyle.of(burst.fx(), kindOf(burst.shape(), burst.radius())), burst));
             case FxMessage.ZoneOn on -> {
                 FxKinds.Zone old = ZONES.remove(on.id());
                 if (old != null) {
@@ -121,12 +121,18 @@ public final class FxEffects {
         }
     }
 
-    /** Общий вид для формы, если своего эффекта у мода нет. */
-    private static FxStyle.Kind kindOf(FxMessage.Shape shape) {
+    /**
+     * Общий вид для формы, если своего эффекта у мода нет.
+     *
+     * <p>Облако шире полутора блоков — это область, а не вспышка: рисуется
+     * волной до своего радиуса, как кольцо.
+     */
+    private static FxStyle.Kind kindOf(FxMessage.Shape shape, float radius) {
         return switch (shape) {
             case RING -> FxStyle.Kind.WAVE;
             case CONE -> FxStyle.Kind.CONE;
-            case POINT, SPHERE, LINE -> FxStyle.Kind.FLASH;
+            case SPHERE -> radius >= 1.5f ? FxStyle.Kind.WAVE : FxStyle.Kind.FLASH;
+            case POINT, LINE -> FxStyle.Kind.FLASH;
         };
     }
 
