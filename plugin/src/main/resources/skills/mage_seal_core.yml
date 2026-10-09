@@ -33,6 +33,6 @@ steps:
     do:
       - { action: consume-zones, tag: seal, inside: true, limit: 1, counter: eaten }
       - { action: status, id: empowered, duration: $duration }
-      - { action: particles, particle: witch, shape: ring, count: 24, size: 1.5, at-origin: true }
+      - { action: particles, particle: witch, shape: ring, count: 24, size: 1.5, at-origin: true, fx: mage_seal_eat }
       - { action: particles, particle: enchant, shape: sphere, count: 30, size: 0.5, at-origin: true }
       - { action: sound, sound: block_enchantment_table_use, pitch: 1.4 }

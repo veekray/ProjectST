@@ -480,4 +480,40 @@ class ShippedContentTest {
                     "правило ссылается на " + rule.mobId());
         }
     }
+
+    // ------------------------------------------------------------------ эффекты мода
+
+    /** Каталог эффектов в моде: тесты идут из каталога plugin, мод лежит рядом. */
+    private static final Path MOD_CATALOG = Path.of("..", "client-mod", "src", "main", "java",
+            "ru", "projectst", "rpgcore", "client", "FxStyle.java");
+
+    @Test
+    @DisplayName("каждый эффект поставляемого контента есть в каталоге мода")
+    void everyShippedFxIsKnownToTheMod() throws IOException {
+        if (!Files.isRegularFile(MOD_CATALOG)) {
+            return; // мода рядом нет — проверять нечего
+        }
+        String catalog = Files.readString(MOD_CATALOG, StandardCharsets.UTF_8);
+        // Неизвестный эффект мод рисует общим — игра не падает. Но эффект,
+        // объявленный в своём контенте и не нарисованный, — это опечатка,
+        // которую иначе нашли бы только глазами в игре.
+        java.util.Set<String> missing = new java.util.TreeSet<>();
+        for (SkillDef skill : load().skills()) {
+            for (var step : skill.steps()) {
+                for (var action : step.actions()) {
+                    String fx = switch (action) {
+                        case ru.projectst.rpgcore.skill.Action.Particles a -> a.fx();
+                        case ru.projectst.rpgcore.skill.Action.Projectile a -> a.fx();
+                        case ru.projectst.rpgcore.skill.Action.PlaceZone a -> a.fx();
+                        case ru.projectst.rpgcore.skill.Action.Teleport a -> a.fx();
+                        default -> null;
+                    };
+                    if (fx != null && !catalog.contains("Map.entry(\"" + fx + "\"")) {
+                        missing.add(skill.id() + ": " + fx);
+                    }
+                }
+            }
+        }
+        assertTrue(missing.isEmpty(), "эффектов нет в каталоге мода (FxStyle): " + missing);
+    }
 }

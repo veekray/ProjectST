@@ -50,7 +50,7 @@ steps:
     do:
       - { action: pull, strength: $pull, ticks: 3 }
       - { action: particles, particle: enchant, shape: point, count: 10 }
-      - { action: particles, particle: enchant, shape: cone, count: 30 }
+      - { action: particles, particle: enchant, shape: cone, count: 30, fx: mage_herd_cone }
 
   # Усиленный: шире конус, тянет сильнее и приковывает.
   - target: { type: enemies_in_cone_to_caster, radius: $empowered_radius, angle: $empowered_angle }
@@ -60,7 +60,7 @@ steps:
     do:
       - { action: pull, strength: $empowered_pull, ticks: 3 }
       - { action: particles, particle: witch, shape: point, count: 14 }
-      - { action: particles, particle: witch, shape: cone, count: 30 }
+      - { action: particles, particle: witch, shape: cone, count: 30, fx: mage_herd_cone_strong }
 
   # Корни вешаем после притяжения: иначе они погасят его на первом же тике.
   - target: { type: enemies_in_cone_to_caster, radius: $empowered_radius, angle: $empowered_angle }
@@ -70,4 +70,4 @@ steps:
       - { caster: has-status, value: empowered }
     do:
       - { action: status, id: root, duration: $root_duration }
-      - { action: particles, particle: witch, shape: ring, count: 26, size: 2.5, at-origin: true }
+      - { action: particles, particle: witch, shape: ring, count: 26, size: 2.5, at-origin: true, fx: mage_root_snap }
