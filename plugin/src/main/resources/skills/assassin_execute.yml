@@ -16,8 +16,8 @@ steps:
       - { caster: has-status, value: execute_lock, not: true }
     do:
       - { action: damage, amount: $damage, school: true, basis: target_current_health }
-      - { action: sound, sound: entity_player_attack_crit, volume: 1.2, pitch: 0.5 }
-      - { action: particles, particle: explosion, shape: point, count: 4, size: 0.5, fx: assassin_blast }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.2, pitch: 0.5, fx: assassin.execute }
+      - { action: particles, particle: explosion, shape: point, count: 4, size: 0.5, fx: assassin_guillotine }
 
   - target: { type: trigger }
     if:

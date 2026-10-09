@@ -22,8 +22,8 @@ steps:
         value: $heal_block
         status: stun
       - { action: damage, amount: $damage, school: physical }
-      - { action: sound, sound: entity_player_attack_strong, volume: 1.0, pitch: 0.6 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.3, fx: assassin_flash }
+      - { action: sound, sound: entity_player_attack_strong, volume: 1.0, pitch: 0.6, fx: assassin.garrote }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.3, fx: assassin_garrote }
 
   - target: { type: enemies_near_origin, radius: $apply_radius, limit: 1 }
     if:

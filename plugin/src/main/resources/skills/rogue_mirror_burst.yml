@@ -20,9 +20,9 @@ steps:
         op: flat
         value: $vulnerability
         status: exposed
-      - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1, fx: rogue_sink }
+      - { action: particles, particle: smoke, shape: sphere, count: 40, size: 1, fx: rogue_mirror_shatter }
 
   - target: { type: self }
     do:
       - { action: dismiss, tag: mirror }
-      - { action: sound, sound: entity_generic_explode, pitch: 1.5, at-origin: true }
+      - { action: sound, sound: entity_generic_explode, pitch: 1.5, at-origin: true, fx: rogue.mirror.shatter }

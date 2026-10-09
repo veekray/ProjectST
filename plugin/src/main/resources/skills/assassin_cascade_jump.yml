@@ -15,5 +15,5 @@ steps:
       - { action: status, id: cascade_hit, duration: $mark_duration }
       - { action: approach, distance: $behind_distance, behind: true }
       - { action: damage, amount: $damage, school: physical }
-      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.6 }
-      - { action: particles, particle: squid_ink, shape: point, count: 20, size: 0.3, fx: assassin_flash }
+      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.6, fx: assassin.cascade }
+      - { action: particles, particle: squid_ink, shape: point, count: 20, size: 0.3, fx: assassin_cascade_hit }

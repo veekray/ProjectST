@@ -27,12 +27,12 @@ steps:
     do:
       - { action: approach, distance: $behind_distance, behind: true }
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: portal, shape: sphere, count: 30, size: 0.6, fx: rogue_flash }
-      - { action: sound, sound: entity_enderman_teleport, pitch: 1.2 }
+      - { action: particles, particle: portal, shape: sphere, count: 30, size: 0.6, fx: rogue_shadow_cut }
+      - { action: sound, sound: entity_enderman_teleport, pitch: 1.2, fx: rogue.shadow.step }
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     if:
       - { caster: chance, value: "35" }
     do:
       - { action: status, id: stun, duration: $stun_duration }
-      - { action: sound, sound: block_anvil_land, volume: 0.5, pitch: 1.5 }
+      - { action: sound, sound: block_anvil_land, volume: 0.5, pitch: 1.5, fx: rogue.shadow.stun }

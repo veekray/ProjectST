@@ -25,9 +25,9 @@ steps:
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
-      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.6, fx: assassin_flash }
+      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.6, fx: assassin_shade_step }
       - { action: approach, distance: $behind_distance, behind: true }
-      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 1.3 }
+      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 1.3, fx: assassin.shade.step }
 
   # Обычный удар — только без Тени, иначе он сложился бы со Вскрытым.
   - target: { type: enemies_in_radius, radius: $hit_range, limit: 1 }
@@ -35,7 +35,7 @@ steps:
       - { caster: has-status, value: shadow, not: true }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3, fx: assassin_flash }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3, fx: assassin_dark_arc }
 
   # Вскрытие: конус, больший урон и чистый урон вместо физического.
   - target: { type: enemies_in_cone, radius: $cone_range, angle: 90, limit: 3 }
@@ -43,8 +43,8 @@ steps:
       - { caster: has-status, value: shadow }
     do:
       - { action: damage, amount: $damage_exposed, school: true }
-      - { action: particles, particle: crit, shape: cone, count: 24, fx: assassin_wave }
-      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.6 }
+      - { action: particles, particle: crit, shape: cone, count: 24, fx: assassin_blade_fan }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.6, fx: assassin.blade.fan }
 
   - target: { type: self }
     if:

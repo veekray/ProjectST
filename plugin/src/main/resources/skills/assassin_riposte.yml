@@ -22,5 +22,5 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: riposte_window, duration: $window }
-      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: sweep_attack, shape: point, count: 3, size: 0.3, fx: assassin_rise }
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 1.6, fx: assassin.riposte.ready }
+      - { action: particles, particle: sweep_attack, shape: point, count: 3, size: 0.3, fx: assassin_riposte_ready }

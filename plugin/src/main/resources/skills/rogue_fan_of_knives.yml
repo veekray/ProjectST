@@ -23,12 +23,12 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_arrow_shoot, pitch: 1.6 }
+      - { action: sound, sound: entity_arrow_shoot, pitch: 1.6, fx: rogue.fan.throw }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 0 }
       - { action: restore, amount: $restore }
-      - { action: particles, particle: crit, shape: point, count: 5, fx: rogue_flash }
-      - { action: particles, particle: crit, shape: ring, count: 30, size: radius, fx: rogue_wave }
+      - { action: particles, particle: crit, shape: point, count: 5, fx: rogue_knife_hit }
+      - { action: particles, particle: crit, shape: ring, count: 30, size: radius, fx: rogue_knife_fan }

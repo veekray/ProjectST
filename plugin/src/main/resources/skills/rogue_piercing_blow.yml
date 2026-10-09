@@ -28,13 +28,13 @@ steps:
   - target: { type: self }
     do:
       - { action: dash, strength: $leap, lift: 0.1 }
-      - { action: sound, sound: entity_breeze_wind_burst, volume: 0.8, pitch: 0.7 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4, fx: rogue_puff }
+      - { action: sound, sound: entity_breeze_wind_burst, volume: 0.8, pitch: 0.7, fx: rogue.pierce.lunge }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4, fx: rogue_pierce_lunge }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 60, limit: 5 }
     delay: 3
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.2 }
-      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3, fx: rogue_flash }
-      - { action: sound, sound: entity_player_attack_sweep, volume: 0.7, pitch: 1.2 }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.3, fx: rogue_pierce_cut }
+      - { action: sound, sound: entity_player_attack_sweep, volume: 0.7, pitch: 1.2, fx: rogue.pierce.cut }

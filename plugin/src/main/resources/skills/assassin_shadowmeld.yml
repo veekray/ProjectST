@@ -26,5 +26,5 @@ steps:
       - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
       - { action: status, id: veil, duration: $duration }
       - { action: cast, skill: assassin_shadow_grant, at-targets: true }
-      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 0.7 }
-      - { action: particles, particle: squid_ink, shape: sphere, count: 40, size: 0.8, fx: assassin_rise }
+      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 0.7, fx: assassin.shadowmeld }
+      - { action: particles, particle: squid_ink, shape: sphere, count: 40, size: 0.8, fx: assassin_shadow_ripple }

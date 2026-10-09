@@ -21,7 +21,10 @@ final class ScenesCommon {
 
     private static final Map<String, FxStatuses.Look> STATUSES = Map.ofEntries(
             Map.entry("shield", new Shield()),
-            Map.entry("weakened", new Weakened()));
+            Map.entry("weakened", new Weakened()),
+            Map.entry("bleed", new Bleed()),
+            Map.entry("berserk_bleed", new Bleed()),
+            Map.entry("silence", new Silence()));
 
     /**
      * Щит: тонкая сфера вокруг — три кольца в разных плоскостях медленно
@@ -67,6 +70,53 @@ final class ScenesCommon {
             double z = entity.getZ() + Math.sin(yaw) * side;
             FxEffects.motes().spawn(x, entity.getY() + entity.getBbHeight() * 0.45, z, 0, -0.03f,
                     0, 0.16f, 0xFF8A8A92, 16, 0.98f, FxDraw.Tex.WISP);
+        }
+    }
+
+    /** Кровотечение: капли падают с цели, на земле остаются пятна. */
+    static final class Bleed implements FxStatuses.Look {
+        @Override
+        public void ambient(FxStatuses.State state, Entity entity, float emit) {
+            if (FxMotes.random() > 0.25f * emit) {
+                return;
+            }
+            FxEffects.motes().spawn(entity.getX() + FxMotes.jitter(0.3f),
+                    entity.getY() + entity.getBbHeight() * (0.4 + FxMotes.random() * 0.4),
+                    entity.getZ() + FxMotes.jitter(0.3f), 0, -0.04f, 0, 0.1f, 0xFFB01020, 16, 0.98f,
+                    FxDraw.Tex.GLOW);
+            if (FxMotes.random() < 0.15f) {
+                double x = entity.getX() + FxMotes.jitter(0.3f);
+                double z = entity.getZ() + FxMotes.jitter(0.3f);
+                double gy = SceneKit.ground(x, z, entity.getY());
+                SceneKit.live("assassin", x, gy, z, 1.5, 60, (self, draw, t, detail) -> {
+                    float fade = 1f - self.progress(t);
+                    draw.sector(FxDraw.Tex.GLOW, x, gy, z, 0.25, 0, Math.PI * 2, 0xFF6A0810,
+                            0.6f * fade, 0.02f);
+                });
+            }
+        }
+    }
+
+    /** Тишина: тусклая перечёркнутая метка у рта. */
+    static final class Silence implements FxStatuses.Look {
+        @Override
+        public void draw(FxStatuses.State state, FxDraw draw, Entity entity, Vec3 at, float time) {
+            double look = Math.toRadians(entity.getYHeadRot());
+            double fx = -Math.sin(look);
+            double fz = Math.cos(look);
+            double sx = -fz;
+            double sz = fx;
+            double y = at.y + entity.getEyeHeight() - 0.22;
+            double cx = at.x + fx * 0.36;
+            double cz = at.z + fz * 0.36;
+            double d = 0.14;
+            draw.sprite(FxDraw.Tex.GLOW, cx, y, cz, 0.4f, 0, 0xFF404050, 0.5f);
+            draw.ribbon(FxDraw.Tex.BEAM, new double[] {cx - sx * d, cx + sx * d},
+                    new double[] {y + d, y - d}, new double[] {cz - sz * d, cz + sz * d}, 2, 0.06f,
+                    0xFFB0B0C0, 0.8f, 0.8f, 0);
+            draw.ribbon(FxDraw.Tex.BEAM, new double[] {cx + sx * d, cx - sx * d},
+                    new double[] {y + d, y - d}, new double[] {cz + sz * d, cz - sz * d}, 2, 0.06f,
+                    0xFFB0B0C0, 0.8f, 0.8f, 0);
         }
     }
 }

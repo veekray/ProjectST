@@ -21,8 +21,8 @@ steps:
       - { action: damage, amount: $brand_percent, school: true, basis: target_max_health }
       - { action: damage, amount: $brand_damage, school: true }
       - { action: remove-status, id: reaper_brand }
-      - { action: sound, sound: entity_wither_break_block, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: explosion, shape: point, count: 6, size: 0.5, fx: assassin_blast }
+      - { action: sound, sound: entity_wither_break_block, volume: 1.0, pitch: 1.4, fx: assassin.brand.gong }
+      - { action: particles, particle: explosion, shape: point, count: 6, size: 0.5, fx: assassin_brand_burst }
 
   - target: { type: trigger }
     if:

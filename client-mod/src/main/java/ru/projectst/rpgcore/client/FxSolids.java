@@ -441,6 +441,8 @@ final class FxSolids {
         double offsetX;
         double offsetY;
         double offsetZ;
+        /** Смещение вперёд по взгляду существа, к которому привязана: клинок перед грудью. */
+        double forward;
 
         Model(BlockState state, double x, double y, double z, float scale,
               int grow, int hold, int leave) {
@@ -507,9 +509,10 @@ final class FxSolids {
                 if (entity == null) {
                     release();
                 } else {
-                    x = entity.getX() + offsetX;
+                    double look = Math.toRadians(entity.getYRot());
+                    x = entity.getX() + offsetX - Math.sin(look) * forward;
                     y = entity.getY() + offsetY;
-                    z = entity.getZ() + offsetZ;
+                    z = entity.getZ() + offsetZ + Math.cos(look) * forward;
                     if (faceFollow) {
                         yaw = -entity.getYRot();
                         prevYaw = yaw;

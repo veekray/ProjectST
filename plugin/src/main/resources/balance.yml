@@ -396,7 +396,7 @@ balance:
     stun_duration: 40
 
   rogue_fan_of_knives:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 10.0
@@ -429,7 +429,7 @@ balance:
     vulnerability: -15
 
   rogue_mark_of_death:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 24.0
@@ -530,7 +530,7 @@ balance:
     speed: 20
 
   assassin_reaper_brand:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 14.0
@@ -547,7 +547,7 @@ balance:
       per-level: 1.6
 
   assassin_arterial_cut:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 12.0
@@ -565,7 +565,7 @@ balance:
     damage: 0.025
 
   assassin_garrote:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     back_arc: 120
     spirit: 18
     cooldown:
@@ -586,7 +586,7 @@ balance:
     lock_duration: 10
 
   assassin_corpse_venom:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 22.0
@@ -615,7 +615,7 @@ balance:
     duration: 40
 
   assassin_shadow_cascade:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 25.0
@@ -645,7 +645,7 @@ balance:
       per-level: 1.3
 
   assassin_executioners_hour:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 24   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 120.0
@@ -1003,7 +1003,7 @@ balance:
     push: 0.5
 
   rogue_smoke_screen:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 16.0
@@ -1021,7 +1021,7 @@ balance:
     slow: -40
 
   rogue_eagle_eye:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 30.0
@@ -1035,7 +1035,7 @@ balance:
     glow: 45
 
   rogue_thrill:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 35.0

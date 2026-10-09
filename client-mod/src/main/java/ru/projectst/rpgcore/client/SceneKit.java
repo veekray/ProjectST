@@ -187,6 +187,106 @@ final class SceneKit {
         FxEffects.addEffect(new FxKinds.Burst(FxStyle.of(e.fx(), fallback), e));
     }
 
+    // ------------------------------------------------------------------ клинок
+
+    /** Направление от источника события к точке, радианы по XZ (0 — по +X). */
+    static double yawFrom(FxMessage.Burst e) {
+        Entity source = entity(e.source());
+        if (source == null) {
+            return RANDOM.nextDouble() * Math.PI * 2;
+        }
+        double dx = e.x() - source.getX();
+        double dz = e.z() - source.getZ();
+        if (dx * dx + dz * dz < 1e-4) {
+            double look = Math.toRadians(source.getYRot());
+            return Math.atan2(Math.cos(look), -Math.sin(look));
+        }
+        return Math.atan2(dz, dx);
+    }
+
+    /** Куда смотрит существо, радианы по XZ (0 — по +X). */
+    static double facing(Entity entity) {
+        double look = Math.toRadians(entity.getYRot());
+        return Math.atan2(Math.cos(look), -Math.sin(look));
+    }
+
+    /**
+     * Косой разрез в воздухе поперёк цели: росчерк пробегает от одного конца к
+     * другому и гаснет.
+     *
+     * @param yaw    откуда смотрит удар (от бьющего к цели), радианы
+     * @param tilt   наклон росчерка: 0 — горизонтально, π/2 — сверху вниз
+     */
+    static void cut(String classId, double x, double y, double z, double yaw, double tilt,
+                    double length, int colour, int life, float width) {
+        double sx = -Math.sin(yaw);
+        double sz = Math.cos(yaw);
+        double fx = Math.cos(yaw);
+        double fz = Math.sin(yaw);
+        double dx = sx * Math.cos(tilt);
+        double dy = Math.sin(tilt);
+        double dz = sz * Math.cos(tilt);
+        int n = 7;
+        live(classId, x, y, z, length + 1, life, (self, draw, t, detail) -> {
+            float k = self.progress(t);
+            double head = Math.min(1, k * 3);
+            double tail = Math.max(0, k * 1.6 - 0.3);
+            if (head <= tail) {
+                return;
+            }
+            double[] xs = new double[n];
+            double[] ys = new double[n];
+            double[] zs = new double[n];
+            for (int i = 0; i < n; i++) {
+                double q = tail + (head - tail) * i / (n - 1);
+                double along = (q - 0.5) * length;
+                // Чуть выгнут к бьющему: росчерк, а не палка.
+                double bulge = -Math.sin(q * Math.PI) * 0.15 * length;
+                xs[i] = x + dx * along + fx * bulge;
+                ys[i] = y + dy * along;
+                zs[i] = z + dz * along + fz * bulge;
+            }
+            float alpha = 1f - k * k;
+            draw.ribbon(FxDraw.Tex.BEAM, xs, ys, zs, n, width, colour, 0.2f * alpha, alpha, 0);
+            draw.ribbon(FxDraw.Tex.BEAM, xs, ys, zs, n, width * 0.35f, 0xFFFFFFFF, 0.1f * alpha,
+                    0.8f * alpha, 0);
+        });
+    }
+
+    /**
+     * Дуга взмаха вокруг бьющего: голова дуги пробегает от края к краю, хвост
+     * гаснет. Рассекающий удар, круговой, веер.
+     *
+     * @param yaw    середина дуги, радианы
+     * @param spread полный угол дуги, радианы
+     */
+    static void arc(String classId, double x, double y, double z, double yaw, double spread,
+                    double radius, int colour, int life, float width) {
+        int n = Math.max(6, (int) (spread * radius * 3));
+        live(classId, x, y, z, radius + 1, life, (self, draw, t, detail) -> {
+            float k = self.progress(t);
+            double head = Math.min(1, k * 2.2);
+            double tail = Math.max(0, k * 1.5 - 0.4);
+            if (head <= tail) {
+                return;
+            }
+            double[] xs = new double[n];
+            double[] ys = new double[n];
+            double[] zs = new double[n];
+            for (int i = 0; i < n; i++) {
+                double q = tail + (head - tail) * i / (n - 1);
+                double a = yaw - spread / 2 + spread * q;
+                xs[i] = x + Math.cos(a) * radius;
+                ys[i] = y + Math.sin(q * Math.PI) * 0.15;
+                zs[i] = z + Math.sin(a) * radius;
+            }
+            float alpha = 1f - k * k;
+            draw.ribbon(FxDraw.Tex.BEAM, xs, ys, zs, n, width, colour, 0.15f * alpha, alpha, 0);
+            draw.ribbon(FxDraw.Tex.BEAM, xs, ys, zs, n, width * 0.3f, 0xFFFFFFFF, 0.1f * alpha,
+                    0.7f * alpha, 0);
+        });
+    }
+
     // ------------------------------------------------------------------ живое
 
     /**

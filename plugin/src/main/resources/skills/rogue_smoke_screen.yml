@@ -24,11 +24,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.8 }
+      - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.8, fx: rogue.smoke.throw }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: smoke
-        fx: rogue_bolt
+        fx: rogue_smoke_grenade
         on-hit: rogue_smoke_burst

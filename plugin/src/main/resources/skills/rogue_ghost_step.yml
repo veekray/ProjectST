@@ -26,5 +26,5 @@ steps:
       - { action: status, id: ambush, duration: $duration }
       - { action: potion, effect: invisibility, duration: $duration, amplifier: 0 }
       - { action: potion, effect: speed, duration: $duration, amplifier: 1 }
-      - { action: sound, sound: entity_illusioner_prepare_mirror, pitch: 1.5 }
-      - { action: particles, particle: smoke, shape: sphere, count: 20, size: 0.5, fx: rogue_rise }
+      - { action: sound, sound: entity_illusioner_prepare_mirror, pitch: 1.5, fx: rogue.ghost.fade }
+      - { action: particles, particle: smoke, shape: sphere, count: 20, size: 0.5, fx: rogue_ghost_fade }

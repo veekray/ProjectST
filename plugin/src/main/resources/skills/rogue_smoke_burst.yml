@@ -18,11 +18,11 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4, fx: rogue_flash }
-      - { action: particles, particle: smoke, shape: sphere, count: 60, size: radius, fx: rogue_wave }
+      - { action: particles, particle: smoke, shape: point, count: 20, size: 0.4, fx: rogue_smoke_pop }
+      - { action: particles, particle: smoke, shape: sphere, count: 60, size: radius, fx: rogue_smoke_cloud }
 
   - target: { type: self }
     do:
       - { action: clear-threat, radius: $radius, }
       - { action: sound, sound: entity_generic_explode, volume: 0.6, pitch: 1.6,
-          at-origin: true }
+          at-origin: true, fx: rogue.smoke.pop }

@@ -27,7 +27,7 @@ steps:
   - target: { type: self }
     origin: self
     do:
-      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.0 }
+      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.0, fx: rogue.mirror.cast }
       - action: summon
         mob: armor_stand
         tag: mirror
@@ -38,7 +38,7 @@ steps:
         radius: $trigger_radius
         duration: $duration
         particle: smoke
-        fx: rogue_zone
+        fx: rogue_mirror
         at-origin: true
         on-enter: rogue_mirror_burst
       - { action: potion, effect: invisibility, duration: $vanish_duration, amplifier: 0 }

@@ -24,8 +24,8 @@ steps:
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: damage_indicator, shape: point, count: 20, size: 0.4, fx: assassin_flash }
+      - { action: sound, sound: entity_player_attack_sweep, volume: 1.0, pitch: 0.8, fx: assassin.cut }
+      - { action: particles, particle: damage_indicator, shape: point, count: 20, size: 0.4, fx: assassin_blood_cut }
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     if:

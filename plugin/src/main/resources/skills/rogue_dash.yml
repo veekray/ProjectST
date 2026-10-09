@@ -23,5 +23,5 @@ steps:
   - target: { type: self }
     do:
       - { action: dash, strength: $strength, lift: $lift }
-      - { action: particles, particle: crit, shape: sphere, count: 14, size: 0.4, fx: rogue_puff }
-      - { action: sound, sound: entity_player_attack_sweep, pitch: 1.4 }
+      - { action: particles, particle: crit, shape: sphere, count: 14, size: 0.4, fx: rogue_dash_afterimage }
+      - { action: sound, sound: entity_player_attack_sweep, pitch: 1.4, fx: rogue.dash }
