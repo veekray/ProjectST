@@ -3,8 +3,6 @@ package ru.projectst.rpgcore.client;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.projectst.rpgcore.net.FxMessage;
 
 /**
@@ -25,8 +23,6 @@ import ru.projectst.rpgcore.net.FxMessage;
  * <p>Неизвестный {@code fx} сцены не имеет — его рисует роль класса, как раньше.
  */
 final class FxScenes {
-
-    private static final Logger LOG = LoggerFactory.getLogger("rpgcore");
 
     private FxScenes() {
     }
@@ -89,7 +85,8 @@ final class FxScenes {
             if (into.putIfAbsent(entry.getKey(), entry.getValue()) != null) {
                 // Два класса заявили одну сцену — опечатка в коде мода, а не повод
                 // ронять игру: остаётся первая, в журнале строка.
-                LOG.warn("RpgCore: сцена {} объявлена дважды", entry.getKey());
+                org.slf4j.LoggerFactory.getLogger("rpgcore")
+                        .warn("RpgCore: сцена {} объявлена дважды", entry.getKey());
             }
         }
     }
