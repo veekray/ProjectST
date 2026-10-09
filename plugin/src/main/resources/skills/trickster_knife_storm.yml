@@ -23,13 +23,13 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 1.6 }
+      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 1.6, fx: trickster.knives }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
-      - { action: particles, particle: crit, shape: ring, count: 20, size: radius, fx: trickster_wave }
+      - { action: particles, particle: crit, shape: ring, count: 20, size: radius, fx: trickster_knife_ring }
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3, fx: trickster_flash }
+      - { action: particles, particle: crit, shape: point, count: 10, size: 0.3, fx: trickster_knife_hit }
 
   - target: { type: own_minions, tag: double }
     do:

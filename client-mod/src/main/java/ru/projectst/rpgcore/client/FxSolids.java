@@ -443,6 +443,11 @@ final class FxSolids {
         double offsetZ;
         /** Смещение вперёд по взгляду существа, к которому привязана: клинок перед грудью. */
         double forward;
+        /**
+         * Куда смотрит остриё, каждый тик: стрела в полёте клонится вслед за
+         * снижением. {@code null} — поворот задают скорости.
+         */
+        Supplier<Vec3> aim;
 
         Model(BlockState state, double x, double y, double z, float scale,
               int grow, int hold, int leave) {
@@ -469,6 +474,20 @@ final class FxSolids {
         Model tumble(float speed) {
             this.yawSpeed = speed;
             this.pitchSpeed = speed * 0.6f;
+            return this;
+        }
+
+        /**
+         * Остриём по направлению — для мечей, стрел и мотыг: их модель лежит
+         * по диагонали, остриё вверх-вправо, поэтому крен 45° и тангаж +90°
+         * разворачивают её остриём вперёд.
+         */
+        Model point(double dx, double dy, double dz) {
+            face(dx, dy, dz);
+            pitch += 90;
+            roll = 45;
+            prevPitch = pitch;
+            prevRoll = roll;
             return this;
         }
 
@@ -519,6 +538,20 @@ final class FxSolids {
                     }
                 }
                 return;
+            }
+            if (aim != null) {
+                Vec3 d = aim.get();
+                if (d != null && d.lengthSqr() > 1e-8) {
+                    double flat = Math.sqrt(d.x * d.x + d.z * d.z);
+                    yaw = (float) Math.toDegrees(Math.atan2(d.x, d.z));
+                    pitch = (float) -Math.toDegrees(Math.atan2(d.y, flat)) + 90;
+                    roll = 45;
+                    if (age <= 1) {
+                        prevYaw = yaw;
+                        prevPitch = pitch;
+                        prevRoll = roll;
+                    }
+                }
             }
             if (anchor != null) {
                 Vec3 at = anchor.get();
@@ -756,6 +789,8 @@ final class FxSolids {
         /** Насколько видно: доля непрозрачности на пике. */
         float alpha = 0.45f;
         int tint = 0xFFFFFFFF;
+        /** Лежит на боку, как павший: ложная смерть ловкача. */
+        boolean lying;
         /** Кружить вокруг существа: радиус, угол, скорость; радиус 0 — стоять. */
         double orbit;
         double orbitAngle;
@@ -825,6 +860,10 @@ final class FxSolids {
             pose.pushPose();
             pose.translate(ix - camX, iy - camY, iz - camZ);
             pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f - yaw));
+            if (lying) {
+                // Как у ванильной смерти: набок вокруг оси вдоль взгляда.
+                pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90f));
+            }
             pose.scale(-1f, -1f, 1f);
             if (living instanceof net.minecraft.world.entity.player.Player) {
                 pose.scale(0.9375f, 0.9375f, 0.9375f);

@@ -15,5 +15,5 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: potion, effect: blindness, duration: $blind, amplifier: 0 }
       - { action: push, strength: $push, lift: 0.5 }
-      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5, fx: trickster_blast }
-      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4 }
+      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5, fx: trickster_corpse_pop }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.4, fx: trickster.firecracker }

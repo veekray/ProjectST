@@ -23,7 +23,7 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: entity_arrow_shoot, volume: 1.0, pitch: 0.7, fx: hunter.volley }
       - action: ray
         range: $aim
         on-hit: hunter_downpour_place

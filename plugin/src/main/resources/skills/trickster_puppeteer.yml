@@ -24,15 +24,15 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_evoker_prepare_summon, volume: 1.0, pitch: 1.2 }
+      - { action: sound, sound: entity_evoker_prepare_summon, volume: 1.0, pitch: 1.2, fx: trickster.puppet }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
       - { target: is-player, not: true }
     do:
-      - { action: particles, particle: portal, shape: ring, count: 40, size: radius, fx: trickster_wave }
+      - { action: particles, particle: portal, shape: ring, count: 40, size: radius, fx: trickster_puppet_strings }
       - { action: confuse, radius: $confuse_radius }
-      - { action: particles, particle: portal, shape: point, count: 12, size: 0.3, fx: trickster_flash }
+      - { action: particles, particle: portal, shape: point, count: 12, size: 0.3, fx: trickster_puppet_tug }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -45,4 +45,4 @@ steps:
         op: percent
         value: $weaken
         status: weakened
-      - { action: particles, particle: portal, shape: point, count: 15, size: 0.3, fx: trickster_sink }
+      - { action: particles, particle: portal, shape: point, count: 15, size: 0.3, fx: trickster_puppet_bind }

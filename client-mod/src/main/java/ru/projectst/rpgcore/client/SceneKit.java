@@ -130,6 +130,31 @@ final class SceneKit {
         return new FxSolids.Model(new ItemStack(item), x, y, z, scale, grow, hold, leave);
     }
 
+    /** Меч, стрела, мотыга остриём по направлению. Не добавлена — сцена донастроит. */
+    static FxSolids.Model blade(Item item, double x, double y, double z, float scale, double dx,
+                                double dy, double dz, int grow, int hold, int leave) {
+        return item(item, x, y, z, scale, grow, hold, leave).point(dx, dy, dz);
+    }
+
+    /**
+     * Модель на летящем снаряде: держится за него, остриём по ходу полёта, и
+     * уходит, когда снаряд кончился. Ядро снаряда скрыто — его заменяет модель.
+     */
+    static FxSolids.Model riding(FxKinds.Bolt bolt, Item item, float scale, boolean pointed) {
+        bolt.bare = true;
+        Vec3 start = bolt.at(0f);
+        FxSolids.Model model = item(item, start.x, start.y, start.z, scale, 1, 0, 3);
+        model.anchor = () -> bolt.at(1f);
+        if (pointed) {
+            model.aim = bolt::heading;
+            Vec3 h = bolt.heading();
+            model.point(h.x, h.y, h.z);
+        }
+        model.decor = false;
+        FxSolids.add(model);
+        return model;
+    }
+
     /** Модель блока в точке, низом на ней. */
     static FxSolids.Model block(BlockState state, double x, double y, double z, float scale,
                                 int grow, int hold, int leave) {

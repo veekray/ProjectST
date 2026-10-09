@@ -19,9 +19,9 @@ steps:
         op: flat
         value: $defense_down
         status: exposed
-      - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0, fx: hunter_flash }
+      - { action: particles, particle: end_rod, shape: sphere, count: 30, size: 1.0, fx: hunter_flare_pop }
 
   - target: { type: self }
     do:
       - { action: sound, sound: entity_firework_rocket_blast, volume: 1.0, pitch: 1.4,
-          at-origin: true }
+          at-origin: true, fx: hunter.flare.pop }

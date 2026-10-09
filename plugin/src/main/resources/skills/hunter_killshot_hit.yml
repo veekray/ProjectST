@@ -39,8 +39,8 @@ steps:
 
   - target: { type: trigger }
     do:
-      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5, fx: hunter_blast }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.6, fx: hunter.kill.blast }
+      - { action: particles, particle: explosion, shape: point, count: 3, size: 0.5, fx: hunter_kill_blast }
 
   - target: { type: self }
     do:

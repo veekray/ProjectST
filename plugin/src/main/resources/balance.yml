@@ -664,7 +664,7 @@ balance:
   # ================================================================ трикстер
 
   trickster_split:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 16.0
@@ -685,7 +685,7 @@ balance:
     range: 15
 
   trickster_knife_storm:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 12.0
@@ -704,7 +704,7 @@ balance:
       per-level: 0.45
 
   trickster_blinding_dust:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 18.0
@@ -716,7 +716,7 @@ balance:
     weaken: -25
 
   trickster_pickpocket:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 25.0
@@ -729,7 +729,7 @@ balance:
     stolen_defense: 11
 
   trickster_unstable_doubles:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 20.0
@@ -755,7 +755,7 @@ balance:
     speed: 30
 
   trickster_shuffle:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 18   # подготовка, тиков
     strike_delay: 10   # круг виден до удара, тиков
     spirit: 22
     cooldown:
@@ -766,7 +766,7 @@ balance:
     throw: 6
 
   trickster_puppeteer:
-    cast_time: 14   # подготовка, тиков
+    cast_time: 22   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 45.0
@@ -778,7 +778,7 @@ balance:
     weaken: -40
 
   trickster_carnival:
-    cast_time: 14   # подготовка, тиков
+    cast_time: 30   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 140.0
@@ -802,7 +802,7 @@ balance:
   # восемнадцати — вдвое. Числа те же, что были у подкласса.
 
   hunter_quarry_mark:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 10.0
@@ -813,7 +813,7 @@ balance:
     duration: 400
 
   hunter_repel_shot:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 5.0
@@ -858,7 +858,7 @@ balance:
       per-level: 0.5
 
   hunter_flare_shot:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 14.0
@@ -877,7 +877,7 @@ balance:
     defense_down: -20
 
   hunter_arrow_downpour:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 22   # подготовка, тиков
     spirit: 22
     cooldown:
       base: 22.0
@@ -909,7 +909,7 @@ balance:
     speed: 25
 
   hunter_rot_arrow:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 15.0
@@ -933,7 +933,7 @@ balance:
       per-level: 0.25
 
   hunter_sense:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 45.0
@@ -974,7 +974,7 @@ balance:
       per-level: 3.6
 
   hunter_deadly_hunt:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 24   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 130.0

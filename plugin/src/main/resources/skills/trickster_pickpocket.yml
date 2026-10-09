@@ -30,8 +30,8 @@ steps:
         op: flat
         value: $stolen_damage_loss
         status: weakened
-      - { action: particles, particle: totem, shape: point, count: 25, size: 0.3, fx: trickster_sink }
-      - { action: sound, sound: entity_item_pickup, volume: 1.0, pitch: 0.8 }
+      - { action: particles, particle: totem, shape: point, count: 25, size: 0.3, fx: trickster_coin }
+      - { action: sound, sound: entity_item_pickup, volume: 1.0, pitch: 0.8, fx: trickster.coin }
 
   - target: { type: self }
     do:

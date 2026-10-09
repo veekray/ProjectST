@@ -18,5 +18,5 @@ steps:
       - { caster: has-status, value: sense }
     do:
       - { action: status, id: sense, duration: $duration }
-      - { action: sound, sound: entity_experience_orb_pickup, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: entity_experience_orb_pickup, volume: 1.0, pitch: 0.7, fx: hunter.sense.renew }
       - { action: message, text: "&6Чутьё &7— добыча пала, чутьё обновлено" }

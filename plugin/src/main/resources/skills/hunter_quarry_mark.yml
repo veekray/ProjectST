@@ -34,10 +34,10 @@ steps:
     do:
       - { action: status, id: quarry, duration: $duration }
       - { action: glow, duration: $duration }
-      - { action: sound, sound: item_crossbow_quick_charge_1, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: crit, shape: sphere, count: 25, size: 0.5, fx: hunter_sink }
+      - { action: sound, sound: item_crossbow_quick_charge_1, volume: 1.0, pitch: 1.4, fx: hunter.quarry }
+      - { action: particles, particle: crit, shape: sphere, count: 25, size: 0.5, fx: hunter_quarry_set }
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_arrow_hit_player, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: entity_arrow_hit_player, volume: 1.0, pitch: 0.7, fx: hunter.quarry.drop }
       - { action: message, text: "&6Охота &7— добыча помечена" }

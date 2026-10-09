@@ -11,8 +11,8 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: rush, duration: $duration }
-      - { action: sound, sound: block_note_block_pling, volume: 0.5, pitch: 1.4 }
-      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3, fx: hunter_rise }
+      - { action: sound, sound: block_note_block_pling, volume: 0.5, pitch: 1.4, fx: hunter.rush }
+      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3, fx: hunter_rush_tick }
 
   - target: { type: self }
     if:
@@ -35,6 +35,6 @@ steps:
         op: flat
         value: $speed
         status: rush_full
-      - { action: sound, sound: entity_ender_dragon_flap, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: flame, shape: ring, count: 24, size: 1.2, fx: hunter_rise }
+      - { action: sound, sound: entity_ender_dragon_flap, volume: 1.0, pitch: 1.6, fx: hunter.rush.full }
+      - { action: particles, particle: flame, shape: ring, count: 24, size: 1.2, fx: hunter_rush_full }
       - { action: message, text: "&6Азарт &7— полный разгон" }

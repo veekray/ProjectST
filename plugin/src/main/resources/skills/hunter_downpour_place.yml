@@ -17,3 +17,5 @@ steps:
         at-origin: true
         tick-interval: 20
         on-tick: hunter_downpour_tick
+        particle: crit
+        fx: hunter_downpour

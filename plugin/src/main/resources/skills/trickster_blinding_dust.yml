@@ -23,7 +23,7 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: entity_snowball_throw, volume: 1.0, pitch: 0.7, fx: trickster.dust }
       - { action: status, id: dust_cover, duration: $duration }
       - action: modify-stat
         stat: dodge_rating
@@ -33,7 +33,7 @@ steps:
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
-      - { action: particles, particle: smoke, shape: ring, count: 60, size: radius, fx: trickster_wave }
+      - { action: particles, particle: smoke, shape: ring, count: 60, size: radius, fx: trickster_dust_cloud }
       - { action: potion, effect: blindness, duration: $duration, amplifier: 0 }
       - { action: status, id: weakened, duration: $duration }
       - action: modify-stat
@@ -41,4 +41,4 @@ steps:
         op: percent
         value: $weaken
         status: weakened
-      - { action: particles, particle: smoke, shape: point, count: 15, size: 0.4, fx: trickster_sink }
+      - { action: particles, particle: smoke, shape: point, count: 15, size: 0.4, fx: trickster_dust_eyes }

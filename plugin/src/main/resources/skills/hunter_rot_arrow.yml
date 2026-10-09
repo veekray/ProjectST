@@ -22,11 +22,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_witch_throw, volume: 1.0, pitch: 0.8 }
+      - { action: sound, sound: entity_witch_throw, volume: 1.0, pitch: 0.8, fx: hunter.shot.rot }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: squid_ink
-        fx: hunter_bolt
+        fx: hunter_arrow_rot
         on-hit: hunter_rot_hit

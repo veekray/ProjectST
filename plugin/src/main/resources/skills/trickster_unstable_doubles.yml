@@ -30,4 +30,4 @@ steps:
     do:
       - { action: dismiss, tag: double }
       - { action: remove-status, id: doubles }
-      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.2 }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 1.2, fx: trickster.firecracker }

@@ -34,6 +34,6 @@ steps:
         op: flat
         value: $speed
         status: deadly_hunt
-      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.4 }
-      - { action: particles, particle: flame, shape: ring, count: 40, size: 1.2, fx: hunter_rise }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.4, fx: hunter.horn }
+      - { action: particles, particle: flame, shape: ring, count: 40, size: 1.2, fx: hunter_hunt_horn }
       - { action: message, text: "&6Смертельная Охота &7— началась" }

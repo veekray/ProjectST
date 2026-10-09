@@ -27,17 +27,17 @@ steps:
         op: flat
         value: -100
         status: aiming
-      - { action: sound, sound: item_crossbow_loading_start, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: crit, shape: ring, count: 20, size: 1.2, fx: hunter_rise }
+      - { action: sound, sound: item_crossbow_loading_start, volume: 1.0, pitch: 0.8, fx: hunter.aim }
+      - { action: particles, particle: crit, shape: ring, count: 20, size: 1.2, fx: hunter_aim_start }
 
   - target: { type: self }
     delay: $aim_time
     do:
-      - { action: sound, sound: item_crossbow_shoot, volume: 1.5, pitch: 0.6 }
+      - { action: sound, sound: item_crossbow_shoot, volume: 1.5, pitch: 0.6, fx: hunter.killshot }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: end_rod
-        fx: hunter_bolt
+        fx: hunter_arrow_kill
         on-hit: hunter_killshot_hit

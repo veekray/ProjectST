@@ -23,18 +23,18 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.5, fx: trickster_puff }
+      - { action: particles, particle: portal, shape: sphere, count: 25, size: 0.5, fx: trickster_swap_out }
 
   - target: { type: own_minions, tag: double, limit: 1 }
     do:
       - { action: swap }
-      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 1.3 }
-      - { action: particles, particle: portal, shape: point, count: 25, size: 0.4, fx: trickster_puff }
+      - { action: sound, sound: entity_illusioner_mirror_move, volume: 1.0, pitch: 1.3, fx: trickster.card }
+      - { action: particles, particle: portal, shape: point, count: 25, size: 0.4, fx: trickster_swap }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50, limit: 1 }
     if:
       - { caster: has-minion, value: double, not: true }
     do:
       - { action: swap }
-      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: portal, shape: point, count: 35, size: 0.5, fx: trickster_flash }
+      - { action: sound, sound: entity_enderman_teleport, volume: 1.0, pitch: 0.8, fx: trickster.card }
+      - { action: particles, particle: portal, shape: point, count: 35, size: 0.5, fx: trickster_swap }

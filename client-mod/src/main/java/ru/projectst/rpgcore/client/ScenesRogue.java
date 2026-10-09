@@ -244,7 +244,7 @@ final class ScenesRogue {
      * Веер клинков: кинжалы разлетаются во все стороны до границы, втыкаются в
      * землю у края и тают.
      */
-    private static void knifeFan(FxMessage.Burst e) {
+    static void knifeFan(FxMessage.Burst e) {
         SceneKit.border(e, 4, 8, 6, 0.8f);
         double r = e.radius();
         int n = Math.min(16, Math.max(8, (int) (r * 2.5)));
@@ -281,7 +281,7 @@ final class ScenesRogue {
     }
 
     /** Попавший кинжал торчит в цели и дрожит, у плута — искра выносливости. */
-    private static void knifeHit(FxMessage.Burst e) {
+    static void knifeHit(FxMessage.Burst e) {
         double yaw = SceneKit.yawFrom(e);
         FxSolids.Model knife = SceneKit.item(Items.IRON_SWORD, e.x() - Math.cos(yaw) * 0.35,
                 e.y() + 1.0, e.z() - Math.sin(yaw) * 0.35, 0.4f, 1, 12, 6);

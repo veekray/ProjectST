@@ -14,6 +14,6 @@ steps:
   - target: { type: enemies_near_origin, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3, fx: trickster_flash }
-      - { action: particles, particle: crit, shape: ring, count: 16, size: radius, fx: trickster_wave }
+      - { action: particles, particle: crit, shape: point, count: 8, size: 0.3, fx: trickster_knife_hit }
+      - { action: particles, particle: crit, shape: ring, count: 16, size: radius, fx: trickster_knife_ring }
 

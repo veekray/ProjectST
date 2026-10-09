@@ -27,11 +27,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: item_crossbow_shoot, volume: 1.0, pitch: 1.1 }
+      - { action: sound, sound: item_crossbow_shoot, volume: 1.0, pitch: 1.1, fx: hunter.shot.heavy }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: crit
-        fx: hunter_bolt
+        fx: hunter_arrow_heavy
         on-hit: hunter_repel_hit

@@ -1328,5 +1328,487 @@
         "pitch": 1.14
       }
     ]
+  },
+  "trickster.dust": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.hurt_sweet_berry_bush",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 2.0
+      },
+      {
+        "name": "minecraft:block.sand.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.71
+      }
+    ]
+  },
+  "trickster.carnival": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.firework_rocket.twinkle",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.43
+      },
+      {
+        "name": "minecraft:entity.villager.celebrate",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.71
+      }
+    ]
+  },
+  "trickster.firecracker": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.firework_rocket.blast",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.8
+      },
+      {
+        "name": "minecraft:entity.firework_rocket.large_blast",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.93
+      }
+    ]
+  },
+  "trickster.feign": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.death",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.villager.no",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "trickster.knives": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.19
+      },
+      {
+        "name": "minecraft:item.trident.throw",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.12
+      }
+    ]
+  },
+  "trickster.coin": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.experience_orb.pickup",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.12
+      },
+      {
+        "name": "minecraft:block.chain.place",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 2.0
+      }
+    ]
+  },
+  "trickster.puppet": {
+    "sounds": [
+      {
+        "name": "minecraft:block.note_block.chime",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.75
+      },
+      {
+        "name": "minecraft:entity.evoker.prepare_summon",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "trickster.shuffle": {
+    "sounds": [
+      {
+        "name": "minecraft:item.book.page_turn",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.book.put",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.33
+      }
+    ]
+  },
+  "trickster.card": {
+    "sounds": [
+      {
+        "name": "minecraft:item.book.page_turn",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.illusioner.mirror_move",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 0.87
+      }
+    ]
+  },
+  "trickster.split": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.illusioner.mirror_move",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.note_block.bell",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.45
+      }
+    ]
+  },
+  "hunter.volley": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.arrow.shoot",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.crossbow.shoot",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.14
+      }
+    ]
+  },
+  "hunter.horn": {
+    "sounds": [
+      {
+        "name": "minecraft:item.goat_horn.sound.0",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.71
+      },
+      {
+        "name": "minecraft:item.goat_horn.sound.1",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.71
+      }
+    ]
+  },
+  "hunter.trap.set": {
+    "sounds": [
+      {
+        "name": "minecraft:block.chain.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.iron_trapdoor.open",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.87
+      }
+    ]
+  },
+  "hunter.leap": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.breeze.jump",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "hunter.flare.pop": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.firework_rocket.blast",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.firework_rocket.twinkle",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.86
+      }
+    ]
+  },
+  "hunter.flare.launch": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.firework_rocket.launch",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.fire.extinguish",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.33
+      }
+    ]
+  },
+  "hunter.aim": {
+    "sounds": [
+      {
+        "name": "minecraft:item.crossbow.loading_start",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.crossbow.loading_middle",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.87
+      }
+    ]
+  },
+  "hunter.killshot": {
+    "sounds": [
+      {
+        "name": "minecraft:item.crossbow.shoot",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.arrow.shoot",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.83
+      }
+    ]
+  },
+  "hunter.kill.blast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.generic.explode",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.trident.thunder",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 1.12
+      }
+    ]
+  },
+  "hunter.quarry": {
+    "sounds": [
+      {
+        "name": "minecraft:item.crossbow.quick_charge_1",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.note_block.pling",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.29
+      }
+    ]
+  },
+  "hunter.quarry.drop": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.arrow.hit_player",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "hunter.repel.hit": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.breeze.wind_burst",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.iron_golem.attack",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.89
+      }
+    ]
+  },
+  "hunter.repel.stun": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wind_charge.wind_burst",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "hunter.shot.heavy": {
+    "sounds": [
+      {
+        "name": "minecraft:item.crossbow.shoot",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.arrow.shoot",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.73
+      }
+    ]
+  },
+  "hunter.shot.rot": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.witch.throw",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.slime.squish",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "hunter.rot.hit": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.arrow.hit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.slime.squish_small",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.17
+      }
+    ]
+  },
+  "hunter.rush": {
+    "sounds": [
+      {
+        "name": "minecraft:block.note_block.pling",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "hunter.rush.full": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.ender_dragon.flap",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.firecharge.use",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 0.75
+      }
+    ]
+  },
+  "hunter.sense": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.warden.sonic_charge",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.warden.heartbeat",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.62
+      }
+    ]
+  },
+  "hunter.sense.renew": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.experience_orb.pickup",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "hunter.trap.snap": {
+    "sounds": [
+      {
+        "name": "minecraft:block.iron_door.close",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.anvil.land",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 2.0
+      }
+    ]
+  },
+  "hunter.heartbeat": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.warden.heartbeat",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
   }
 }

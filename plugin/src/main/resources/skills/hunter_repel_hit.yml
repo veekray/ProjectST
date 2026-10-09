@@ -49,8 +49,8 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4, fx: hunter_sink }
-      - { action: sound, sound: entity_breeze_wind_burst, volume: 1.0, pitch: 0.9 }
+      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.4, fx: hunter_repel_impact }
+      - { action: sound, sound: entity_breeze_wind_burst, volume: 1.0, pitch: 0.9, fx: hunter.repel.hit }
 
   # Издали отбрасывает вдвое и оглушает: на такой дистанции это уже не толчок.
   - target: { type: trigger }
@@ -60,4 +60,4 @@ steps:
     do:
       - { action: push, strength: $push_far, lift: 0.3 }
       - { action: status, id: stun, duration: $stun_duration }
-      - { action: sound, sound: entity_wind_charge_wind_burst, volume: 1.2, pitch: 0.7 }
+      - { action: sound, sound: entity_wind_charge_wind_burst, volume: 1.2, pitch: 0.7, fx: hunter.repel.stun }
