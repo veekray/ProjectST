@@ -23,6 +23,6 @@ steps:
     do:
       - { action: dash, strength: $leap, lift: 0.3 }
       - { action: status, id: phantom, duration: $invuln }
-      - { action: sound, sound: entity_phantom_flap, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: cloud, shape: sphere, count: 20, size: 0.4, fx: striker_rise }
+      - { action: sound, sound: entity_phantom_flap, volume: 1.0, pitch: 1.5, fx: striker.phantom }
+      - { action: particles, particle: cloud, shape: sphere, count: 20, size: 0.4, fx: striker_phantom }
       - { action: cast, skill: striker_mark_calm, at-targets: true }

@@ -23,8 +23,8 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_warden_sonic_boom, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4, fx: striker_puff }
+      - { action: sound, sound: entity_warden_sonic_boom, volume: 1.0, pitch: 1.5, fx: striker.dragon }
+      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4, fx: striker_uppercut }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 45 }
     if:
@@ -39,7 +39,7 @@ steps:
     do:
       - { action: damage, amount: $damage_breach, school: true }
       - { action: push, strength: 0.05, lift: $lift_breach }
-      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.5, fx: striker_flash }
+      - { action: particles, particle: cloud, shape: point, count: 25, size: 0.5, fx: striker_uppercut }
 
   - target: { type: self }
     do:

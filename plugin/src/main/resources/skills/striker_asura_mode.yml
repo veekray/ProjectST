@@ -27,6 +27,6 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: asura, duration: $duration }
-      - { action: sound, sound: entity_wither_spawn, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 40, size: 1.0, fx: striker_rise }
+      - { action: sound, sound: entity_wither_spawn, volume: 1.0, pitch: 1.5, fx: striker.asura }
+      - { action: particles, particle: soul_fire_flame, shape: sphere, count: 40, size: 1.0, fx: striker_asura }
       - { action: message, text: "&cРежим Асуры" }

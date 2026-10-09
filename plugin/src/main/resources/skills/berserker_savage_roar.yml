@@ -24,10 +24,10 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: unshakable, duration: $duration }
-      - { action: sound, sound: entity_ravager_roar, volume: 1.0, pitch: 0.8 }
+      - { action: sound, sound: entity_ravager_roar, volume: 1.0, pitch: 0.8, fx: berserker.roar }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
-      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: radius, fx: berserker_wave }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 20, size: radius, fx: berserker_roar }
       - { action: push, strength: $push, lift: 0.6 }
-      - { action: sound, sound: entity_generic_explode, volume: 0.5, pitch: 1.5 }
+      - { action: sound, sound: entity_generic_explode, volume: 0.5, pitch: 1.5, fx: berserker.roar.push }

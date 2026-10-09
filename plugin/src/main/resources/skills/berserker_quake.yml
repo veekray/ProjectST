@@ -22,7 +22,7 @@ steps:
       - { action: sacrifice, percent: $cost }
       - { action: cast, skill: berserker_heat, at-targets: true }
       - { action: cast, skill: berserker_heat, at-targets: true }
-      - { action: sound, sound: entity_ravager_attack, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: entity_ravager_attack, volume: 1.0, pitch: 0.7, fx: berserker.quake.raise }
 
   - target: { type: enemies_in_radius, radius: $radius }
     delay: $strike_delay
@@ -36,4 +36,4 @@ steps:
         op: flat
         value: $slow
         status: slowed
-      - { action: particles, particle: cloud, shape: ring, count: 30, size: radius, fx: berserker_wave }
+      - { action: particles, particle: cloud, shape: ring, count: 30, size: radius, fx: berserker_quake }

@@ -12,9 +12,9 @@ steps:
     do:
       - { action: sacrifice, percent: $cost }
       - { action: cast, skill: berserker_heat, at-targets: true }
-      - { action: sound, sound: entity_breeze_idle_air, volume: 0.8, pitch: 0.7 }
+      - { action: sound, sound: entity_breeze_idle_air, volume: 0.8, pitch: 0.7, fx: berserker.spin }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
-      - { action: particles, particle: sweep_attack, shape: ring, count: 12, size: radius, fx: berserker_wave }
+      - { action: particles, particle: sweep_attack, shape: ring, count: 12, size: radius, fx: berserker_spin }
       - { action: damage, amount: $damage, school: physical }

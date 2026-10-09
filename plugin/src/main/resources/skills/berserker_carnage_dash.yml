@@ -21,10 +21,10 @@ steps:
       - { action: sacrifice, percent: $cost }
       - { action: cast, skill: berserker_heat, at-targets: true }
       - { action: dash, strength: $leap, lift: 0.1 }
-      - { action: sound, sound: entity_breeze_charge, volume: 1.0, pitch: 1.2 }
+      - { action: sound, sound: entity_breeze_charge, volume: 1.0, pitch: 1.2, fx: berserker.carnage }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 70 }
     delay: 3
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: damage_indicator, shape: point, count: 10, size: 0.3, fx: berserker_flash }
+      - { action: particles, particle: damage_indicator, shape: point, count: 10, size: 0.3, fx: berserker_carnage_rend }

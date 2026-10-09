@@ -33,7 +33,7 @@ steps:
         op: flat
         value: "$heat_power * @heat"
         status: heat
-      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3, fx: berserker_puff }
+      - { action: particles, particle: flame, shape: point, count: 6, size: 0.3, fx: berserker_heat }
 
   # Полный Жар — Перегрев: короткое окно, ради которого всё и платилось.
   - target: { type: self }
@@ -53,6 +53,6 @@ steps:
         op: flat
         value: $overheat_damage
         status: overheat
-      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.6 }
-      - { action: particles, particle: lava, shape: ring, count: 30, size: 1.2, fx: berserker_rise }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.6, fx: berserker.overheat }
+      - { action: particles, particle: lava, shape: ring, count: 30, size: 1.2, fx: berserker_overheat }
       - { action: message, text: "&cПерегрев &7— кровь кипит" }

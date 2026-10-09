@@ -125,6 +125,7 @@ public final class FxEffects {
             }
             case FxMessage.Hit hit -> {
                 add(new FxKinds.Hit(FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
+                FxScenes.hit(hit);
                 // Свой крит виден ещё и краями экрана: его чувствует тот, кто ударил.
                 var self = Minecraft.getInstance().player;
                 if (hit.crit() && self != null && hit.attacker() == self.getId()) {

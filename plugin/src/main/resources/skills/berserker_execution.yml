@@ -21,12 +21,12 @@ steps:
     do:
       - { action: sacrifice, percent: $cost }
       - { action: cast, skill: berserker_heat, at-targets: true }
-      - { action: sound, sound: entity_wither_shoot, volume: 1.0, pitch: 0.6 }
+      - { action: sound, sound: entity_wither_shoot, volume: 1.0, pitch: 0.6, fx: berserker.axe }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 45, limit: 1 }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4, fx: berserker_flash }
+      - { action: particles, particle: crit, shape: point, count: 15, size: 0.4, fx: berserker_axe }
 
   # Добивание: доля текущего здоровья, то есть тем больнее, чем целее жертва
   # была до этого удара. Порог проверять нечем, и это к лучшему — удар всегда
@@ -34,5 +34,5 @@ steps:
   - target: { type: enemies_in_cone, radius: $range, angle: 45, limit: 1 }
     do:
       - { action: damage, amount: $finish, school: true, basis: target_current_health }
-      - { action: sound, sound: entity_wither_death, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: soul_fire_flame, shape: point, count: 30, size: 0.5, fx: berserker_flash }
+      - { action: sound, sound: entity_wither_death, volume: 1.0, pitch: 1.5, fx: berserker.axe.finish }
+      - { action: particles, particle: soul_fire_flame, shape: point, count: 30, size: 0.5, fx: berserker_axe_finish }

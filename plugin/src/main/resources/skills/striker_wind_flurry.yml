@@ -23,12 +23,12 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_player_attack_weak, volume: 1.0, pitch: 1.6 }
+      - { action: sound, sound: entity_player_attack_weak, volume: 1.0, pitch: 1.6, fx: striker.flurry }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 3, size: 0.2, fx: striker_flash }
+      - { action: particles, particle: crit, shape: point, count: 3, size: 0.2, fx: striker_flurry_fist }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
     delay: 3

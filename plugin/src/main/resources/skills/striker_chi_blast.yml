@@ -21,13 +21,13 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_evoker_cast_spell, volume: 1.0, pitch: 1.6 }
+      - { action: sound, sound: entity_evoker_cast_spell, volume: 1.0, pitch: 1.6, fx: striker.chi }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: end_rod
-        fx: striker_bolt
+        fx: striker_chi_orb
         on-hit: striker_chi_blast_hit
 
   - target: { type: self }

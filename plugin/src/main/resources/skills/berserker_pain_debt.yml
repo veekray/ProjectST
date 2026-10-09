@@ -15,4 +15,4 @@ steps:
       - { caster: has-status, value: ignore_pain }
     do:
       - { action: status, id: pain_debt, duration: $duration }
-      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4, fx: berserker_rise }
+      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4, fx: berserker_notch }

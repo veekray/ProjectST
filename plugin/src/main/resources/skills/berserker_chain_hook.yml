@@ -22,11 +22,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_fishing_bobber_throw, volume: 1.0, pitch: 0.6 }
+      - { action: sound, sound: entity_fishing_bobber_throw, volume: 1.0, pitch: 0.6, fx: berserker.hook.throw }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: crit
-        fx: berserker_bolt
+        fx: berserker_hook
         on-hit: berserker_hook_hit

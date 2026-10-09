@@ -21,10 +21,10 @@ steps:
     do:
       - { action: sacrifice, percent: $cost }
       - { action: cast, skill: berserker_heat, at-targets: true }
-      - { action: sound, sound: item_trident_hit, volume: 1.0, pitch: 0.7 }
+      - { action: sound, sound: item_trident_hit, volume: 1.0, pitch: 0.7, fx: berserker.slash }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 60 }
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: status, id: berserk_bleed, duration: $bleed_duration }
-      - { action: particles, particle: damage_indicator, shape: point, count: 15, size: 0.4, fx: berserker_flash }
+      - { action: particles, particle: damage_indicator, shape: point, count: 15, size: 0.4, fx: berserker_blood_arc }

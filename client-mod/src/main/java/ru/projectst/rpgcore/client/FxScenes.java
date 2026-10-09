@@ -139,6 +139,16 @@ final class FxScenes {
         }
     }
 
+    /**
+     * Попадание навыка: общий вид рисует {@link FxKinds.Hit}, здесь — то, что
+     * классы добавляют к каждому своему удару (струйка голода берсерка, эхо
+     * асуры ударника).
+     */
+    static void hit(FxMessage.Hit hit) {
+        ScenesBerserker.onHit(hit);
+        ScenesStriker.onHit(hit);
+    }
+
     /** @return {@code true}, если сцена есть и сыграна — общий след тогда не нужен */
     static boolean trail(FxMessage.Trail event) {
         TrailScene scene = TRAILS.get(event.fx());

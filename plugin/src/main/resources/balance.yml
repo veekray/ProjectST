@@ -1060,7 +1060,7 @@ balance:
     overheat_damage: 30
 
   berserker_blood_slash:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 6.0
@@ -1080,7 +1080,7 @@ balance:
       per-level: 0.2
 
   berserker_quake:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 16   # подготовка, тиков
     strike_delay: 10   # круг виден до удара, тиков
     spirit: 0
     cooldown:
@@ -1096,7 +1096,7 @@ balance:
     slow_duration: 60
 
   berserker_chain_hook:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 10.0
@@ -1139,7 +1139,7 @@ balance:
     duration: 200
 
   berserker_savage_roar:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 18.0
@@ -1150,7 +1150,7 @@ balance:
     push: 1.4
 
   berserker_insatiable_hunger:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 25.0
@@ -1160,7 +1160,7 @@ balance:
     lifesteal: 100
 
   berserker_death_spin:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 16.0
@@ -1175,7 +1175,7 @@ balance:
       per-level: 0.5
 
   berserker_execution:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 0
     cooldown:
       base: 14.0
@@ -1232,7 +1232,7 @@ balance:
       per-level: 1.2
 
   striker_gale_palm:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 8.0
@@ -1250,7 +1250,7 @@ balance:
     push_breach: 2.0
 
   striker_sweep_kick:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 7.0
@@ -1264,7 +1264,7 @@ balance:
     stun_press: 30
 
   striker_wind_flurry:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 6   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 9.0
@@ -1276,7 +1276,7 @@ balance:
       per-level: 0.3
 
   striker_chi_blast:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 8.0
@@ -1294,7 +1294,7 @@ balance:
       per-level: 1.0
 
   striker_rising_dragon:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 11.0
@@ -1311,7 +1311,7 @@ balance:
     lift_breach: 1.4
 
   striker_touch_of_karma:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 18.0
@@ -1333,7 +1333,7 @@ balance:
     invuln: 8
 
   striker_zen_meditation:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 20   # подготовка, тиков
     spirit: 18
     cooldown:
       base: 22.0
@@ -1347,7 +1347,7 @@ balance:
     reduction: 100
 
   striker_asura_mode:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 24   # подготовка, тиков
     spirit: 35
     cooldown:
       base: 110.0
