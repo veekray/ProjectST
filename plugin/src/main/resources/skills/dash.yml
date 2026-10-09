@@ -34,5 +34,5 @@ steps:
   - target: { type: self }
     do:
       - { action: dash, strength: $strength, lift: $lift, direction: movement }
-      - { action: sound, sound: entity_player_attack_sweep, volume: 0.5, pitch: 1.6 }
-      - { action: particles, particle: cloud, shape: point, count: 12, size: 0.3, fx: dash_puff }
+      - { action: sound, sound: entity_player_attack_sweep, volume: 0.5, pitch: 1.6, fx: dash.wind }
+      - { action: particles, particle: cloud, shape: point, count: 12, size: 0.3, fx: dash_wind }

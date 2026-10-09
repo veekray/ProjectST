@@ -10,11 +10,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_husk_ambient, pitch: 0.6 }
+      - { action: sound, sound: entity_husk_ambient, pitch: 0.6, fx: mob.sand_burst }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.4 }
       - { action: potion, effect: blindness, duration: $blind_duration, amplifier: 0 }
-      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: radius, fx: mob_wave }
+      - { action: particles, particle: sculk_soul, shape: ring, count: 30, size: radius, fx: mob_sand_burst }

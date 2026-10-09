@@ -23,5 +23,5 @@ steps:
   - target: { type: self }
     do:
       - { action: status, id: retribution, duration: $window }
-      - { action: sound, sound: block_metal_hit, volume: 1.0, pitch: 2.0 }
-      - { action: particles, particle: crit, shape: ring, count: 16, size: 1.2, fx: knight_rise }
+      - { action: sound, sound: block_metal_hit, volume: 1.0, pitch: 2.0, fx: knight.swords }
+      - { action: particles, particle: crit, shape: ring, count: 16, size: 1.2, fx: knight_swords_ready }

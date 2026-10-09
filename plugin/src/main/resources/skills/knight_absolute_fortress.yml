@@ -31,11 +31,11 @@ steps:
         op: flat
         value: $reduction
         status: fortress
-      - { action: sound, sound: block_beacon_activate, volume: 1.0, pitch: 0.5 }
+      - { action: sound, sound: block_beacon_activate, volume: 1.0, pitch: 0.5, fx: knight.fortress }
       - { action: message, text: "&6Абсолютная Фортеция" }
 
   - target: { type: enemies_in_radius, radius: $radius }
     do:
-      - { action: particles, particle: end_rod, shape: ring, count: 48, size: radius, fx: knight_wave }
+      - { action: particles, particle: end_rod, shape: ring, count: 48, size: radius, fx: knight_fortress }
       - { action: status, id: challenge, duration: $duration, amount: 100 }
       - { action: glow, duration: $duration }

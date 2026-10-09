@@ -20,11 +20,11 @@ steps:
     do:
       - { action: count, counter: cursed }
       - { action: damage, amount: $damage, school: magic }
-      - { action: particles, particle: soul, shape: point, count: 8, fx: item_flash }
+      - { action: particles, particle: soul, shape: point, count: 8, fx: item_soul_drain }
 
   - target: { type: self }
     if:
       - { caster: counter, value: "cursed:1" }
     do:
       - { action: heal, amount: $heal_per * @cursed }
-      - { action: sound, sound: entity_vex_hurt, volume: 0.5, pitch: 1.2 }
+      - { action: sound, sound: entity_vex_hurt, volume: 0.5, pitch: 1.2, fx: item.soul_drain }

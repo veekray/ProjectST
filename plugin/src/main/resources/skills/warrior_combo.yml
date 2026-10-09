@@ -30,20 +30,22 @@ steps:
   - target: { type: self }
     do:
       - { action: remove-status, id: combo }
-      - { action: sound, sound: item_trident_return, volume: 0.8, pitch: 1.2 }
+      - { action: sound, sound: item_trident_return, volume: 0.8, pitch: 1.2, fx: warrior.combo }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
     do:
       - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: sweep_attack, shape: cone, count: 16, fx: warrior_combo_arc }
       - { action: cast, skill: warrior_combo_mark, at-targets: false }
-      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_flash }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_hit }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
     delay: 5
     do:
       - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: sweep_attack, shape: cone, count: 16, fx: warrior_combo_arc }
       - { action: cast, skill: warrior_combo_mark, at-targets: false }
-      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_flash }
+      - { action: particles, particle: crit, shape: point, count: 6, size: 0.3, fx: warrior_hit }
 
   # Третий — обычный, если связка не сложилась.
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
@@ -52,6 +54,7 @@ steps:
       - { caster: status-stacks, value: "combo:2", not: true }
     do:
       - { action: damage, amount: $damage, school: physical }
+      - { action: particles, particle: sweep_attack, shape: cone, count: 16, fx: warrior_combo_arc }
 
   # Третий — двойной, если оба предыдущих нашли цель.
   - target: { type: enemies_in_cone, radius: $range, angle: 50 }
@@ -60,9 +63,10 @@ steps:
       - { caster: status-stacks, value: "combo:2" }
     do:
       - { action: damage, amount: $damage_full, school: physical }
+      - { action: particles, particle: sweep_attack, shape: cone, count: 30, fx: warrior_combo_arc_full }
       - { action: push, strength: $push, lift: 0.3 }
-      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.8 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5, fx: warrior_flash }
+      - { action: sound, sound: entity_player_attack_crit, volume: 1.0, pitch: 0.8, fx: warrior.combo.full }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5, fx: warrior_hit }
 
   - target: { type: self }
     delay: 11

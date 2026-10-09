@@ -27,8 +27,8 @@ steps:
         op: flat
         value: $guard
         status: guarded
-      - { action: sound, sound: block_anvil_hit, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5, fx: knight_rise }
+      - { action: sound, sound: block_anvil_hit, volume: 1.0, pitch: 1.5, fx: knight.guard }
+      - { action: particles, particle: end_rod, shape: sphere, count: 20, size: 0.5, fx: knight_guard }
 
   - target: { type: enemies_in_radius, radius: $sweep }
     delay: 2

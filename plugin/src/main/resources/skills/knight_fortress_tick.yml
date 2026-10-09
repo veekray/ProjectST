@@ -17,4 +17,4 @@ steps:
       - { caster: has-status, value: fortress }
     do:
       - { action: status, id: challenge, duration: $duration, amount: 100 }
-      - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3, fx: knight_sink }
+      - { action: particles, particle: end_rod, shape: point, count: 3, size: 0.3, fx: knight_fortress_bind }

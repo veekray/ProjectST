@@ -33,21 +33,21 @@ steps:
         op: flat
         value: $reduction
         status: warrior_stance
-      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: ash, shape: ring, count: 20, size: 1.2, fx: warrior_rise }
+      - { action: sound, sound: item_shield_block, volume: 1.0, pitch: 0.5, fx: warrior.shield.raise }
+      - { action: particles, particle: ash, shape: ring, count: 20, size: 1.2, fx: warrior_stance_raise }
 
   - target: { type: self }
     delay: $duration
     do:
       - { action: count, counter: taken, status: stance_taken }
-      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.8 }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.8, fx: warrior.stance.blast }
 
   - target: { type: enemies_in_radius, radius: $radius }
     delay: $duration
     do:
       - { action: damage, amount: "$damage_each * @taken", school: physical }
       - { action: push, strength: 0.8, lift: 0.3 }
-      - { action: particles, particle: explosion, shape: ring, count: 20, size: radius, fx: warrior_wave }
+      - { action: particles, particle: explosion, shape: ring, count: 20, size: radius, fx: warrior_stance_blast }
 
   - target: { type: self }
     delay: $duration

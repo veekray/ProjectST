@@ -17,11 +17,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.8 }
+      - { action: sound, sound: entity_illusioner_cast_spell, pitch: 1.8, fx: item.arcane }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: enchant
-        fx: item_bolt
+        fx: item_arcane_orb
         on-hit: item_arcane_pulse_hit

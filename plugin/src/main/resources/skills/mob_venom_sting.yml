@@ -15,5 +15,5 @@ steps:
   - target: { type: trigger }
     do:
       - { action: potion, effect: poison, duration: $poison_duration, amplifier: 0 }
-      - { action: particles, particle: composter, shape: point, count: 8, fx: mob_flash }
-      - { action: sound, sound: entity_spider_hurt, volume: 0.6, pitch: 1.4 }
+      - { action: particles, particle: composter, shape: point, count: 8, fx: mob_venom_sting }
+      - { action: sound, sound: entity_spider_hurt, volume: 0.6, pitch: 1.4, fx: mob.venom_sting }

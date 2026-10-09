@@ -28,12 +28,12 @@ steps:
       - { action: damage, amount: $damage, school: physical }
       - { action: status, id: stun, duration: $stun }
       - { action: status, id: challenge, duration: $renew, amount: $weaken }
-      - { action: sound, sound: item_shield_break, volume: 1.0, pitch: 1.0 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5, fx: knight_flash }
+      - { action: sound, sound: item_shield_break, volume: 1.0, pitch: 1.0, fx: knight.bash }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.5, fx: knight_bash }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 45, limit: 1 }
     if:
       - { target: has-status, value: challenge, not: true }
     do:
       - { action: message, text: "&cОн вас не слышал — сначала вызов" }
-      - { action: sound, sound: entity_villager_no, volume: 0.6, pitch: 1.2 }
+      - { action: sound, sound: entity_villager_no, volume: 0.6, pitch: 1.2, fx: knight.bash.refused }

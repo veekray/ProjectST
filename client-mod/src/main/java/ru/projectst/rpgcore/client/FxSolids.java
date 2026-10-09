@@ -443,6 +443,15 @@ final class FxSolids {
         double offsetZ;
         /** Смещение вперёд по взгляду существа, к которому привязана: клинок перед грудью. */
         double forward;
+        /** Смещение вправо от взгляда: щиты стены встают в ряд. */
+        double side;
+        /**
+         * Кружить вокруг существа, к которому привязана: радиус, угол, скорость
+         * (радиан за тик). Остриё смотрит наружу — мечи возмездия.
+         */
+        double orbit;
+        double orbitAngle;
+        double orbitSpeed;
         /**
          * Куда смотрит остриё, каждый тик: стрела в полёте клонится вслед за
          * снижением. {@code null} — поворот задают скорости.
@@ -529,9 +538,21 @@ final class FxSolids {
                     release();
                 } else {
                     double look = Math.toRadians(entity.getYRot());
-                    x = entity.getX() + offsetX - Math.sin(look) * forward;
+                    double fx = -Math.sin(look);
+                    double fz = Math.cos(look);
+                    x = entity.getX() + offsetX + fx * forward - fz * side;
                     y = entity.getY() + offsetY;
-                    z = entity.getZ() + offsetZ + Math.cos(look) * forward;
+                    z = entity.getZ() + offsetZ + fz * forward + fx * side;
+                    if (orbit > 0) {
+                        orbitAngle += orbitSpeed;
+                        double ox = Math.cos(orbitAngle);
+                        double oz = Math.sin(orbitAngle);
+                        x += ox * orbit;
+                        z += oz * orbit;
+                        point(ox, 0, oz);
+                        prevYaw = yaw;
+                        return;
+                    }
                     if (faceFollow) {
                         yaw = -entity.getYRot();
                         prevYaw = yaw;

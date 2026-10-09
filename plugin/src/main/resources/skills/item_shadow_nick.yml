@@ -16,4 +16,4 @@ steps:
   - target: { type: enemies_in_radius, radius: $radius, limit: 1 }
     do:
       - { action: damage, amount: $damage, school: physical }
-      - { action: particles, particle: crit, shape: point, count: 6, fx: item_flash }
+      - { action: particles, particle: crit, shape: point, count: 6, fx: item_shadow_nick }

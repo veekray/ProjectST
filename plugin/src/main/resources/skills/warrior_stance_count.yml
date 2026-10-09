@@ -15,4 +15,4 @@ steps:
       - { caster: has-status, value: warrior_stance }
     do:
       - { action: status, id: stance_taken, duration: $duration }
-      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4, fx: warrior_rise }
+      - { action: particles, particle: ash, shape: point, count: 8, size: 0.4, fx: warrior_stance_notch }

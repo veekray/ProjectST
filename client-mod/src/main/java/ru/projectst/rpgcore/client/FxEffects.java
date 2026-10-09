@@ -10,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.ParticleStatus;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -126,6 +127,15 @@ public final class FxEffects {
             case FxMessage.Hit hit -> {
                 add(new FxKinds.Hit(FxStyle.of(hit.crit() ? "crit" : "hit", FxStyle.Kind.HIT), hit));
                 FxScenes.hit(hit);
+                if (hit.crit()) {
+                    // Свой звонкий хруст крита — поверх ванильного, его слышат все рядом.
+                    Entity target = Minecraft.getInstance().level != null
+                            ? Minecraft.getInstance().level.getEntity(hit.entityId()) : null;
+                    if (target != null) {
+                        FxSounds.play("hit.crit", target.getX(), target.getY() + 1, target.getZ(),
+                                0.6f, 1f);
+                    }
+                }
                 // Свой крит виден ещё и краями экрана: его чувствует тот, кто ударил.
                 var self = Minecraft.getInstance().player;
                 if (hit.crit() && self != null && hit.attacker() == self.getId()) {

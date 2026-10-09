@@ -24,12 +24,12 @@ steps:
   - target: { type: self }
     do:
       - { action: dash, strength: $leap, lift: 0.2 }
-      - { action: sound, sound: entity_shulker_shoot, volume: 0.8, pitch: 0.7 }
-      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4, fx: warrior_puff }
+      - { action: sound, sound: entity_shulker_shoot, volume: 0.8, pitch: 0.7, fx: warrior.charge }
+      - { action: particles, particle: cloud, shape: point, count: 20, size: 0.4, fx: warrior_charge_dust }
 
   - target: { type: enemies_in_cone, radius: $range, angle: 50, limit: 3 }
     delay: 3
     do:
       - { action: damage, amount: $damage, school: physical }
       - { action: push, strength: $push, lift: 0.3 }
-      - { action: particles, particle: crit, shape: point, count: 12, size: 0.3, fx: warrior_flash }
+      - { action: particles, particle: crit, shape: point, count: 12, size: 0.3, fx: warrior_charge_impact }

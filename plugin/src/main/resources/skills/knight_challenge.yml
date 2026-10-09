@@ -24,6 +24,6 @@ steps:
     do:
       - { action: status, id: challenge, duration: $duration, amount: $weaken }
       - { action: glow, duration: $duration }
-      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.5 }
-      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4, fx: knight_sink }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 1.0, pitch: 1.5, fx: knight.challenge }
+      - { action: particles, particle: crit, shape: point, count: 20, size: 0.4, fx: knight_challenge_spear }
       - { action: message, text: "&cВызван" }

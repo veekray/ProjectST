@@ -2,10 +2,13 @@ package ru.projectst.rpgcore.client;
 
 import java.util.Map;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import ru.projectst.rpgcore.net.FxMessage;
 
 /**
- * Общие состояния: щит, ослабление — те, что вешают навыки разных классов.
+ * Общее: рывок, предметы, мобы и состояния, которые вешают навыки разных
+ * классов (щит, ослабление, кровь, тишина).
  *
  * <p>Облик берётся по классу наложившего ({@link SceneKit#classOf}): щит
  * колдуна — кружащие души, щит рыцаря — золотая сфера.
@@ -16,7 +19,124 @@ final class ScenesCommon {
     }
 
     static FxScenes.Set scenes() {
-        return new FxScenes.Set(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), STATUSES);
+        return new FxScenes.Set(BURSTS, Map.of(), Map.of(), BOLTS, Map.of(), STATUSES);
+    }
+
+    private static final int GOLD = 0xFFE8C25A;
+    private static final int GOLD_LIGHT = 0xFFFFF2C0;
+
+    private static final Map<String, FxScenes.BurstScene> BURSTS = Map.ofEntries(
+            Map.entry("dash_wind", ScenesCommon::dashWind),
+            Map.entry("item_arcane_hit", ScenesCommon::arcaneHit),
+            Map.entry("item_shadow_nick", ScenesCommon::shadowNick),
+            Map.entry("item_soul_drain", ScenesCommon::soulDrain),
+            Map.entry("mob_sand_burst", ScenesCommon::sandBurst),
+            Map.entry("mob_venom_sting", ScenesCommon::venomSting));
+
+    private static final Map<String, FxScenes.BoltScene> BOLTS = Map.ofEntries(
+            Map.entry("item_arcane_orb", ScenesCommon::arcaneOrb));
+
+    // ------------------------------------------------------------------ рывок
+
+    /** Рывок: короткий след-ветер из светлой дымки по ходу, у себя — растяжение по краям. */
+    private static void dashWind(FxMessage.Burst e) {
+        int id = e.source();
+        Entity who = SceneKit.entity(id);
+        if (who == null) {
+            return;
+        }
+        SceneKit.live("", who.getX(), who.getY(), who.getZ(), 12, 6, (self, draw, t, detail) -> {
+        }).step = (self, level, motes, emit) -> {
+            Entity now = level.getEntity(id);
+            if (now != null && emit > 0) {
+                for (int i = 0; i < 3; i++) {
+                    motes.spawn(now.getX() + FxMotes.jitter(0.3f), now.getY() + 0.3 + FxMotes.random(),
+                            now.getZ() + FxMotes.jitter(0.3f), 0, 0.01f, 0, 0.3f, 0xFFF0EAD8, 12, 0.9f,
+                            FxDraw.Tex.WISP);
+                }
+            }
+        };
+        if (SceneKit.isSelf(id)) {
+            FxScreen.flash(0xFFF0EAD8, 6);
+        }
+    }
+
+    // ------------------------------------------------------------------ предметы
+
+    /** Импульс арканы: золотой сгусток с орбитой рун. */
+    private static void arcaneOrb(FxMessage.Projectile p, FxKinds.Bolt bolt) {
+        SceneKit.live(p.classId(), p.x(), p.y(), p.z(), p.range() + 4,
+                (int) (p.range() / Math.max(0.05f, p.speed())) + 80, (self, draw, t, detail) -> {
+                    Vec3 at = bolt.at(t - (int) t);
+                    if (at == null) {
+                        self.dead = true;
+                        return;
+                    }
+                    Vec3 h = bolt.heading();
+                    draw.halo(FxDraw.Tex.RUNES, at.x, at.y, at.z, 0.3, 0.16, h.x, h.y, h.z, GOLD, 0.7f,
+                            1.5f, t * 0.05f);
+                }).important = true;
+    }
+
+    private static void arcaneHit(FxMessage.Burst e) {
+        SceneKit.sparks(e.x(), e.y() + 1, e.z(), 12, 0.18f, 0.2f, GOLD_LIGHT, 10, FxDraw.Tex.SPARK);
+    }
+
+    /** Укол из тени: короткий тёмный росчерк по цели. */
+    private static void shadowNick(FxMessage.Burst e) {
+        SceneKit.cut(e.classId(), e.x(), e.y() + 1.1, e.z(), SceneKit.yawFrom(e), 0.6, 1.0, 0xFF3A2050,
+                6, 0.25f);
+    }
+
+    /** Вытяжка: из проклятого к носителю тянется золотая струйка. */
+    private static void soulDrain(FxMessage.Burst e) {
+        int source = e.source();
+        double fx = e.x();
+        double fy = e.y() + 1.1;
+        double fz = e.z();
+        SceneKit.live(e.classId(), fx, fy, fz, 24, 14, (self, draw, t, detail) -> {
+            Entity to = SceneKit.entity(source);
+            if (to == null) {
+                return;
+            }
+            Vec3 b = SceneKit.chest(to, t - (int) t);
+            float a = 1f - self.progress(t);
+            draw.ribbon(FxDraw.Tex.BEAM, new double[] {fx, (fx + b.x) / 2, b.x},
+                    new double[] {fy, (fy + b.y) / 2 + 0.5, b.y}, new double[] {fz, (fz + b.z) / 2, b.z},
+                    3, 0.25f, GOLD, 0.7f * a, 0.3f * a, -t * 0.3f);
+        });
+    }
+
+    // ------------------------------------------------------------------ мобы
+
+    /** Песчаный выброс: из-под моба кольцо песка до границы, песок оседает. */
+    private static void sandBurst(FxMessage.Burst e) {
+        SceneKit.border(e, 5, 6, 10, 0.6f);
+        double r = e.radius();
+        int n = Math.min(16, Math.max(6, (int) (r * 3)));
+        for (int i = 0; i < n; i++) {
+            double a = Math.PI * 2 * i / n;
+            FxSolids.Model grain = new FxSolids.Model(Blocks.SAND.defaultBlockState(), e.x(), e.y() + 0.2,
+                    e.z(), 0.22f, 1, 10, 6);
+            grain.vx = Math.cos(a) * r / 12;
+            grain.vz = Math.sin(a) * r / 12;
+            grain.vy = 0.2;
+            grain.gravity = 0.04;
+            grain.tumble(FxMotes.jitter(20f));
+            FxSolids.add(grain);
+        }
+        FxMotes motes = FxEffects.motes();
+        int dust = (int) (r * r * 2 * Math.max(0.3f, FxEffects.emit()));
+        for (int i = 0; i < dust; i++) {
+            double[] p = FxGeometry.insideCircle(SceneKit.RANDOM, e.x(), e.y(), e.z(), r);
+            motes.spawn(p[0], e.y() + 0.2 + FxMotes.random(), p[2], 0, -0.01f, 0, 0.4f, 0xFFE0D0A0, 24,
+                    0.97f, FxDraw.Tex.WISP);
+        }
+    }
+
+    /** Жало: зелёный укол, пузыри яда на цели. */
+    private static void venomSting(FxMessage.Burst e) {
+        SceneKit.sparks(e.x(), e.y() + 1, e.z(), 10, 0.12f, 0.16f, 0xFF7FD957, 12, FxDraw.Tex.GLOW);
     }
 
     private static final Map<String, FxStatuses.Look> STATUSES = Map.ofEntries(

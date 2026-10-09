@@ -27,11 +27,11 @@ steps:
       - { target: has-status, value: challenge }
     do:
       - { action: count, counter: oaths }
-      - { action: particles, particle: end_rod, shape: ring, count: 40, size: radius, fx: knight_wave }
+      - { action: particles, particle: end_rod, shape: ring, count: 40, size: radius, fx: knight_judgment_wave }
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.5 }
+      - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.5, fx: knight.judgment }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
@@ -39,4 +39,4 @@ steps:
     do:
       - { action: damage, amount: "$damage * @oaths", school: magic }
       - { action: remove-status, id: challenge }
-      - { action: particles, particle: end_rod, shape: point, count: 20, size: 0.5, fx: knight_flash }
+      - { action: particles, particle: end_rod, shape: point, count: 20, size: 0.5, fx: knight_judgment_sword }

@@ -1381,7 +1381,7 @@ balance:
     damage_each: 5
 
   knight_challenge:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 8
     cooldown:
       base: 8.0
@@ -1392,7 +1392,7 @@ balance:
     weaken: 50
 
   knight_war_cry:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     spirit: 16
     cooldown:
       base: 18.0
@@ -1403,7 +1403,7 @@ balance:
     weaken: 50
 
   knight_shockwave:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 16   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 7.0
@@ -1448,7 +1448,7 @@ balance:
     each: 20
 
   knight_shield_bash:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 12.0
@@ -1478,7 +1478,7 @@ balance:
     weaken: 50
 
   knight_banner:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 24   # подготовка, тиков
     spirit: 20
     cooldown:
       base: 35.0
@@ -1494,7 +1494,7 @@ balance:
     guard: 18
 
   knight_judgment:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 26   # подготовка, тиков
     spirit: 26
     cooldown:
       base: 30.0
@@ -1506,7 +1506,7 @@ balance:
       per-level: 2.0
 
   knight_absolute_fortress:
-    cast_time: 16   # подготовка, тиков
+    cast_time: 36   # подготовка, тиков
     spirit: 40
     cooldown:
       base: 140.0
@@ -1540,7 +1540,7 @@ balance:
     push: 1.0
 
   warrior_cleave:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 8
     cooldown:
       base: 4.0
@@ -1576,7 +1576,7 @@ balance:
     push: 1.2
 
   warrior_spin:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 10.0
@@ -1589,7 +1589,7 @@ balance:
     push: 1.1
 
   warrior_challenge:
-    cast_time: 4   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 10
     cooldown:
       base: 14.0
@@ -1602,7 +1602,7 @@ balance:
     weaken: 25
 
   warrior_rage:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     spirit: 12
     cooldown:
       base: 20.0
@@ -1613,7 +1613,7 @@ balance:
     damage_bonus: 35
 
   warrior_combo:
-    cast_time: 5   # подготовка, тиков
+    cast_time: 8   # подготовка, тиков
     spirit: 14
     cooldown:
       base: 9.0
@@ -1648,7 +1648,7 @@ balance:
     duration: 100
 
   warrior_war_cry:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 16   # подготовка, тиков
     spirit: 30
     cooldown:
       base: 100.0

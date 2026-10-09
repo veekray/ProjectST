@@ -30,5 +30,5 @@ steps:
     do:
       - { action: status, id: challenge, duration: $duration, amount: $weaken }
       - { action: glow, duration: $duration }
-      - { action: sound, sound: entity_ender_dragon_growl, volume: 0.8, pitch: 1.6 }
-      - { action: particles, particle: angry_villager, shape: point, count: 12, size: 0.3, fx: warrior_sink }
+      - { action: sound, sound: entity_ender_dragon_growl, volume: 0.8, pitch: 1.6, fx: warrior.challenge }
+      - { action: particles, particle: angry_villager, shape: point, count: 12, size: 0.3, fx: warrior_challenge_mark }

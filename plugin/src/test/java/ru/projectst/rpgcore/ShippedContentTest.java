@@ -601,16 +601,13 @@ class ShippedContentTest {
     }
 
     @Test
-    @DisplayName("у навыков друида каждый звук — со своим видом для мода")
-    void druidSoundsHaveFx() throws IOException {
-        // Друид переведён на сцены: звук удара играет сцена. Звук без fx уходил
-        // бы игроку с модом ванильным поверх звука сцены — тот же дубль, что и
-        // две картинки.
+    @DisplayName("у каждого навыка каждый звук — со своим видом для мода")
+    void everySoundHasFx() throws IOException {
+        // Все классы переведены на сцены: звук либо событие мода, либо его
+        // играет сцена (fx: none). Звук без fx уходил бы игроку с модом
+        // ванильным поверх звука сцены — тот же дубль, что и две картинки.
         java.util.Set<String> bare = new java.util.TreeSet<>();
         for (SkillDef skill : load().skills()) {
-            if (!skill.id().startsWith("druid_")) {
-                continue;
-            }
             for (var step : skill.steps()) {
                 for (var action : step.actions()) {
                     if (action instanceof ru.projectst.rpgcore.skill.Action.Sound sound
@@ -620,7 +617,7 @@ class ShippedContentTest {
                 }
             }
         }
-        assertTrue(bare.isEmpty(), "звуки друида без fx: " + bare);
+        assertTrue(bare.isEmpty(), "звуки без fx: " + bare);
     }
 
     @Test

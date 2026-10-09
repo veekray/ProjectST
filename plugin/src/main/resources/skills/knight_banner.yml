@@ -23,10 +23,12 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: block_wood_place, volume: 1.0, pitch: 0.5 }
+      - { action: sound, sound: block_wood_place, volume: 1.0, pitch: 0.5, fx: knight.banner }
       - action: zone
         tag: banner
         radius: $radius
         duration: $duration
         tick-interval: 20
         on-tick: knight_banner_tick
+        particle: end_rod
+        fx: knight_banner_zone

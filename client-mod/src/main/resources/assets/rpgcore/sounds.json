@@ -2246,5 +2246,479 @@
         "pitch": 1.0
       }
     ]
+  },
+  "knight.fortress": {
+    "sounds": [
+      {
+        "name": "minecraft:block.bell.use",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.beacon.activate",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "knight.banner": {
+    "sounds": [
+      {
+        "name": "minecraft:block.wood.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.wool.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.6
+      }
+    ]
+  },
+  "knight.challenge": {
+    "sounds": [
+      {
+        "name": "minecraft:item.shield.block",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.87
+      },
+      {
+        "name": "minecraft:block.anvil.land",
+        "type": "event",
+        "volume": 0.3,
+        "pitch": 1.07
+      }
+    ]
+  },
+  "knight.judgment": {
+    "sounds": [
+      {
+        "name": "minecraft:block.bell.resonate",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.2
+      },
+      {
+        "name": "minecraft:entity.generic.explode",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "knight.guard": {
+    "sounds": [
+      {
+        "name": "minecraft:block.anvil.hit",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.beacon.power_select",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.07
+      }
+    ]
+  },
+  "knight.swords": {
+    "sounds": [
+      {
+        "name": "minecraft:block.chain.hit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.trident.return",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "knight.swords.strike": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.crit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.trident.hit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.5
+      }
+    ]
+  },
+  "knight.bash": {
+    "sounds": [
+      {
+        "name": "minecraft:item.shield.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.8
+      },
+      {
+        "name": "minecraft:block.anvil.land",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 0.9
+      }
+    ]
+  },
+  "knight.bash.refused": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.villager.no",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "knight.wall": {
+    "sounds": [
+      {
+        "name": "minecraft:item.shield.block",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.beacon.ambient",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 2.0
+      }
+    ]
+  },
+  "knight.shockwave": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.warden.sonic_boom",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.iron_golem.attack",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.5
+      }
+    ]
+  },
+  "knight.cry": {
+    "sounds": [
+      {
+        "name": "minecraft:block.bell.use",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.goat_horn.sound.2",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.33
+      }
+    ]
+  },
+  "warrior.challenge": {
+    "sounds": [
+      {
+        "name": "minecraft:item.shield.block",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.blaze.shoot",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 0.75
+      }
+    ]
+  },
+  "warrior.charge": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.ravager.step",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.14
+      },
+      {
+        "name": "minecraft:entity.horse.gallop",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "warrior.cleave": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.firecharge.use",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 1.56
+      }
+    ]
+  },
+  "warrior.combo": {
+    "sounds": [
+      {
+        "name": "minecraft:item.trident.return",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.player.attack.strong",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "warrior.combo.full": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.crit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.iron_golem.attack",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.12
+      }
+    ]
+  },
+  "warrior.rage": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.ravager.roar",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.blaze.ambient",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.55
+      }
+    ]
+  },
+  "warrior.shield.rush": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.ravager.step",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.29
+      },
+      {
+        "name": "minecraft:item.shield.block",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "warrior.shield.impact": {
+    "sounds": [
+      {
+        "name": "minecraft:block.anvil.land",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.iron_golem.attack",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.67
+      }
+    ]
+  },
+  "warrior.shield.raise": {
+    "sounds": [
+      {
+        "name": "minecraft:item.shield.block",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.armor.equip_iron",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.6
+      }
+    ]
+  },
+  "warrior.spin": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.breeze.idle_air",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.29
+      }
+    ]
+  },
+  "warrior.stance.blast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.generic.explode",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:item.firecharge.use",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.75
+      }
+    ]
+  },
+  "warrior.cry": {
+    "sounds": [
+      {
+        "name": "minecraft:item.goat_horn.sound.3",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 1.12
+      },
+      {
+        "name": "minecraft:entity.ravager.roar",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.5
+      }
+    ]
+  },
+  "dash.wind": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.breeze.jump",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "item.arcane": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.illusioner.cast_spell",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.amethyst_block.chime",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.89
+      }
+    ]
+  },
+  "item.soul_drain": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.vex.hurt",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:particle.soul_escape",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.17
+      }
+    ]
+  },
+  "mob.sand_burst": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.husk.ambient",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.sand.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mob.venom_sting": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.spider.hurt",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.bee.sting",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.71
+      }
+    ]
+  },
+  "hit.crit": {
+    "sounds": [
+      {
+        "name": "minecraft:item.trident.hit",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.4
+      },
+      {
+        "name": "minecraft:block.amethyst_cluster.break",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.6
+      }
+    ]
   }
 }
