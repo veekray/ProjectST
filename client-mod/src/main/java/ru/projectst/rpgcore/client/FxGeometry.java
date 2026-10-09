@@ -76,6 +76,35 @@ final class FxGeometry {
     }
 
     /**
+     * Лиана вокруг существа: из земли — спиралью вверх, не касаясь тела.
+     *
+     * <p>Точки — смещения от ног существа: трубка с привязкой переносит их за
+     * ним. Радиус держится почти ровным (лиана чуть дышит, но не ближе
+     * {@code radius * 0.94}), кончик отгибается наружу, как у живого побега.
+     *
+     * @param angle  откуда лиана выходит из земли, радианы
+     * @param radius на каком расстоянии от оси тела вьётся
+     * @param height до какой высоты поднимается
+     * @param turns  сколько витков; знак — направление
+     */
+    static double[][] vineCoil(double angle, double radius, double height, double turns) {
+        int n = Math.max(5, (int) Math.ceil(Math.abs(turns) * 6)) + 1;
+        double[][] out = new double[n][];
+        for (int i = 0; i < n; i++) {
+            double k = (double) i / (n - 1);
+            double a = angle + k * turns * Math.PI * 2;
+            double r = radius * (1 + 0.06 * Math.sin(k * Math.PI * 3));
+            double y = -0.3 + (height + 0.3) * k;
+            if (i == n - 1) {
+                r += 0.06;
+                y += 0.05;
+            }
+            out[i] = new double[] {Math.cos(a) * r, y, Math.sin(a) * r};
+        }
+        return out;
+    }
+
+    /**
      * Короткий корень, который пробивает землю и опадает: украшение по площади.
      */
     static double[][] rootSpike(Random random, double x, double y, double z, double height) {

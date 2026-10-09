@@ -151,7 +151,7 @@ final class FxStatuses {
                     FxSolids.Tube root = new FxSolids.Tube(FxGeometry.rootAroundLegs(
                             entity.getX(), entity.getY(), entity.getZ(), angle, 0.85,
                             thick ? 1.25 : 0.95, 0.6 + 0.2 * (i % 2)),
-                            thick ? 0.13 : 0.085, "block/mangrove_log", 0xFFD8C8B0,
+                            thick ? 0.13 : 0.085, "rpgcore:block/druid_root", 0xFFFFFFFF,
                             8, 0, 6);
                     root.holding = () -> has(id, "root");
                     root.decor = false;
@@ -161,7 +161,7 @@ final class FxStatuses {
                         FxSolids.Tube thorn = new FxSolids.Tube(FxGeometry.rootSpike(
                                 new java.util.Random(), entity.getX() + Math.cos(angle) * 0.6,
                                 entity.getY(), entity.getZ() + Math.sin(angle) * 0.6, 0.7),
-                                0.05, "block/mangrove_roots_side", 0xFFB0D890, 6, 0, 6);
+                                0.05, "rpgcore:block/druid_root", 0xFFE8F0D8, 6, 0, 6);
                         thorn.holding = () -> has(id, "root");
                         state.solids.add(thorn);
                         FxSolids.add(thorn);
@@ -171,21 +171,37 @@ final class FxStatuses {
                         0.9f, thick ? 0.8f : 1f);
             }
             case "bark_guard" -> {
-                // Доспех из коры: изогнутые пластины на торсе и плечах, а не блоки.
-                // Слоёв столько, сколько зарядов; потерянный заряд скалывает
-                // внешний слой (lostStack).
-                if (!state.solids.isEmpty()) {
-                    return;
+                // Лианы вокруг друида: вьются спиралью из земли, не касаясь тела,
+                // и ходят вместе с ним. Пара лиан на каждый заряд; второй заряд —
+                // внешний виток навстречу первому. Пара держится, пока зарядов
+                // больше её слоя: потерянный заряд снимает внешнюю (lostStack).
+                state.solids.removeIf(solid -> solid.dead || solid.leftAt >= 0);
+                int have = state.solids.size() / 2;
+                int want = Math.max(1, state.stacks);
+                for (int layer = have; layer < want; layer++) {
+                    int mine = layer;
+                    double radius = entity.getBbWidth() * 0.5 + 0.3 + 0.14 * layer;
+                    double height = entity.getBbHeight() * (0.95 - 0.1 * layer);
+                    double turns = layer % 2 == 0 ? 1.25 : -1.1;
+                    double base = Math.random() * Math.PI * 2;
+                    for (int i = 0; i < 2; i++) {
+                        FxSolids.Tube liana = new FxSolids.Tube(
+                                FxGeometry.vineCoil(base + Math.PI * i, radius, height, turns),
+                                layer == 0 ? 0.09 : 0.075, "rpgcore:block/druid_liana",
+                                0xFFFFFFFF, 12, 0, 8).follow(entity);
+                        liana.spin = layer % 2 == 0 ? 0.012 : -0.015;
+                        liana.segments = 22;
+                        liana.taper = 0.45;
+                        liana.sway = 0.03;
+                        liana.holding = () -> {
+                            State now = get(id, "bark_guard");
+                            return now != null && Math.max(1, now.stacks) > mine;
+                        };
+                        liana.decor = false;
+                        state.solids.add(liana);
+                        FxSolids.add(liana);
+                    }
                 }
-                FxSolids.Shell shell = new FxSolids.Shell(id, FxSolids.Shell.bark(id * 31L), 10, 8);
-                shell.layers = () -> {
-                    State now = get(id, "bark_guard");
-                    return now == null ? 1 : Math.max(1, now.stacks);
-                };
-                shell.holding = () -> has(id, "bark_guard");
-                shell.decor = false;
-                state.solids.add(shell);
-                FxSolids.add(shell);
                 FxSounds.play("druid.bark.grow", entity.getX(), entity.getY(), entity.getZ(),
                         0.9f, 1f);
             }
@@ -226,7 +242,8 @@ final class FxStatuses {
         if (entity == null) {
             return;
         }
-        // Слой исчезает сам (доспех рисует слоёв по стакам), здесь — щепа и треск.
+        // Внешняя пара лиан уходит сама (держится, пока зарядов больше её слоя),
+        // здесь — щепа и треск.
         splinters(entity.getX(), entity.getY() + 1.0, entity.getZ(), 6);
         FxSounds.play("druid.bark.crack", entity.getX(), entity.getY(), entity.getZ(), 1f, 1f);
     }

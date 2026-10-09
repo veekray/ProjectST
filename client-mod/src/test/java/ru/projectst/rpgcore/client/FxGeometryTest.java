@@ -86,4 +86,19 @@ class FxGeometryTest {
         assertTrue(Math.hypot(tip[0] - CX, tip[2] - CZ) < 0.4, "кончик обвивает ноги");
         assertEquals(65.2, tip[1], 1e-9);
     }
+
+    @Test
+    @DisplayName("лиана вьётся вокруг тела, не касаясь его, из земли до высоты")
+    void vineCoilKeepsOffTheBody() {
+        double[][] vine = FxGeometry.vineCoil(0.5, 0.6, 1.8, 1.25);
+        assertTrue(vine[0][1] < 0, "лиана выходит из земли");
+        assertEquals(1.85, vine[vine.length - 1][1], 1e-9);
+        for (int i = 0; i <= 40; i++) {
+            double[] p = FxGeometry.spline(vine, i / 40.0);
+            assertTrue(Math.hypot(p[0], p[2]) > 0.45, "не прилегает к телу: " + i);
+        }
+        for (int i = 1; i < vine.length; i++) {
+            assertTrue(vine[i][1] > vine[i - 1][1], "растёт только вверх");
+        }
+    }
 }
