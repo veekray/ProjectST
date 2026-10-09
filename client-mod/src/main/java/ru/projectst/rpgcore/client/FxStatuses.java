@@ -40,6 +40,33 @@ final class FxStatuses {
         }
     }
 
+    /**
+     * Облик статуса, объявленный классом рядом с его сценами
+     * ({@link FxScenes.Set#statuses()}). Всё по умолчанию пусто: статус рисует
+     * только то, что ему нужно.
+     */
+    interface Look {
+        /** Наложен или стаков стало больше: вырастить объекты. */
+        default void appear(State state, Entity entity) {
+        }
+
+        /** Стаков стало меньше. */
+        default void lost(State state, Entity entity) {
+        }
+
+        /** Снят: объекты уходят сами (release), здесь — звук и осколки. */
+        default void gone(State state, Entity entity) {
+        }
+
+        /** Каждый тик: искры, капли, пузыри. */
+        default void ambient(State state, Entity entity, float emit) {
+        }
+
+        /** Кадр: знаки над головой, нити, свечение. */
+        default void draw(State state, FxDraw draw, Entity entity, Vec3 at, float time) {
+        }
+    }
+
     private static final Map<Integer, Map<String, State>> BY_ENTITY = new HashMap<>();
     private static long now;
 
@@ -58,6 +85,16 @@ final class FxStatuses {
 
     static void clear() {
         BY_ENTITY.clear();
+    }
+
+    /** Часы состояний, тики: по ним живут знаки и пульсы. */
+    static long now() {
+        return now;
+    }
+
+    /** Сколько тиков статусу осталось по последнему слову сервера. */
+    static int remaining(State state) {
+        return (int) Math.max(0, state.endsAt - now);
     }
 
     static void on(FxMessage.StatusOn on) {
@@ -101,6 +138,14 @@ final class FxStatuses {
         }
         state.solids.forEach(FxSolids.Solid::release);
         Entity entity = entity(off.entityId());
+        Look look = FxScenes.status(off.statusId());
+        if (look != null && entity != null) {
+            try {
+                look.gone(state, entity);
+            } catch (RuntimeException e) {
+                // Облик — украшение: статус уже снят.
+            }
+        }
         if (entity != null && off.statusId().equals("root")) {
             FxSounds.play("druid.roots.snap", entity.getX(), entity.getY(), entity.getZ(), 0.9f, 1f);
         }
@@ -119,7 +164,12 @@ final class FxStatuses {
                 if (entity == null) {
                     continue;
                 }
-                ambient(state, entity, emit);
+                Look look = FxScenes.status(state.id);
+                if (look != null) {
+                    look.ambient(state, entity, emit);
+                } else {
+                    ambient(state, entity, emit);
+                }
             }
         }
     }
@@ -139,6 +189,11 @@ final class FxStatuses {
         }
         int id = state.entity;
         String status = state.id;
+        Look look = FxScenes.status(status);
+        if (look != null) {
+            look.appear(state, entity);
+            return;
+        }
         switch (status) {
             case "root" -> {
                 // Корни на Росте держат дольше — и толще, с шипами. Мод видит это
@@ -235,11 +290,16 @@ final class FxStatuses {
 
     /** Стака стало меньше: у коры — скололся внешний слой. */
     private static void lostStack(State state) {
-        if (!state.id.equals("bark_guard")) {
-            return;
-        }
         Entity entity = entity(state.entity);
         if (entity == null) {
+            return;
+        }
+        Look look = FxScenes.status(state.id);
+        if (look != null) {
+            look.lost(state, entity);
+            return;
+        }
+        if (!state.id.equals("bark_guard")) {
             return;
         }
         // Внешняя пара лиан уходит сама (держится, пока зарядов больше её слоя),
@@ -257,7 +317,7 @@ final class FxStatuses {
             chip.vy = 0.15 + FxMotes.random() * 0.12;
             chip.vz = FxMotes.jitter(0.15f);
             chip.gravity = 0.04;
-            chip.spin = FxMotes.jitter(25f);
+            chip.tumble(FxMotes.jitter(25f));
             FxSolids.add(chip);
         }
     }
@@ -325,6 +385,11 @@ final class FxStatuses {
                 Vec3 at = entity.getPosition(partial);
                 double h = entity.getBbHeight();
                 float t = now + partial;
+                Look look = FxScenes.status(state.id);
+                if (look != null) {
+                    look.draw(state, draw, entity, at, t);
+                    continue;
+                }
                 switch (state.id) {
                     case "stun" -> {
                         for (int i = 0; i < 3; i++) {

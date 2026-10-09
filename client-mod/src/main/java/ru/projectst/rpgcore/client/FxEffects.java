@@ -113,6 +113,8 @@ public final class FxEffects {
                 FxKinds.Bolt bolt = new FxKinds.Bolt(FxStyle.of(p.fx(), FxStyle.Kind.BOLT), p);
                 BOLTS.put(p.id(), bolt);
                 EFFECTS.add(bolt);
+                // Своя сцена вешает на полёт модель (стрелу, череп) и решает конец.
+                FxScenes.bolt(p, bolt);
             }
             case FxMessage.ProjectileEnd end -> {
                 FxKinds.Bolt bolt = BOLTS.remove(end.id());
@@ -128,8 +130,11 @@ public final class FxEffects {
                     FxScreen.flash(0xFFFFE9A8, 8);
                 }
             }
-            case FxMessage.Trail trail -> add(new FxKinds.Trail(
-                    FxStyle.of(trail.fx(), FxStyle.Kind.TRAIL), trail));
+            case FxMessage.Trail trail -> {
+                if (!FxScenes.trail(trail)) {
+                    add(new FxKinds.Trail(FxStyle.of(trail.fx(), FxStyle.Kind.TRAIL), trail));
+                }
+            }
             // Протокол 10: сцены, каст, статусы и звук принимаются отдельными
             // службами; здесь — только то, что рисуется видами из FxKinds.
             case FxMessage.Telegraph mark -> FxScenes.mark(mark);

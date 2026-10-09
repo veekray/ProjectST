@@ -6,18 +6,26 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 
@@ -382,16 +390,24 @@ final class FxSolids {
         }
     }
 
-    // ------------------------------------------------------------------ модель блока
+    // ------------------------------------------------------------------ модель
 
     /**
-     * Модель ванильного блока в мире: цветок, пластина коры, ком земли.
+     * Модель ванильного блока или предмета в мире: цветок, ком земли, меч,
+     * стрела, щит, череп, знамя.
      *
      * <p>Масштаб растёт при появлении и падает при уходе; поворот и движение
-     * задаёт сцена — летящая щепка, кружащийся лист.
+     * задаёт сцена — летящая щепка, вращающийся клинок. Модель блока стоит
+     * низом на точке, предмет — серединой: так меч, воткнутый в землю, и ком
+     * земли ставятся одинаково просто.
+     *
+     * <p>Привязка: к существу ({@link #follow}) — модель ходит за ним со
+     * смещением; к точке ({@link #anchor}) — за чем угодно, например за
+     * летящим снарядом. Привязка пропала — модель уходит.
      */
     static final class Model extends Solid {
         final BlockState state;
+        final ItemStack item;
         double x;
         double y;
         double z;
@@ -402,24 +418,71 @@ final class FxSolids {
         double vy;
         double vz;
         double gravity;
+        /** Сопротивление воздуха: скорость за тик умножается на него. */
+        double drag = 0.96;
         final float scale;
         float yaw;
         float pitch;
-        float spin;
+        float roll;
+        float yawSpeed;
+        float pitchSpeed;
+        float rollSpeed;
+        private float prevYaw;
+        private float prevPitch;
+        private float prevRoll;
         /** Привязка к существу: модель следует за ним (кора на плечах). */
         int follow = -1;
+        /** Поворачиваться вслед за существом, к которому привязана. */
+        boolean faceFollow = true;
+        /** Привязка к точке: {@code null} из поставщика — модель уходит. */
+        Supplier<Vec3> anchor;
         double offsetX;
         double offsetY;
         double offsetZ;
 
         Model(BlockState state, double x, double y, double z, float scale,
               int grow, int hold, int leave) {
+            this(state, null, x, y, z, scale, grow, hold, leave);
+        }
+
+        Model(ItemStack item, double x, double y, double z, float scale,
+              int grow, int hold, int leave) {
+            this(null, item, x, y, z, scale, grow, hold, leave);
+        }
+
+        private Model(BlockState state, ItemStack item, double x, double y, double z, float scale,
+                      int grow, int hold, int leave) {
             super(grow, hold, leave);
             this.state = state;
+            this.item = item;
             this.x = this.prevX = x;
             this.y = this.prevY = y;
             this.z = this.prevZ = z;
             this.scale = scale;
+        }
+
+        /** Кувырок: рыскание и тангаж вместе, как у летящей щепки. */
+        Model tumble(float speed) {
+            this.yawSpeed = speed;
+            this.pitchSpeed = speed * 0.6f;
+            return this;
+        }
+
+        /** Повернуть носом по направлению (для стрелы и клинка в полёте). */
+        Model face(double dx, double dy, double dz) {
+            double flat = Math.sqrt(dx * dx + dz * dz);
+            this.yaw = (float) Math.toDegrees(Math.atan2(dx, dz));
+            this.pitch = (float) -Math.toDegrees(Math.atan2(dy, flat));
+            this.prevYaw = yaw;
+            this.prevPitch = pitch;
+            return this;
+        }
+
+        Model at(float yaw, float pitch, float roll) {
+            this.yaw = this.prevYaw = yaw;
+            this.pitch = this.prevPitch = pitch;
+            this.roll = this.prevRoll = roll;
+            return this;
         }
 
         @Override
@@ -428,6 +491,12 @@ final class FxSolids {
             prevX = x;
             prevY = y;
             prevZ = z;
+            prevYaw = yaw;
+            prevPitch = pitch;
+            prevRoll = roll;
+            yaw += yawSpeed;
+            pitch += pitchSpeed;
+            roll += rollSpeed;
             if (follow >= 0) {
                 net.minecraft.world.entity.Entity entity = level.getEntity(follow);
                 if (entity == null) {
@@ -436,7 +505,21 @@ final class FxSolids {
                     x = entity.getX() + offsetX;
                     y = entity.getY() + offsetY;
                     z = entity.getZ() + offsetZ;
-                    yaw = -entity.getYRot();
+                    if (faceFollow) {
+                        yaw = -entity.getYRot();
+                        prevYaw = yaw;
+                    }
+                }
+                return;
+            }
+            if (anchor != null) {
+                Vec3 at = anchor.get();
+                if (at == null) {
+                    release();
+                } else {
+                    x = at.x + offsetX;
+                    y = at.y + offsetY;
+                    z = at.z + offsetZ;
                 }
                 return;
             }
@@ -444,10 +527,8 @@ final class FxSolids {
             y += vy;
             z += vz;
             vy -= gravity;
-            vx *= 0.96;
-            vz *= 0.96;
-            yaw += spin;
-            pitch += spin * 0.6f;
+            vx *= drag;
+            vz *= drag;
         }
 
         @Override
@@ -466,15 +547,292 @@ final class FxSolids {
             double iy = prevY + (y - prevY) * partial;
             double iz = prevZ + (z - prevZ) * partial;
             float s = scale * (float) FxGeometry.easeOut(shown);
+            float ry = prevYaw + (yaw - prevYaw) * partial;
+            float rp = prevPitch + (pitch - prevPitch) * partial;
+            float rr = prevRoll + (roll - prevRoll) * partial;
+            int light = light(level, ix, iy + 0.3, iz);
             pose.pushPose();
             pose.translate(ix - camX, iy - camY, iz - camZ);
-            pose.mulPose(new Quaternionf().rotationYXZ((float) Math.toRadians(yaw),
-                    (float) Math.toRadians(pitch), 0));
+            pose.mulPose(new Quaternionf().rotationYXZ((float) Math.toRadians(ry),
+                    (float) Math.toRadians(rp), (float) Math.toRadians(rr)));
             pose.scale(s, s, s);
-            pose.translate(-0.5, 0, -0.5);
-            Minecraft.getInstance().getBlockRenderer().renderSingleBlock(state, pose, buffers,
-                    light(level, ix, iy + 0.3, iz), OverlayTexture.NO_OVERLAY, ModelData.EMPTY,
-                    null);
+            if (item != null) {
+                Minecraft.getInstance().getItemRenderer().renderStatic(item,
+                        ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY, pose, buffers,
+                        level, 0);
+            } else {
+                pose.translate(-0.5, 0, -0.5);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(state, pose, buffers,
+                        light, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);
+            }
+            pose.popPose();
+        }
+    }
+
+    // ------------------------------------------------------------------ полоса
+
+    /**
+     * Полоса вдоль кривой из двух скрещённых плоскостей: цепь, леска, нить.
+     *
+     * <p>Так нарисована ванильная цепь: две плоскости крестом с текстурой
+     * звеньев. Кривая берётся заново каждый кадр — цепь между колдуном и целью
+     * тянется за обоими. Текстура повторяется по длине: кривая режется на
+     * куски ровно в одно повторение, иначе спрайт атласа пришлось бы
+     * заворачивать, а он не заворачивается.
+     */
+    static final class Strip extends Solid {
+        /** Кривая в мире на этот кадр; {@code null} — концов больше нет, полоса уходит. */
+        final java.util.function.Function<Float, double[][]> path;
+        final TextureAtlasSprite sprite;
+        final double width;
+        /** Сколько блоков длины на одно повторение текстуры. */
+        final double repeat;
+        final int tint;
+        /** Доли ширины текстуры для первой и второй плоскости. */
+        float u0 = 0;
+        float u1 = 1;
+        float u2 = 0;
+        float u3 = 1;
+        /** Провисание посередине, блоков. */
+        double sag;
+        private double[][] last;
+
+        Strip(java.util.function.Function<Float, double[][]> path, String texture, double width,
+              double repeat, int tint, int grow, int hold, int leave) {
+            super(grow, hold, leave);
+            this.path = path;
+            this.sprite = sprite(texture);
+            this.width = width;
+            this.repeat = Math.max(0.05, repeat);
+            this.tint = tint;
+        }
+
+        /** Цепь ванильной текстурой: звенья в двух плоскостях, как у блока цепи. */
+        static Strip chain(java.util.function.Function<Float, double[][]> path, double scale,
+                           int grow, int hold, int leave) {
+            Strip strip = new Strip(path, "block/chain", 3 / 16.0 * scale, scale, 0xFFFFFFFF,
+                    grow, hold, leave);
+            strip.u0 = 0;
+            strip.u1 = 3 / 16f;
+            strip.u2 = 3 / 16f;
+            strip.u3 = 6 / 16f;
+            return strip;
+        }
+
+        @Override
+        void tick(Level level) {
+            super.tick(level);
+            if (leftAt < 0 && path.apply(1f) == null) {
+                release();
+            }
+        }
+
+        @Override
+        AABB bounds() {
+            double[][] p = last != null ? last : path.apply(1f);
+            if (p == null || p.length == 0) {
+                return new AABB(0, -1000, 0, 0, -1000, 0);
+            }
+            AABB box = new AABB(p[0][0], p[0][1], p[0][2], p[0][0], p[0][1], p[0][2]);
+            for (double[] q : p) {
+                box = box.minmax(new AABB(q[0], q[1], q[2], q[0], q[1], q[2]));
+            }
+            return box.inflate(width + sag + 0.5);
+        }
+
+        @Override
+        void render(PoseStack pose, MultiBufferSource buffers, double camX, double camY,
+                    double camZ, float partial, Level level) {
+            float shown = presence(partial);
+            double[][] p = path.apply(partial);
+            if (p == null) {
+                p = last;
+            }
+            if (p == null || p.length < 2 || shown <= 0.01f) {
+                return;
+            }
+            last = p;
+            // Длина по кривой и точка на доле длины: полоса растёт от начала.
+            double[] cum = new double[p.length];
+            for (int i = 1; i < p.length; i++) {
+                cum[i] = cum[i - 1] + Math.sqrt(sq(p[i][0] - p[i - 1][0]) + sq(p[i][1] - p[i - 1][1])
+                        + sq(p[i][2] - p[i - 1][2]));
+            }
+            double total = cum[p.length - 1] * FxGeometry.easeOut(shown);
+            if (total < 0.01) {
+                return;
+            }
+            VertexConsumer out = buffers.getBuffer(
+                    RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS));
+            PoseStack.Pose last = pose.last();
+            int r = (tint >> 16) & 0xFF;
+            int g = (tint >> 8) & 0xFF;
+            int b = tint & 0xFF;
+            double full = cum[p.length - 1];
+            for (double from = 0; from < total; from += repeat) {
+                double to = Math.min(total, from + repeat);
+                double[] a = along(p, cum, from, full);
+                double[] c = along(p, cum, to, full);
+                double[] dir = normalize(c[0] - a[0], c[1] - a[1], c[2] - a[2]);
+                double[] ref = Math.abs(dir[1]) > 0.95 ? new double[] {1, 0, 0} : new double[] {0, 1, 0};
+                double[] side = normalize(cross(dir, ref));
+                double[] up = cross(side, dir);
+                float v1 = (float) ((to - from) / repeat);
+                int light = light(level, a[0], a[1] + 0.2, a[2]);
+                plane(out, last, a, c, side, up, camX, camY, camZ, r, g, b, u0, u1, v1, light);
+                plane(out, last, a, c, up, side, camX, camY, camZ, r, g, b, u2, u3, v1, light);
+            }
+        }
+
+        /** Точка на расстоянии {@code d} по кривой, с провисанием посередине. */
+        private double[] along(double[][] p, double[] cum, double d, double full) {
+            int i = 1;
+            while (i < p.length - 1 && cum[i] < d) {
+                i++;
+            }
+            double span = cum[i] - cum[i - 1];
+            double k = span < 1.0E-9 ? 0 : (d - cum[i - 1]) / span;
+            double[] q = {p[i - 1][0] + (p[i][0] - p[i - 1][0]) * k,
+                    p[i - 1][1] + (p[i][1] - p[i - 1][1]) * k,
+                    p[i - 1][2] + (p[i][2] - p[i - 1][2]) * k};
+            if (sag != 0 && full > 0) {
+                double t = d / full;
+                q[1] -= sag * 4 * t * (1 - t);
+            }
+            return q;
+        }
+
+        private void plane(VertexConsumer out, PoseStack.Pose pose, double[] a, double[] c,
+                           double[] side, double[] normal, double camX, double camY, double camZ,
+                           int r, int g, int b, float ua, float ub, float v1, int light) {
+            double h = width / 2;
+            double[] a0 = {a[0] - side[0] * h, a[1] - side[1] * h, a[2] - side[2] * h};
+            double[] a1 = {a[0] + side[0] * h, a[1] + side[1] * h, a[2] + side[2] * h};
+            double[] c0 = {c[0] - side[0] * h, c[1] - side[1] * h, c[2] - side[2] * h};
+            double[] c1 = {c[0] + side[0] * h, c[1] + side[1] * h, c[2] + side[2] * h};
+            float su0 = sprite.getU(ua);
+            float su1 = sprite.getU(ub);
+            float sv0 = sprite.getV(0);
+            float sv1 = sprite.getV(v1);
+            vertex(out, pose, a0, camX, camY, camZ, r, g, b, 255, su0, sv0, light, normal);
+            vertex(out, pose, c0, camX, camY, camZ, r, g, b, 255, su0, sv1, light, normal);
+            vertex(out, pose, c1, camX, camY, camZ, r, g, b, 255, su1, sv1, light, normal);
+            vertex(out, pose, a1, camX, camY, camZ, r, g, b, 255, su1, sv0, light, normal);
+        }
+    }
+
+    // ------------------------------------------------------------------ двойник
+
+    /**
+     * Полупрозрачный двойник существа: его собственная модель и скин, без
+     * новых сущностей.
+     *
+     * <p>Берётся модель из рендерера существа и рисуется полупрозрачным
+     * проходом, с цветом класса поверх: отражение плута, копии ловкача,
+     * силуэт растворившегося убийцы. Поза — та, что была в миг появления;
+     * двойник может стоять, плыть или кружить вокруг хозяина.
+     */
+    static final class Ghost extends Solid {
+        final int entityId;
+        double x;
+        double y;
+        double z;
+        double prevX;
+        double prevY;
+        double prevZ;
+        double vx;
+        double vy;
+        double vz;
+        float yaw;
+        float yawSpeed;
+        /** Насколько видно: доля непрозрачности на пике. */
+        float alpha = 0.45f;
+        int tint = 0xFFFFFFFF;
+        /** Кружить вокруг существа: радиус, угол, скорость; радиус 0 — стоять. */
+        double orbit;
+        double orbitAngle;
+        double orbitSpeed;
+
+        Ghost(net.minecraft.world.entity.Entity of, int grow, int hold, int leave) {
+            super(grow, hold, leave);
+            this.entityId = of.getId();
+            this.x = this.prevX = of.getX();
+            this.y = this.prevY = of.getY();
+            this.z = this.prevZ = of.getZ();
+            this.yaw = of instanceof LivingEntity living ? living.yBodyRot : of.getYRot();
+        }
+
+        @Override
+        void tick(Level level) {
+            super.tick(level);
+            prevX = x;
+            prevY = y;
+            prevZ = z;
+            if (orbit > 0) {
+                net.minecraft.world.entity.Entity owner = level.getEntity(entityId);
+                if (owner == null) {
+                    release();
+                    return;
+                }
+                orbitAngle += orbitSpeed;
+                x = owner.getX() + Math.cos(orbitAngle) * orbit;
+                y = owner.getY();
+                z = owner.getZ() + Math.sin(orbitAngle) * orbit;
+                yaw = (float) Math.toDegrees(orbitAngle) - 90;
+                return;
+            }
+            x += vx;
+            y += vy;
+            z += vz;
+            yaw += yawSpeed;
+        }
+
+        @Override
+        AABB bounds() {
+            return new AABB(x - 1, y, z - 1, x + 1, y + 2.2, z + 1);
+        }
+
+        @Override
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        void render(PoseStack pose, MultiBufferSource buffers, double camX, double camY,
+                    double camZ, float partial, Level level) {
+            float shown = presence(partial);
+            if (shown <= 0.01f) {
+                return;
+            }
+            net.minecraft.world.entity.Entity entity = level.getEntity(entityId);
+            if (!(entity instanceof LivingEntity living)) {
+                return;
+            }
+            var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(living);
+            if (!(renderer instanceof LivingEntityRenderer lr)) {
+                return;
+            }
+            EntityModel model = lr.getModel();
+            ResourceLocation skin = lr.getTextureLocation(living);
+            double ix = prevX + (x - prevX) * partial;
+            double iy = prevY + (y - prevY) * partial;
+            double iz = prevZ + (z - prevZ) * partial;
+            float age = this.age + partial;
+            pose.pushPose();
+            pose.translate(ix - camX, iy - camY, iz - camZ);
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f - yaw));
+            pose.scale(-1f, -1f, 1f);
+            if (living instanceof net.minecraft.world.entity.player.Player) {
+                pose.scale(0.9375f, 0.9375f, 0.9375f);
+            }
+            pose.translate(0, -1.501f, 0);
+            // Поза покоя: без шага и поворота головы — двойник стоит, как отпечаток.
+            model.attackTime = 0;
+            model.riding = false;
+            model.young = living.isBaby();
+            model.prepareMobModel(living, 0, 0, partial);
+            model.setupAnim(living, 0, 0, age, 0, 0);
+            int a = Math.round(255 * alpha * shown);
+            int colour = (a << 24) | (tint & 0xFFFFFF);
+            VertexConsumer out = buffers.getBuffer(RenderType.entityTranslucent(skin));
+            model.renderToBuffer(pose, out, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY,
+                    colour);
             pose.popPose();
         }
     }
@@ -495,6 +853,10 @@ final class FxSolids {
     private static double[] cross(double[] a, double[] b) {
         return new double[] {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
                 a[0] * b[1] - a[1] * b[0]};
+    }
+
+    private static double sq(double v) {
+        return v * v;
     }
 
     private static double[] normalize(double[] v) {

@@ -487,16 +487,28 @@ class ShippedContentTest {
     private static final Path MOD_CATALOG = Path.of("..", "client-mod", "src", "main", "java",
             "ru", "projectst", "rpgcore", "client", "FxStyle.java");
 
+    /**
+     * Каталог мода — стили ({@code FxStyle}) и сцены, разложенные по файлам
+     * классов ({@code Scenes<Класс>}): эффект может быть и тем, и другим.
+     */
+    private static String modCatalog() throws IOException {
+        StringBuilder catalog = new StringBuilder();
+        try (var files = Files.list(MOD_CATALOG.getParent())) {
+            for (Path file : files.filter(f -> f.getFileName().toString().endsWith(".java"))
+                    .sorted().toList()) {
+                catalog.append(Files.readString(file, StandardCharsets.UTF_8));
+            }
+        }
+        return catalog.toString();
+    }
+
     @Test
     @DisplayName("каждый эффект поставляемого контента есть в каталоге мода")
     void everyShippedFxIsKnownToTheMod() throws IOException {
         if (!Files.isRegularFile(MOD_CATALOG)) {
             return; // мода рядом нет — проверять нечего
         }
-        // Каталог мода — стили и сцены: эффект может быть и тем, и другим.
-        String catalog = Files.readString(MOD_CATALOG, StandardCharsets.UTF_8)
-                + Files.readString(MOD_CATALOG.resolveSibling("FxScenes.java"),
-                        StandardCharsets.UTF_8);
+        String catalog = modCatalog();
         // Неизвестный эффект мод рисует общим — игра не падает. Но эффект,
         // объявленный в своём контенте и не нарисованный, — это опечатка,
         // которую иначе нашли бы только глазами в игре.

@@ -596,6 +596,13 @@ final class FxKinds {
         private int recorded;
         private boolean ended;
         private int endAge;
+        /**
+         * Без светящегося ядра: полёт рисует модель сцены (стрела, череп), а
+         * от снаряда остаётся только шлейф.
+         */
+        boolean bare;
+        /** Что сделать, когда сервер скажет, где снаряд кончился: сцена удара. */
+        java.util.function.Consumer<FxMessage.ProjectileEnd> onEnd;
 
         Bolt(FxStyle style, FxMessage.Projectile p) {
             super(style, FxStyle.owner(p.classId(), p.fx()));
@@ -628,12 +635,37 @@ final class FxKinds {
             recorded = Math.min(HISTORY, recorded + 1);
         }
 
+        /** Где снаряд в этом кадре; {@code null} — кончился: модель на нём уходит. */
+        Vec3 at(float partial) {
+            if (ended || dead) {
+                return null;
+            }
+            return new Vec3(prevX + (x - prevX) * partial, prevY + (y - prevY) * partial,
+                    prevZ + (z - prevZ) * partial);
+        }
+
+        /** Куда летит сейчас, единичный вектор. */
+        Vec3 heading() {
+            return new Vec3(dx, dy, dz).normalize();
+        }
+
+        boolean ended() {
+            return ended;
+        }
+
         /** Сервер сказал, где снаряд кончился. */
         void end(FxMessage.ProjectileEnd end, FxMotes motes, float emit) {
             if (ended) {
                 return;
             }
             ended = true;
+            if (onEnd != null) {
+                try {
+                    onEnd.accept(end);
+                } catch (RuntimeException e) {
+                    // Сцена удара — украшение: снаряд всё равно кончается.
+                }
+            }
             endAge = age;
             prevX = x;
             prevY = y;
@@ -728,6 +760,9 @@ final class FxKinds {
                         primary, alpha);
                 draw.sprite(FxDraw.Tex.SPARK, ix, iy, iz, style.size() * (2f + 2f * k), t * 0.1f,
                         accent, alpha);
+                return;
+            }
+            if (bare) {
                 return;
             }
             draw.sprite(FxDraw.Tex.GLOW, ix, iy, iz, style.size() * 2.4f, 0, primary, 0.7f);
