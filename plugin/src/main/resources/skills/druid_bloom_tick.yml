@@ -19,6 +19,7 @@ steps:
       - { caster: has-status, value: bloom_phase, not: true }
     do:
       - { action: heal, amount: $heal_big }
+      - { action: particles, particle: composter, shape: ring, count: 44, size: radius }
 
   - target: { type: enemies_near_origin, radius: $radius }
     if:
@@ -31,7 +32,6 @@ steps:
       - { caster: has-status, value: bloom_phase, not: true }
     do:
       - { action: status, id: bloom_phase, duration: $phase_duration }
-      - { action: particles, particle: composter, shape: ring, count: 44, size: $radius, at-origin: true }
 
   # Фаза увядания: ранит много, лечит мало.
   - target: { type: allies_near_origin, radius: $radius }
@@ -39,6 +39,7 @@ steps:
       - { caster: has-status, value: bloom_phase }
     do:
       - { action: heal, amount: $heal_small }
+      - { action: particles, particle: sculk_soul, shape: ring, count: 44, size: radius }
 
   - target: { type: enemies_near_origin, radius: $radius }
     if:
@@ -51,4 +52,3 @@ steps:
       - { caster: has-status, value: bloom_phase }
     do:
       - { action: remove-status, id: bloom_phase }
-      - { action: particles, particle: sculk_soul, shape: ring, count: 44, size: $radius, at-origin: true }

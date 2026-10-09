@@ -35,6 +35,11 @@ public final class ZoneService {
         this.clock = clock;
     }
 
+    /** Текущий тик по часам службы: от него мод считает остаток срока зоны. */
+    public long now() {
+        return clock.getAsLong();
+    }
+
     public Zone place(String tag, UUID owner, Position center, double radius, int durationTicks) {
         return place(tag, owner, center, radius, durationTicks, null);
     }
@@ -59,6 +64,20 @@ public final class ZoneService {
     public Optional<Zone> place(String tag, UUID owner, Position center, double radius,
                                 int durationTicks, String particle, double minGap,
                                 String onEnter, String onTick, int tickInterval) {
+        return place(tag, owner, center, radius, durationTicks, particle, null, "", minGap,
+                onEnter, onTick, tickInterval);
+    }
+
+    /**
+     * Ставит зону с эффектом мода.
+     *
+     * @param fx      эффект мода; {@code null} — только ванильные частицы
+     * @param classId чей класс: по нему мод красит эффект
+     */
+    public Optional<Zone> place(String tag, UUID owner, Position center, double radius,
+                                int durationTicks, String particle, String fx, String classId,
+                                double minGap, String onEnter, String onTick,
+                                int tickInterval) {
         expireAll();
         if (minGap > 0 && !near(center, minGap, tag).stream()
                 .filter(zone -> owner == null || zone.ownedBy(owner)).toList().isEmpty()) {
@@ -67,8 +86,9 @@ public final class ZoneService {
         if (zones.size() >= LIMIT) {
             zones.remove(0);
         }
+        long now = clock.getAsLong();
         Zone zone = new Zone(UUID.randomUUID(), tag, owner, center, radius,
-                clock.getAsLong() + Math.max(1, durationTicks), particle,
+                now, now + Math.max(1, durationTicks), particle, fx, classId,
                 onEnter, onTick, tickInterval);
         zones.add(zone);
         return Optional.of(zone);
@@ -122,17 +142,51 @@ public final class ZoneService {
      * @param owner если задан, снимаются только свои зоны
      */
     public int consume(Position point, double radius, String tag, UUID owner) {
-        List<Zone> hit = near(point, radius, tag);
-        int count = 0;
-        for (Zone zone : hit) {
+        return take(near(point, radius, tag), point, owner, 0).size();
+    }
+
+    /**
+     * Снимает зоны рядом с точкой, не больше {@code limit}, ближние первыми.
+     *
+     * @param limit 0 — все найденные
+     * @return снятые зоны: их число идёт в счётчик, а места — в картинку
+     */
+    public List<Zone> consumeNear(Position point, double radius, String tag, UUID owner,
+                                  int limit) {
+        return take(near(point, radius, tag), point, owner, limit);
+    }
+
+    /**
+     * Снимает зоны, внутри которых лежит точка, — каждую по её собственному
+     * радиусу.
+     *
+     * <p>«Стою на печати» и «съел печать» обязаны означать одну и ту же
+     * область. Раньше съедалось всё в радиусе четырёх блоков вокруг, а стоять
+     * на печати значило быть в двух с половиной от её центра, и одно нажатие
+     * съедало две соседние печати.
+     */
+    public List<Zone> consumeInside(Position point, String tag, UUID owner, int limit) {
+        return take(at(point, tag), point, owner, limit);
+    }
+
+    private List<Zone> take(List<Zone> found, Position point, UUID owner, int limit) {
+        List<Zone> sorted = new ArrayList<>(found);
+        sorted.sort(java.util.Comparator.comparingDouble(zone -> zone.center().distanceTo(point)));
+        List<Zone> taken = new ArrayList<>();
+        for (Zone zone : sorted) {
+            if (limit > 0 && taken.size() >= limit) {
+                break;
+            }
             if (owner != null && !zone.ownedBy(owner)) {
                 continue;
             }
             if (zones.remove(zone)) {
-                count++;
+                occupants.remove(zone.id());
+                lastTicks.remove(zone.id());
+                taken.add(zone);
             }
         }
-        return count;
+        return taken;
     }
 
     /** Свои зоны этого владельца с этим тегом. */

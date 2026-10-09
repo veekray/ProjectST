@@ -97,11 +97,22 @@ public final class ClientLink implements PluginMessageListener {
         messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_WELCOME);
         messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_STATE);
         messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_MENU);
+        messenger.registerOutgoingPluginChannel(plugin, Protocol.CHANNEL_FX);
     }
 
     /** Версия мода у игрока, если он здоровался. */
     public Optional<String> modVersion(UUID player) {
         return Optional.ofNullable(connected.get(player));
+    }
+
+    /**
+     * Стоит ли у игрока мод этой версии.
+     *
+     * <p>Только принятое рукопожатие: мод старой версии не прочитал бы эффекты,
+     * и ему, как и игроку без мода, достаются ванильные частицы.
+     */
+    public boolean hasMod(UUID player) {
+        return connected.containsKey(player);
     }
 
     public int connectedCount() {

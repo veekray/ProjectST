@@ -34,6 +34,16 @@ import ru.projectst.rpgcore.stat.StatOp;
  */
 public final class SkillLoader {
 
+    /** Значение {@code size}, означающее радиус выборки шага. */
+    static final String SIZE_RADIUS = "radius";
+
+    /** Какими бывают идентификаторы эффектов мода: имя файла в его ресурсах. */
+    private static final java.util.regex.Pattern FX_ID =
+            java.util.regex.Pattern.compile("[a-z0-9_]{1,48}");
+
+    /** Метка «ключ fx был, но с ошибкой»: действие тогда не собирается. */
+    private static final String FX_INVALID = "\0";
+
     private static final String ACTIONS =
             "damage, heal, status, remove-status, modify-stat, potion, push, pull, "
                     + "teleport, dash, approach, particles, sound, message, cast, ray, "
@@ -191,7 +201,7 @@ public final class SkillLoader {
         NumberRef delay = number(body, "delay", errors, path, new NumberRef.Literal(0));
         OriginSpec origin = readOrigin(body, path, errors);
         List<Condition> conditions = readConditions(body, path, errors);
-        List<Action> actions = readActions(body, path, errors);
+        List<Action> actions = readActions(body, path, errors, target.orElse(null));
 
         if (actions.isEmpty()) {
             errors.add(body.at(), path + ".do", "шаг без действий бессмыслен");
@@ -344,7 +354,8 @@ public final class SkillLoader {
 
     // ------------------------------------------------------------------ действия
 
-    private static List<Action> readActions(YmlMap body, String path, ContentErrors errors) {
+    private static List<Action> readActions(YmlMap body, String path, ContentErrors errors,
+                                            TargetSpec target) {
         List<Action> actions = new ArrayList<>();
         if (body.rawKind("do") == YmlMap.Kind.ABSENT) {
             return actions;
@@ -356,12 +367,20 @@ public final class SkillLoader {
                 errors.add(nodes.get(i).at(), p, "действие должно быть разделом");
                 continue;
             }
-            readAction(map, p, errors).ifPresent(actions::add);
+            readAction(map, p, errors, target).ifPresent(actions::add);
         }
         return actions;
     }
 
-    private static Optional<Action> readAction(YmlMap b, String path, ContentErrors errors) {
+    /**
+     * Одно действие шага.
+     *
+     * @param target цели шага; {@code null}, если их не удалось прочитать. Нужны
+     *               действиям, которые рисуют область шага: граница берётся из
+     *               той же выборки, а не переписывается числом
+     */
+    private static Optional<Action> readAction(YmlMap b, String path, ContentErrors errors,
+                                               TargetSpec target) {
         String kind = b.str("action");
         return switch (kind) {
             case "damage" -> require(b, path, errors, "amount", amount ->
@@ -465,7 +484,20 @@ public final class SkillLoader {
                 yield Optional.of(new Action.Pull(strength, ticks));
             }
 
-            case "teleport" -> require(b, path, errors, "forward", Action.Teleport::new);
+            case "teleport" -> {
+                NumberRef forward = number(b, "forward", errors, path, null);
+                String particle = b.str("particle", "");
+                if (forward == null) {
+                    errors.add(b.at(), path + ".forward", "обязательный ключ forward отсутствует");
+                    yield Optional.empty();
+                }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Teleport(forward,
+                        particle.isBlank() ? null : particle, fx));
+            }
 
             case "dash" -> {
                 NumberRef strength = number(b, "strength", errors, path, null);
@@ -511,13 +543,52 @@ public final class SkillLoader {
                 Action.Particles.Shape shape =
                         b.enumOf("shape", Action.Particles.Shape.class, Action.Particles.Shape.POINT);
                 NumberRef count = number(b, "count", errors, path, new NumberRef.Literal(10));
-                NumberRef size = number(b, "size", errors, path, null);
+                boolean fitRadius = b.rawKind("size") == YmlMap.Kind.SCALAR
+                        && b.str("size", "").trim().equals(SIZE_RADIUS);
+                NumberRef size = fitRadius ? null : number(b, "size", errors, path, null);
                 boolean atOrigin = b.bool("at-origin", false);
                 if (particle.isBlank()) {
                     errors.add(b.at(), path + ".particle", "обязательный ключ particle отсутствует");
                     yield Optional.empty();
                 }
-                yield Optional.of(new Action.Particles(particle, shape, count, size, atOrigin));
+                if (shape == Action.Particles.Shape.CONE) {
+                    // Конус — это всегда конус выборки шага: свой угол и свой
+                    // радиус у картинки означали бы картинку, которая врёт.
+                    if (size != null) {
+                        errors.add(b.at(), path + ".size",
+                                "у конуса размер — радиус выборки шага: size: radius или без size");
+                        yield Optional.empty();
+                    }
+                    if (target != null && !target.type().isCone()) {
+                        errors.add(b.at(), path + ".shape",
+                                "конус рисуется только в шаге, который выбирает цели конусом");
+                        yield Optional.empty();
+                    }
+                    fitRadius = true;
+                }
+                if (fitRadius) {
+                    if (target != null && !target.type().needsRadius()) {
+                        errors.add(b.at(), path + ".size",
+                                "size: radius — радиус выборки шага, а у цели "
+                                        + target.type().name().toLowerCase(Locale.ROOT)
+                                        + " радиуса нет");
+                        yield Optional.empty();
+                    }
+                    if (atOrigin) {
+                        // Центр границы — центр выборки: у радиуса вокруг кастера
+                        // это кастер, даже когда у шага есть точка впереди.
+                        errors.add(b.at(), path + ".at-origin",
+                                "граница по радиусу шага рисуется в центре выборки, "
+                                        + "at-origin при ней не задаётся");
+                        yield Optional.empty();
+                    }
+                }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
+                yield Optional.of(new Action.Particles(particle, shape, count, size, fitRadius,
+                        atOrigin, fx));
             }
 
             case "sound" -> {
@@ -556,11 +627,15 @@ public final class SkillLoader {
                                     + "он ни во что не попадёт и ничего не сделает");
                     yield Optional.empty();
                 }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.Projectile(speed, range, hitRadius, gravity, pierce,
                         hitPlayers, hitMobs, stopAtBlock,
                         particle.isBlank() ? null : particle,
                         onHit.isBlank() ? null : onHit,
-                        onEnd.isBlank() ? null : onEnd, yawOffset));
+                        onEnd.isBlank() ? null : onEnd, yawOffset, fx));
             }
 
             case "summon" -> {
@@ -612,10 +687,14 @@ public final class SkillLoader {
                             "tick-interval имеет смысл только с on-tick");
                     yield Optional.empty();
                 }
+                String fx = readFx(b, path, errors, particle);
+                if (fx == FX_INVALID) {
+                    yield Optional.empty();
+                }
                 yield Optional.of(new Action.PlaceZone(tag, radius, duration, atOrigin,
                         particle.isBlank() ? null : particle, minGap,
                         onEnter.isBlank() ? null : onEnter,
-                        onTick.isBlank() ? null : onTick, tickInterval));
+                        onTick.isBlank() ? null : onTick, tickInterval, fx));
             }
 
             case "consume-zones" -> {
@@ -624,12 +703,23 @@ public final class SkillLoader {
                 String counter = b.str("counter", "");
                 boolean ownOnly = b.bool("own-only", true);
                 boolean atOrigin = b.bool("at-origin", false);
-                if (tag.isBlank() || radius == null || counter.isBlank()) {
-                    errors.add(b.at(), path, "нужны ключи tag, radius и counter");
+                boolean inside = b.bool("inside", false);
+                int limit = b.integer("limit", 1, 100, 0);
+                if (tag.isBlank() || counter.isBlank()) {
+                    errors.add(b.at(), path, "нужны ключи tag и counter");
+                    yield Optional.empty();
+                }
+                // Ровно одно из двух: радиус поиска или «зоны, в которых стоишь».
+                // Оба сразу — непонятно, какой из них решает; ни одного — нечем
+                // искать.
+                if (inside == (radius != null)) {
+                    errors.add(b.at(), path + ".radius", inside
+                            ? "при inside: true зоны снимаются по своему радиусу, radius не задаётся"
+                            : "нужен radius или inside: true");
                     yield Optional.empty();
                 }
                 yield Optional.of(new Action.ConsumeZones(tag, radius, counter, ownOnly,
-                        atOrigin));
+                        atOrigin, inside, limit));
             }
 
             case "swap" -> {
@@ -705,6 +795,35 @@ public final class SkillLoader {
     }
 
     // ------------------------------------------------------------------ числа
+
+    /**
+     * Эффект мода: {@code fx: <id>}.
+     *
+     * <p>Без ванильной частицы рядом эффект — ошибка, а не тихий пропуск: игрок
+     * без мода не увидел бы ничего, и зона без картинки стала бы ловушкой.
+     * Есть ли такой эффект у мода, загрузчик не знает и знать не должен —
+     * неизвестный эффект мод рисует общим по форме и цвету класса.
+     *
+     * @return идентификатор, {@code null} без ключа или {@link #FX_INVALID}
+     */
+    private static String readFx(YmlMap b, String path, ContentErrors errors, String particle) {
+        if (b.rawKind("fx") == YmlMap.Kind.ABSENT) {
+            b.str("fx", "");
+            return null;
+        }
+        String fx = b.str("fx", "").trim();
+        if (!FX_ID.matcher(fx).matches()) {
+            errors.add(b.at(), path + ".fx", "эффект называется строчными латинскими буквами, "
+                    + "цифрами и подчёркиванием, получено \"" + fx + "\"");
+            return FX_INVALID;
+        }
+        if (particle == null || particle.isBlank()) {
+            errors.add(b.at(), path + ".fx", "у эффекта мода нужна ванильная particle: "
+                    + "без неё игрок без мода не увидит ничего");
+            return FX_INVALID;
+        }
+        return fx;
+    }
 
     private static NumberRef number(YmlMap body, String key, ContentErrors errors,
                                     String path, NumberRef fallback) {

@@ -160,9 +160,68 @@ public final class SkillRuntime {
         // частицы и звук в точке действия, луч — обязаны отработать всё равно.
         // Ровно этим мучил старый стек: метаскилл без подходящих целей не
         // выполнял даже партиклы, и промах выглядел как сломанный навык.
+        StepArea area = new StepArea(step.target(), radius, angle);
         for (Action action : step.actions()) {
-            perform(context, skill, action, kept, table, depth);
+            perform(context, skill, action, kept, table, depth, area);
         }
+    }
+
+    /**
+     * Область, по которой шаг выбирал цели: тип выборки и уже посчитанные
+     * радиус и угол.
+     *
+     * <p>Передаётся действиям, чтобы граница рисовалась тем же числом, которым
+     * выбирались цели. Посчитай её действие заново — и стат радиуса снова
+     * применялся бы к урону, но не к картинке.
+     */
+    private record StepArea(TargetSpec target, double radius, double angle) {
+    }
+
+    /** Где рисуется граница области шага и куда смотрит конус. */
+    private record AreaMark(Position centre, Heading axis) {
+    }
+
+    /**
+     * Центры области шага — те же, от которых считалась выборка.
+     *
+     * <p>Радиус вокруг кастера рисуется у кастера, даже если у шага есть точка
+     * впереди: выборка считалась от него. Область у зон — у каждой своей зоны с
+     * тегом, как и выборка.
+     */
+    private List<AreaMark> areaMarks(CastContext context, StepArea area) {
+        Optional<Position> caster = world.positionOf(context.caster());
+        List<AreaMark> out = new ArrayList<>();
+        switch (area.target().type()) {
+            case ENEMIES_IN_RADIUS, ALLIES_IN_RADIUS ->
+                    caster.ifPresent(p -> out.add(new AreaMark(p, null)));
+            case ENEMIES_IN_CONE -> caster.ifPresent(p -> world.lookOf(context.caster())
+                    .ifPresent(look -> out.add(new AreaMark(p, look))));
+            case ENEMIES_IN_CONE_TO_CASTER -> {
+                if (context.origin() != null && caster.isPresent()) {
+                    Heading look = world.lookOf(context.caster()).orElse(null);
+                    Heading axis = Facing.coneAxisToCaster(
+                            caster.get().x() - context.origin().x(),
+                            caster.get().z() - context.origin().z(), look);
+                    if (axis != null) {
+                        out.add(new AreaMark(context.origin(), axis));
+                    }
+                }
+            }
+            case ENEMIES_NEAR_ORIGIN, ALL_NEAR_ORIGIN, ALLIES_NEAR_ORIGIN -> {
+                if (context.origin() != null) {
+                    out.add(new AreaMark(context.origin(), null));
+                }
+            }
+            case ENEMIES_NEAR_ZONE -> {
+                for (Zone zone : zones.ofOwner(context.caster(), area.target().tag())) {
+                    out.add(new AreaMark(zone.center(), null));
+                }
+            }
+            case SELF, TRIGGER, OWN_MINIONS -> {
+                // радиуса нет: загрузчик не пускает сюда size: radius
+            }
+        }
+        return out;
     }
 
     /** Точка действия для шага: своя, впереди по взгляду или пришедшая извне. */
@@ -289,7 +348,7 @@ public final class SkillRuntime {
     // ------------------------------------------------------------------ действия
 
     private void perform(CastContext context, SkillDef skill, Action action,
-                         List<UUID> targets, BalanceTable table, int depth) {
+                         List<UUID> targets, BalanceTable table, int depth, StepArea area) {
         int level = context.level();
         switch (action) {
 
@@ -298,8 +357,17 @@ public final class SkillRuntime {
             // крит однажды перестанут применяться к одной из основ.
             case Action.Damage a -> {
                 double written = a.amount().resolve(table, level, context.counters());
-                forEach(targets, t -> world.dealDamage(context.caster(), t,
-                        basisOf(a.basis(), written, t), a.school(), skill.id()));
+                forEach(targets, t -> {
+                    ru.projectst.rpgcore.damage.DamageResult result = world.dealDamage(
+                            context.caster(), t, basisOf(a.basis(), written, t), a.school(),
+                            skill.id());
+                    // Вспышка — по тому же результату конвейера, что урон: крит,
+                    // нарисованный отдельным броском, был бы вторым источником
+                    // правды. Отменённый и уклонённый урон не вспыхивает.
+                    if (result != null && !result.blocked()) {
+                        world.effect(new FxEvent.Hit(t, classOf(skill), result.crit()));
+                    }
+                });
             }
 
             // Лечение и длительности статусов усиливаются статами кастера.
@@ -418,18 +486,41 @@ public final class SkillRuntime {
                 Optional<Position> to = context.origin() != null
                         ? Optional.of(context.origin())
                         : world.forwardOf(t, a.forward().resolve(table, level, context.counters()));
-                to.ifPresent(position -> world.teleport(t, position));
+                Optional<Position> from = a.particle() == null ? Optional.empty()
+                        : world.positionOf(t);
+                to.ifPresent(position -> {
+                    world.teleport(t, position);
+                    // След от того места, где стоял, — до того, куда перенесло:
+                    // точку прибытия знает исполнитель, искать её заново незачем.
+                    from.ifPresent(start -> world.effect(new FxEvent.Trail(a.fx(),
+                            classOf(skill), start, position, a.particle())));
+                });
             });
 
             case Action.Particles a -> {
                 int count = (int) a.count().resolve(table, level, context.counters());
+                if (a.fitRadius()) {
+                    for (AreaMark mark : areaMarks(context, area)) {
+                        if (a.fx() != null) {
+                            world.effect(new FxEvent.Burst(a.fx(), classOf(skill), mark.centre(),
+                                    a.shape(), area.radius(), area.angle(), mark.axis(),
+                                    a.particle(), count));
+                        } else {
+                            world.particles(mark.centre(), a.particle(), a.shape(), count,
+                                    area.radius(), area.angle(), mark.axis());
+                        }
+                    }
+                    return;
+                }
                 double size = resolve(a.size(), table, context, 1);
+                java.util.function.Consumer<Position> draw = a.fx() == null
+                        ? p -> world.particles(p, a.particle(), a.shape(), count, size)
+                        : p -> world.effect(new FxEvent.Burst(a.fx(), classOf(skill), p,
+                                a.shape(), size, 0, null, a.particle(), count));
                 if (a.atOrigin()) {
-                    positionFor(context).ifPresent(
-                            p -> world.particles(p, a.particle(), a.shape(), count, size));
+                    positionFor(context).ifPresent(draw);
                 } else {
-                    forEach(targets, t -> world.positionOf(t).ifPresent(
-                            p -> world.particles(p, a.particle(), a.shape(), count, size)));
+                    forEach(targets, t -> world.positionOf(t).ifPresent(draw));
                 }
             }
 
@@ -485,32 +576,43 @@ public final class SkillRuntime {
                 double radius = resolve(a.radius(), table, context, 1);
                 int ticks = (int) resolve(a.duration(), table, context, 20);
                 double gap = resolve(a.minGap(), table, context, 0);
+                java.util.function.Consumer<Position> place = p -> zones.place(a.tag(),
+                                context.caster(), p, radius, ticks, a.particle(), a.fx(),
+                                classOf(skill), gap, a.onEnter(), a.onTick(), a.tickInterval())
+                        // Событие несёт саму поставленную зону: срок и радиус в
+                        // нём — те, с которыми она живёт, а не пересчитанные.
+                        .filter(zone -> zone.fx() != null)
+                        .ifPresent(zone -> world.effect(new FxEvent.ZonePlaced(zone)));
                 if (a.atOrigin()) {
-                    positionFor(context).ifPresent(p -> zones.place(a.tag(), context.caster(),
-                            p, radius, ticks, a.particle(), gap, a.onEnter(), a.onTick(),
-                            a.tickInterval()));
+                    positionFor(context).ifPresent(place);
                 } else {
-                    forEach(targets, t -> world.positionOf(t).ifPresent(
-                            p -> zones.place(a.tag(), context.caster(), p, radius, ticks,
-                                    a.particle(), gap, a.onEnter(), a.onTick(),
-                                    a.tickInterval())));
+                    forEach(targets, t -> world.positionOf(t).ifPresent(place));
                 }
             }
 
             case Action.ConsumeZones a -> {
                 double radius = resolve(a.radius(), table, context, 1);
                 UUID owner = a.ownOnly() ? context.caster() : null;
-                int count = 0;
+                List<Position> points = new ArrayList<>();
                 if (a.atOrigin()) {
-                    Optional<Position> at = positionFor(context);
-                    if (at.isPresent()) {
-                        count = zones.consume(at.get(), radius, a.tag(), owner);
-                    }
+                    positionFor(context).ifPresent(points::add);
                 } else {
                     for (UUID target : targets) {
-                        Optional<Position> at = world.positionOf(target);
-                        if (at.isPresent()) {
-                            count += zones.consume(at.get(), radius, a.tag(), owner);
+                        world.positionOf(target).ifPresent(points::add);
+                    }
+                }
+                int count = 0;
+                for (Position at : points) {
+                    List<Zone> taken = a.inside()
+                            ? zones.consumeInside(at, a.tag(), owner, a.limit())
+                            : zones.consumeNear(at, radius, a.tag(), owner, a.limit());
+                    count += taken.size();
+                    // Снятая зона тянется к точке действия шага: Коллапс стягивает
+                    // печати в точку сбора, ядро — в мага.
+                    Position pulledTo = context.origin() != null ? context.origin() : at;
+                    for (Zone zone : taken) {
+                        if (zone.fx() != null) {
+                            world.effect(new FxEvent.ZoneConsumed(zone, pulledTo));
                         }
                     }
                 }
@@ -609,7 +711,7 @@ public final class SkillRuntime {
                         resolve(a.hitRadius(), table, context, 1.2),
                         resolve(a.gravity(), table, context, 0),
                         a.pierce(), a.hitPlayers(), a.hitMobs(), a.stopAtBlock(),
-                        a.particle(), a.yawOffset());
+                        a.particle(), a.yawOffset(), a.fx(), classOf(skill));
                 world.launchProjectile(context.caster(), spec, new SkillWorld.ProjectileHandler() {
                     @Override
                     public void hit(Position point, UUID target) {
@@ -696,6 +798,11 @@ public final class SkillRuntime {
     private double durationScale(UUID caster) {
         return Math.max(0, 1 + stats.share(caster,
                 ru.projectst.rpgcore.damage.StatIds.EFFECT_DURATION));
+    }
+
+    /** Чей класс у навыка: по нему мод красит эффекты. Пусто — ничей. */
+    private static String classOf(SkillDef skill) {
+        return skill.classId() == null ? "" : skill.classId();
     }
 
     private Optional<Position> positionFor(CastContext context) {

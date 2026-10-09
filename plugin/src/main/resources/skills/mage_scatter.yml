@@ -42,6 +42,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: enchant
+        fx: mage_scatter_shard
         yaw-offset: -25
         on-end: mage_seal_drop
       - action: projectile
@@ -50,6 +51,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: enchant
+        fx: mage_scatter_shard
         on-end: mage_seal_drop
       - action: projectile
         speed: $speed
@@ -57,6 +59,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: enchant
+        fx: mage_scatter_shard
         yaw-offset: 25
         on-end: mage_seal_drop
 
@@ -71,6 +74,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: witch
+        fx: mage_scatter_shard
         yaw-offset: -40
         on-end: mage_seal_drop
       - action: projectile
@@ -79,6 +83,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: witch
+        fx: mage_scatter_shard
         yaw-offset: -20
         on-end: mage_seal_drop
       - action: projectile
@@ -87,6 +92,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: witch
+        fx: mage_scatter_shard
         on-end: mage_seal_drop
       - action: projectile
         speed: $speed
@@ -94,6 +100,7 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: witch
+        fx: mage_scatter_shard
         yaw-offset: 20
         on-end: mage_seal_drop
       - action: projectile
@@ -102,5 +109,6 @@ steps:
         hit-players: false
         hit-mobs: false
         particle: witch
+        fx: mage_scatter_shard
         yaw-offset: 40
         on-end: mage_seal_drop

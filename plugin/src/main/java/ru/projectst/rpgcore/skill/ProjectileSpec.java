@@ -21,16 +21,19 @@ package ru.projectst.rpgcore.skill;
  * @param particle   чем рисуется; {@code null} — невидимый
  * @param yawOffset  поворот вылета в градусах: так делается веер из нескольких
  *                   снарядов одним навыком
+ * @param fx         эффект мода; {@code null} — у всех ванильный след
+ * @param classId    чей класс: по нему мод красит общий эффект
  */
 public record ProjectileSpec(double speed, double range, double hitRadius, double gravity,
                              int pierce, boolean hitPlayers, boolean hitMobs,
-                             boolean stopAtBlock, String particle, double yawOffset) {
+                             boolean stopAtBlock, String particle, double yawOffset,
+                             String fx, String classId) {
 
     public ProjectileSpec(double speed, double range, double hitRadius, double gravity,
                           int pierce, boolean hitPlayers, boolean hitMobs,
                           boolean stopAtBlock, String particle) {
         this(speed, range, hitRadius, gravity, pierce, hitPlayers, hitMobs, stopAtBlock,
-                particle, 0);
+                particle, 0, null, "");
     }
 
     public ProjectileSpec {
@@ -42,6 +45,9 @@ public record ProjectileSpec(double speed, double range, double hitRadius, doubl
         }
         if (pierce < 1) {
             throw new IllegalArgumentException("снаряд обязан задевать хотя бы одну цель");
+        }
+        if (classId == null) {
+            classId = "";
         }
     }
 

@@ -33,12 +33,7 @@ steps:
       - { action: status, id: stun, duration: $stun_duration }
       - { action: potion, effect: poison, duration: $poison_duration, amplifier: 1 }
       - { action: particles, particle: composter, shape: point, count: 10 }
-
-  - target: { type: self }
-    if:
-      - { caster: status-stacks, value: "growth:3", not: true }
-    do:
-      - { action: particles, particle: composter, shape: ring, count: 30, size: $radius }
+      - { action: particles, particle: composter, shape: ring, count: 30, size: radius }
 
   # Усиленный: шире и вешает замедление. Тратит Рост.
   - target: { type: enemies_in_radius, radius: $empowered_radius }
@@ -50,13 +45,13 @@ steps:
       - { action: potion, effect: poison, duration: $poison_duration, amplifier: 1 }
       - { action: potion, effect: slowness, duration: $slow_duration, amplifier: 1 }
       - { action: particles, particle: composter, shape: point, count: 12 }
+      - { action: particles, particle: composter, shape: ring, count: 44, size: radius }
 
   - target: { type: self }
     if:
       - { caster: status-stacks, value: "growth:3" }
     do:
       - { action: remove-status, id: growth }
-      - { action: particles, particle: composter, shape: ring, count: 44, size: $empowered_radius }
 
   # Счётчик копится в любом случае: роль навыка от усиления не меняется.
   - target: { type: self }

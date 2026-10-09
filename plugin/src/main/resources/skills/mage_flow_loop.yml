@@ -22,13 +22,15 @@ description:
   - "Оставляет печать под ногами."
   - "На своей печати: шире, сильнее и с уроном."
 
+# Кольцо рисуется в том же шаге, что толкает (size: radius): граница — это
+# радиус выборки после стата радиуса, а не число, переписанное отдельно.
+
 steps:
 
   - target: { type: self }
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
       - { action: sound, sound: block_beacon_activate, volume: 0.8, pitch: 1.8 }
-      - { action: particles, particle: enchant, shape: ring, count: 40, size: $radius }
 
   # Обычный: только расшвыривает.
   - target: { type: enemies_in_radius, radius: $radius }
@@ -37,6 +39,7 @@ steps:
     do:
       - { action: push, strength: $push, lift: 0.35 }
       - { action: particles, particle: enchant, shape: point, count: 12 }
+      - { action: particles, particle: enchant, shape: ring, count: 40, size: radius, fx: mage_flow_wave }
 
   - target: { type: self }
     if:
@@ -52,9 +55,4 @@ steps:
       - { action: damage, amount: $empowered_damage, school: magic }
       - { action: push, strength: $empowered_push, lift: 0.45 }
       - { action: particles, particle: witch, shape: point, count: 20 }
-
-  - target: { type: self }
-    if:
-      - { caster: has-status, value: empowered }
-    do:
-      - { action: particles, particle: witch, shape: ring, count: 50, size: $empowered_radius }
+      - { action: particles, particle: witch, shape: ring, count: 50, size: radius, fx: mage_flow_wave_strong }

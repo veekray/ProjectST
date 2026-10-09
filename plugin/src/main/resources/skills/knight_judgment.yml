@@ -26,11 +26,11 @@ steps:
       - { target: has-status, value: challenge }
     do:
       - { action: count, counter: oaths }
+      - { action: particles, particle: end_rod, shape: ring, count: 40, size: radius }
 
   - target: { type: self }
     do:
       - { action: sound, sound: entity_generic_explode, volume: 1.0, pitch: 0.5 }
-      - { action: particles, particle: end_rod, shape: ring, count: 40, size: $radius }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:

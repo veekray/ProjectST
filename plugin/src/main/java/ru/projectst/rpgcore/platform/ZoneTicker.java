@@ -34,21 +34,29 @@ public final class ZoneTicker implements Runnable {
     private final SkillRuntime runtime;
     private final ClassService classes;
     private final BukkitSkillWorld world;
+    private final FxBroadcaster fx;
 
     public ZoneTicker(ZoneService zones, MinionService minions, SkillRegistry skills,
-                      SkillRuntime runtime, ClassService classes, BukkitSkillWorld world) {
+                      SkillRuntime runtime, ClassService classes, BukkitSkillWorld world,
+                      FxBroadcaster fx) {
         this.zones = zones;
         this.minions = minions;
         this.skills = skills;
         this.runtime = runtime;
         this.classes = classes;
         this.world = world;
+        this.fx = fx;
     }
 
     @Override
     public void run() {
         zones.expireAll();
-        for (Zone zone : zones.all()) {
+        var active = zones.all();
+        // Сначала мод узнаёт о зонах, потом ванильное кольцо рисуется тем, у
+        // кого мода нет: порядок не важен для глаза, но так читается, кто что
+        // получает.
+        fx.syncZones(active);
+        for (Zone zone : active) {
             world.drawZone(zone);
             if (zone.onEnter() != null) {
                 checkEntries(zone);

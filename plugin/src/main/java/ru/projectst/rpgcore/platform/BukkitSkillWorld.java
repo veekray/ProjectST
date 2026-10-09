@@ -30,8 +30,12 @@ import ru.projectst.rpgcore.damage.DamageResult;
 import ru.projectst.rpgcore.damage.DamageSchool;
 import ru.projectst.rpgcore.damage.StatIds;
 import ru.projectst.rpgcore.damage.DefenderState;
+import ru.projectst.rpgcore.net.FxMessage;
 import ru.projectst.rpgcore.skill.Action;
 import ru.projectst.rpgcore.skill.CastContext;
+import ru.projectst.rpgcore.skill.Facing;
+import ru.projectst.rpgcore.skill.FxEvent;
+import ru.projectst.rpgcore.skill.Heading;
 import ru.projectst.rpgcore.skill.MinionService;
 import ru.projectst.rpgcore.skill.Position;
 import ru.projectst.rpgcore.skill.ProjectileSpec;
@@ -60,6 +64,9 @@ public final class BukkitSkillWorld implements SkillWorld {
     private final StatService stats;
     private final StatusService statuses;
     private final MinionService minions;
+
+    /** Кому события мода, кому ванильные частицы. */
+    private final FxBroadcaster fx;
     /**
      * Идёт ли прямо сейчас применение урона от навыка.
      *
@@ -77,12 +84,13 @@ public final class BukkitSkillWorld implements SkillWorld {
     private final Set<String> badParticles = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public BukkitSkillWorld(Plugin plugin, DamageEngine engine, StatService stats,
-                            StatusService statuses, MinionService minions) {
+                            StatusService statuses, MinionService minions, FxBroadcaster fx) {
         this.plugin = plugin;
         this.engine = engine;
         this.stats = stats;
         this.statuses = statuses;
         this.minions = minions;
+        this.fx = fx;
     }
 
     // ------------------------------------------------------------------ цели
@@ -115,6 +123,10 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
 
         Entity caster = Bukkit.getEntity(context.caster());
+        Heading coneAxis = type.isCone() ? coneAxis(type, caster, centre) : null;
+        if (type == TargetSpec.Type.ENEMIES_IN_CONE_TO_CASTER && coneAxis == null) {
+            return List.of();
+        }
         List<UUID> out = new ArrayList<>();
         for (Entity nearby : centre.getWorld().getNearbyEntities(centre, radius, radius, radius)) {
             if (!(nearby instanceof LivingEntity living) || living.isDead()) {
@@ -128,8 +140,9 @@ public final class BukkitSkillWorld implements SkillWorld {
             if (centre.distance(nearby.getLocation()) > radius) {
                 continue;
             }
-            if (type == TargetSpec.Type.ENEMIES_IN_CONE
-                    && (caster == null || !insideCone(caster, nearby, angle))) {
+            if (coneAxis != null && !Facing.insideCone(coneAxis.x(), coneAxis.z(),
+                    nearby.getLocation().getX() - centre.getX(),
+                    nearby.getLocation().getZ() - centre.getZ(), angle)) {
                 continue;
             }
             // Свой призванный не попадает под свои же площадные навыки. Одно
@@ -150,19 +163,36 @@ public final class BukkitSkillWorld implements SkillWorld {
         return out;
     }
 
-    private static boolean insideCone(Entity source, Entity target, double angleDegrees) {
-        Vector look = source.getLocation().getDirection().setY(0);
-        if (look.lengthSquared() < 1.0E-6) {
-            return true;
+    /**
+     * Ось конуса выборки.
+     *
+     * <p>Тот же расчёт, что у картинки в исполнителе ({@code SkillRuntime#areaMarks}):
+     * ось взгляда для конуса от кастера и {@link Facing#coneAxisToCaster} для
+     * конуса от точки. Две разные оси у выборки и у картинки — это ровно та
+     * граница, которая показывает не то, что бьёт.
+     */
+    private Heading coneAxis(TargetSpec.Type type, Entity caster, Location apex) {
+        if (caster == null) {
+            return null;
         }
-        look.normalize();
-        Vector to = target.getLocation().toVector()
-                .subtract(source.getLocation().toVector()).setY(0);
-        if (to.lengthSquared() < 1.0E-6) {
-            return true; // вплотную: угол не определён, считаем попаданием
+        Heading look = lookOf(caster.getUniqueId()).orElse(null);
+        if (type == TargetSpec.Type.ENEMIES_IN_CONE) {
+            // Смотрит строго вверх или вниз: направления по земле нет, и конус
+            // накрывает всё вокруг, как и раньше (null — без проверки угла).
+            return look;
         }
-        double cos = look.dot(to.normalize());
-        return Math.toDegrees(Math.acos(Math.clamp(cos, -1, 1))) <= angleDegrees / 2;
+        return Facing.coneAxisToCaster(caster.getLocation().getX() - apex.getX(),
+                caster.getLocation().getZ() - apex.getZ(), look);
+    }
+
+    @Override
+    public Optional<Heading> lookOf(UUID entityId) {
+        Entity entity = Bukkit.getEntity(entityId);
+        if (entity == null) {
+            return Optional.empty();
+        }
+        Vector look = entity.getLocation().getDirection();
+        return Optional.ofNullable(Heading.orNull(look.getX(), look.getZ()));
     }
 
     @Override
@@ -179,10 +209,10 @@ public final class BukkitSkillWorld implements SkillWorld {
     // ------------------------------------------------------------------ бой
 
     @Override
-    public void dealDamage(UUID casterId, UUID targetId, double amount,
-                           DamageSchool school, String skillId) {
+    public DamageResult dealDamage(UUID casterId, UUID targetId, double amount,
+                                   DamageSchool school, String skillId) {
         if (!(Bukkit.getEntity(targetId) instanceof LivingEntity target) || target.isDead()) {
-            return;
+            return null;
         }
         Entity caster = Bukkit.getEntity(casterId);
 
@@ -198,13 +228,14 @@ public final class BukkitSkillWorld implements SkillWorld {
                 attackerStats, defenderStats, state);
 
         if (result.blocked()) {
-            return;
+            return result;
         }
         statuses.consumeShield(targetId, result.absorbed());
         drinkBlood(casterId, result.applied());
 
         // Единственный вызов, отнимающий здоровье. Событие Bukkit испускается
         // им же, поэтому региональные плагины могут отменить урон штатно.
+        double before = target.getHealth() + target.getAbsorptionAmount();
         applyingSkillDamage = true;
         try {
             if (caster instanceof LivingEntity livingCaster) {
@@ -218,6 +249,13 @@ public final class BukkitSkillWorld implements SkillWorld {
             // урон на сервере перестал бы считаться.
             applyingSkillDamage = false;
         }
+        // Отменённое событие урона не бросает исключения и ничего не
+        // возвращает: о нём говорит только нетронутое здоровье. Без этой
+        // проверки вспышка попадания горела бы в регионе, где урон запрещён.
+        if (!target.isDead() && target.getHealth() + target.getAbsorptionAmount() >= before) {
+            return DamageResult.blockedBy(DamageResult.Blocker.EVENT, result.absorbed());
+        }
+        return result;
     }
 
     @Override
@@ -742,6 +780,12 @@ public final class BukkitSkillWorld implements SkillWorld {
         private int hits;
         private org.bukkit.scheduler.BukkitTask task;
 
+        /** Номер снаряда в канале мода; 0 — эффекта мода нет. */
+        private int handle;
+
+        /** Кому ушло начало полёта: им же уйдёт и конец. */
+        private List<Player> watchers = List.of();
+
         private ProjectileFlight(ProjectileSpec spec, ProjectileHandler handler, UUID casterId,
                                  Location start, Vector direction) {
             this.spec = spec;
@@ -752,12 +796,29 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
 
         void start() {
+            if (spec.fx() != null) {
+                // Полёт мод ведёт сам: одно событие на вылет и одно на конец,
+                // а не позиция каждый тик. Видят те, кто рядом с точкой вылета
+                // или с серединой пути.
+                handle = fx.nextHandle();
+                Location middle = at.clone().add(direction.clone().multiply(spec.range() / 2));
+                watchers = fx.viewers(middle, FxBroadcaster.RANGE + spec.range() / 2).modded();
+                fx.send(watchers, new FxMessage.Projectile(handle, spec.fx(), spec.classId(),
+                        at.getX(), at.getY(), at.getZ(),
+                        (float) direction.getX(), (float) direction.getY(),
+                        (float) direction.getZ(), (float) spec.speed(), (float) spec.range(),
+                        (float) spec.gravity()));
+            }
             task = Bukkit.getScheduler().runTaskTimer(plugin, this, 0L, 1L);
         }
 
-        private void stop() {
+        private void stop(Location where, boolean hit) {
             if (task != null) {
                 task.cancel();
+            }
+            if (handle != 0) {
+                fx.send(watchers, new FxMessage.ProjectileEnd(handle,
+                        where.getX(), where.getY(), where.getZ(), hit));
             }
         }
 
@@ -766,6 +827,9 @@ public final class BukkitSkillWorld implements SkillWorld {
             double remaining = Math.min(spec.speed(), spec.range() - travelled);
             int segments = (int) Math.ceil(remaining / MAX_SEGMENT);
             double step = remaining / Math.max(1, segments);
+            // Ванильный след снаряда с эффектом — только тем, у кого мода нет;
+            // кто это, решается раз за тик, а не на каждый отрезок.
+            List<Player> trailViewers = spec.fx() == null ? null : fx.viewers(at).vanilla();
 
             for (int i = 0; i < segments; i++) {
                 Location before = at.clone();
@@ -780,14 +844,14 @@ public final class BukkitSkillWorld implements SkillWorld {
                 }
 
                 if (spec.particle() != null) {
-                    particles(toPosition(at), spec.particle(),
-                            Action.Particles.Shape.POINT, 1, 0);
+                    particlesFor(trailViewers, toPosition(at), spec.particle(),
+                            Action.Particles.Shape.POINT, 1, 0, 0, null);
                 }
 
                 if (spec.stopAtBlock() && at.getBlock().getType().isSolid()) {
                     // Назад на отрезок: взрыв должен гремить перед стеной, а не
                     // внутри неё, иначе его не видно.
-                    stop();
+                    stop(before, false);
                     handler.end(toPosition(before));
                     return;
                 }
@@ -796,15 +860,16 @@ public final class BukkitSkillWorld implements SkillWorld {
                 if (victim != null) {
                     alreadyHit.add(victim);
                     hits++;
-                    handler.hit(toPosition(at), victim);
                     if (hits >= spec.pierce()) {
-                        stop();
+                        stop(at, true);
+                        handler.hit(toPosition(at), victim);
                         return;
                     }
+                    handler.hit(toPosition(at), victim);
                 }
 
                 if (travelled >= spec.range()) {
-                    stop();
+                    stop(at, false);
                     handler.end(toPosition(at));
                     return;
                 }
@@ -843,6 +908,26 @@ public final class BukkitSkillWorld implements SkillWorld {
     @Override
     public void particles(Position at, String particle, Action.Particles.Shape shape,
                           int count, double size) {
+        particles(at, particle, shape, count, size, 0, null);
+    }
+
+    @Override
+    public void particles(Position at, String particle, Action.Particles.Shape shape,
+                          int count, double size, double angle, Heading axis) {
+        particlesFor(null, at, particle, shape, count, size, angle, axis);
+    }
+
+    /**
+     * Частицы адресно.
+     *
+     * @param viewers кому показать; {@code null} — всем вокруг, как рассылает мир
+     */
+    private void particlesFor(List<Player> viewers, Position at, String particle,
+                              Action.Particles.Shape shape, int count, double size,
+                              double angle, Heading axis) {
+        if (viewers != null && viewers.isEmpty()) {
+            return;
+        }
         Optional<Location> location = toLocation(at);
         if (location.isEmpty()) {
             return;
@@ -859,7 +944,7 @@ public final class BukkitSkillWorld implements SkillWorld {
         // на полпути, уже списав ману. Поэтому промах по частице — строка в
         // логе, а не прерванный каст.
         try {
-            draw(world, centre, type, shape, count, size);
+            draw(world, viewers, centre, type, shape, count, size, angle, axis);
         } catch (RuntimeException e) {
             if (badParticles.add(particle)) {
                 plugin.getLogger().warning("частица " + particle
@@ -868,21 +953,121 @@ public final class BukkitSkillWorld implements SkillWorld {
         }
     }
 
-    private void draw(World world, Location centre, Particle type,
-                      Action.Particles.Shape shape, int count, double size) {
+    /** Расстояние между соседними точками границы: дыр в кольце не видно. */
+    private static final double BORDER_STEP = 0.5;
+
+    /** Больше точек на одну границу не ставим: дальше это уже нагрузка, а не чёткость. */
+    private static final int BORDER_MAX_POINTS = 180;
+
+    private void draw(World world, List<Player> viewers, Location centre, Particle type,
+                      Action.Particles.Shape shape, int count, double size,
+                      double angle, Heading axis) {
         switch (shape) {
-            case POINT -> world.spawnParticle(type, centre, count, 0.2, 0.2, 0.2, 0);
-            case SPHERE -> world.spawnParticle(type, centre, count, size, size, size, 0);
+            case POINT -> spawn(world, viewers, type, centre, count, 0.2);
+            case SPHERE -> spawn(world, viewers, type, centre, count, size);
             case RING -> {
-                for (int i = 0; i < count; i++) {
-                    double a = 2 * Math.PI * i / count;
-                    world.spawnParticle(type,
-                            centre.clone().add(Math.cos(a) * size, 0.2, Math.sin(a) * size),
-                            1, 0, 0, 0, 0);
+                for (Location point : ringPoints(centre, size, count)) {
+                    spawn(world, viewers, type, point, 1, 0);
                 }
             }
-            case LINE -> world.spawnParticle(type, centre, count, 0.05, 0.05, 0.05, 0);
+            case CONE -> {
+                if (axis != null) {
+                    for (Location point : conePoints(centre, size, angle, axis)) {
+                        spawn(world, viewers, type, point, 1, 0);
+                    }
+                }
+            }
+            case LINE -> spawn(world, viewers, type, centre, count, 0.05);
         }
+    }
+
+    /** Одна рассылка частиц: всем вокруг или только перечисленным. */
+    private static void spawn(World world, List<Player> viewers, Particle type, Location at,
+                              int count, double spread) {
+        if (viewers == null) {
+            world.spawnParticle(type, at, count, spread, spread, spread, 0);
+            return;
+        }
+        for (Player viewer : viewers) {
+            viewer.spawnParticle(type, at, count, spread, spread, spread, 0);
+        }
+    }
+
+    /**
+     * Точки кольца ровно на радиусе, прижатые к земле.
+     *
+     * <p>Число точек — не меньше, чем нужно, чтобы между соседними было не
+     * больше полублока. Раньше их было столько, сколько написано в навыке, и
+     * кольцо в семь блоков из сорока точек читалось как россыпь, а не как
+     * граница. Высота — своя у каждой точки: кольцо на высоте центра уходило в
+     * склон с одной стороны и висело в воздухе с другой.
+     *
+     * @param written сколько точек написано в навыке: меньше не будет
+     */
+    static List<Location> ringPoints(Location centre, double radius, int written) {
+        int points = pointsFor(2 * Math.PI * radius, written);
+        List<Location> out = new ArrayList<>(points);
+        for (int i = 0; i < points; i++) {
+            double a = 2 * Math.PI * i / points;
+            out.add(onGround(centre, centre.getX() + Math.cos(a) * radius,
+                    centre.getZ() + Math.sin(a) * radius));
+        }
+        return out;
+    }
+
+    /**
+     * Точки конуса: дуга по радиусу и две кромки от вершины.
+     *
+     * <p>Ось и угол — те же, что у выборки целей, см. {@code coneAxis}: конус,
+     * нарисованный от другой вершины, показывает не тех, кого заденет.
+     */
+    static List<Location> conePoints(Location apex, double radius, double angleDegrees,
+                                     Heading axis) {
+        double half = Math.toRadians(angleDegrees) / 2;
+        double heading = Math.atan2(axis.z(), axis.x());
+        int arc = pointsFor(radius * half * 2, 2);
+        int edge = pointsFor(radius, 2);
+        List<Location> out = new ArrayList<>(arc + 2 * edge);
+        for (int i = 0; i <= arc; i++) {
+            double a = heading - half + 2 * half * i / arc;
+            out.add(onGround(apex, apex.getX() + Math.cos(a) * radius,
+                    apex.getZ() + Math.sin(a) * radius));
+        }
+        for (double side : new double[] {-half, half}) {
+            double a = heading + side;
+            for (int i = 1; i < edge; i++) {
+                double r = radius * i / edge;
+                out.add(onGround(apex, apex.getX() + Math.cos(a) * r,
+                        apex.getZ() + Math.sin(a) * r));
+            }
+        }
+        return out;
+    }
+
+    private static int pointsFor(double length, int written) {
+        int needed = (int) Math.ceil(length / BORDER_STEP);
+        return Math.clamp(Math.max(needed, written), 1, BORDER_MAX_POINTS);
+    }
+
+    /**
+     * Точка над землёй рядом с высотой центра.
+     *
+     * <p>Ищем верх твёрдого блока на три блока вниз и два вверх от центра:
+     * дальше — уже не та земля, на которой стоит область, а обрыв или крыша, и
+     * точку оставляем на высоте центра.
+     */
+    private static Location onGround(Location centre, double x, double z) {
+        World world = centre.getWorld();
+        int bx = (int) Math.floor(x);
+        int bz = (int) Math.floor(z);
+        int top = (int) Math.floor(centre.getY()) + 2;
+        for (int y = top; y >= top - 5; y--) {
+            if (world.getBlockAt(bx, y, bz).getType().isSolid()
+                    && !world.getBlockAt(bx, y + 1, bz).getType().isSolid()) {
+                return new Location(world, x, y + 1.1, z);
+            }
+        }
+        return new Location(world, x, centre.getY() + 0.2, z);
     }
 
     /**
@@ -901,9 +1086,116 @@ public final class BukkitSkillWorld implements SkillWorld {
         if (zone.particle() == null) {
             return;
         }
-        int points = Math.max(8, (int) Math.round(zone.radius() * 8));
-        particles(zone.center(), zone.particle(), Action.Particles.Shape.RING,
-                points, zone.radius());
+        // Зона с эффектом мода: ванильное кольцо — только тем, у кого мода нет.
+        // Игрок с модом получил зону событием, и второе кольцо поверх эффекта
+        // было бы тем самым дублем.
+        List<Player> viewers = null;
+        if (zone.fx() != null) {
+            Optional<Location> centre = toLocation(zone.center());
+            if (centre.isEmpty()) {
+                return;
+            }
+            viewers = fx.viewers(centre.get()).vanilla();
+        }
+        // Число точек считает само кольцо: по полублока на точку.
+        particlesFor(viewers, zone.center(), zone.particle(), Action.Particles.Shape.RING,
+                8, zone.radius(), 0, null);
+    }
+
+    // ------------------------------------------------------------------ эффекты мода
+
+    @Override
+    public void effect(FxEvent event) {
+        switch (event) {
+            case FxEvent.Burst burst -> {
+                Optional<Location> at = toLocation(burst.at());
+                if (at.isEmpty()) {
+                    return;
+                }
+                FxBroadcaster.Viewers viewers = fx.viewers(at.get());
+                Heading axis = burst.axis();
+                fx.send(viewers.modded(), new FxMessage.Burst(burst.fx(), burst.classId(),
+                        FxMessage.Shape.valueOf(burst.shape().name()),
+                        burst.at().x(), burst.at().y(), burst.at().z(),
+                        (float) burst.radius(), (float) burst.angle(),
+                        axis == null ? 0f : (float) axis.x(),
+                        axis == null ? 0f : (float) axis.z()));
+                particlesFor(viewers.vanilla(), burst.at(), burst.particle(), burst.shape(),
+                        burst.count(), burst.radius(), burst.angle(), axis);
+            }
+            case FxEvent.ZonePlaced placed -> toLocation(placed.zone().center())
+                    .ifPresent(centre -> fx.zonePlaced(placed.zone(), centre));
+            case FxEvent.ZoneConsumed consumed ->
+                    fx.zoneConsumed(consumed.zone(), consumed.pulledTo());
+            case FxEvent.Hit hit -> showHit(hit);
+            case FxEvent.Trail trail -> showTrail(trail);
+        }
+    }
+
+    /**
+     * Попадание навыка.
+     *
+     * <p>Крит звучит у всех — звук не рисуется дважды, а без мода игрок иначе не
+     * узнал бы о крите вовсе. Вспышку видит мод, ванильные искры — те, у кого
+     * мода нет.
+     */
+    private void showHit(FxEvent.Hit hit) {
+        Entity target = Bukkit.getEntity(hit.target());
+        if (target == null) {
+            return;
+        }
+        Location chest = target.getLocation().add(0, target.getHeight() * 0.6, 0);
+        FxBroadcaster.Viewers viewers = fx.viewers(chest);
+        fx.send(viewers.modded(), new FxMessage.Hit(target.getEntityId(), hit.classId(),
+                hit.crit()));
+        if (hit.crit()) {
+            spawn(chest.getWorld(), viewers.vanilla(), Particle.CRIT, chest, 16, 0.35);
+            chest.getWorld().playSound(chest, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.1f);
+        }
+    }
+
+    /** Шаг следа: точка на каждые сорок сантиметров пути. */
+    private static final double TRAIL_STEP = 0.4;
+
+    /** След переноса: линия частиц на высоте груди от старта до прибытия. */
+    private void showTrail(FxEvent.Trail trail) {
+        Optional<Location> from = toLocation(trail.from());
+        Optional<Location> to = toLocation(trail.to());
+        if (from.isEmpty() || to.isEmpty() || from.get().getWorld() != to.get().getWorld()) {
+            return;
+        }
+        Particle type = fromKey(trail.particle(), Particle.class);
+        if (type == null) {
+            plugin.getLogger().warning("неизвестная частица: " + trail.particle());
+            return;
+        }
+        Location middle = from.get().clone().add(to.get()).multiply(0.5);
+        FxBroadcaster.Viewers viewers = fx.viewers(middle);
+        List<Player> vanilla = viewers.vanilla();
+        if (trail.fx() != null) {
+            fx.send(viewers.modded(), new FxMessage.Trail(trail.fx(), trail.classId(),
+                    trail.from().x(), trail.from().y(), trail.from().z(),
+                    trail.to().x(), trail.to().y(), trail.to().z()));
+        } else {
+            // Без эффекта мода ванильный след видят все: заменить его нечем.
+            vanilla = new ArrayList<>(vanilla);
+            vanilla.addAll(viewers.modded());
+        }
+        Vector path = to.get().toVector().subtract(from.get().toVector());
+        int points = Math.clamp((int) Math.ceil(path.length() / TRAIL_STEP), 1, 80);
+        for (int i = 0; i <= points; i++) {
+            Location point = from.get().clone().add(path.clone().multiply((double) i / points))
+                    .add(0, 1.0, 0);
+            try {
+                spawn(point.getWorld(), vanilla, type, point, 1, 0.05);
+            } catch (RuntimeException e) {
+                if (badParticles.add(trail.particle())) {
+                    plugin.getLogger().warning("частица " + trail.particle()
+                            + " не рисуется без дополнительных данных: " + e.getMessage());
+                }
+                return;
+            }
+        }
     }
 
     @Override

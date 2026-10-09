@@ -378,6 +378,147 @@ public final class StateCodec {
         });
     }
 
+    // ------------------------------------------------------------------ эффекты
+
+    /** Больше событий в одном сообщении не кладём: остальные уходят следующим. */
+    public static final int FX_PER_MESSAGE = 128;
+
+    /**
+     * Пачка видимых событий.
+     *
+     * <p>Вид события — байт впереди, по порядку {@link FxKind}. Новый вид — это
+     * новая версия протокола: старый мод не знает его длины и съехал бы на всём
+     * остальном в пачке.
+     */
+    public static byte[] writeFx(List<FxMessage.Event> events) {
+        List<FxMessage.Event> part = events.size() <= FX_PER_MESSAGE
+                ? events : events.subList(0, FX_PER_MESSAGE);
+        return write(out -> {
+            out.writeByte(Protocol.VERSION);
+            out.writeByte(part.size());
+            for (FxMessage.Event event : part) {
+                switch (event) {
+                    case FxMessage.Burst e -> {
+                        out.writeByte(FxKind.BURST.ordinal());
+                        writeString(out, e.fx());
+                        writeString(out, e.classId());
+                        out.writeByte(e.shape().ordinal());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeFloat(e.radius());
+                        out.writeFloat(e.angle());
+                        out.writeFloat(e.axisX());
+                        out.writeFloat(e.axisZ());
+                    }
+                    case FxMessage.ZoneOn e -> {
+                        out.writeByte(FxKind.ZONE_ON.ordinal());
+                        out.writeInt(e.id());
+                        writeString(out, e.fx());
+                        writeString(out, e.classId());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeFloat(e.radius());
+                        out.writeInt(e.totalTicks());
+                        out.writeInt(e.remainingTicks());
+                        out.writeBoolean(e.own());
+                    }
+                    case FxMessage.ZoneOff e -> {
+                        out.writeByte(FxKind.ZONE_OFF.ordinal());
+                        out.writeInt(e.id());
+                        out.writeByte(e.reason().ordinal());
+                        writePoint(out, e.toX(), e.toY(), e.toZ());
+                    }
+                    case FxMessage.Projectile e -> {
+                        out.writeByte(FxKind.PROJECTILE.ordinal());
+                        out.writeInt(e.id());
+                        writeString(out, e.fx());
+                        writeString(out, e.classId());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeFloat(e.dx());
+                        out.writeFloat(e.dy());
+                        out.writeFloat(e.dz());
+                        out.writeFloat(e.speed());
+                        out.writeFloat(e.range());
+                        out.writeFloat(e.gravity());
+                    }
+                    case FxMessage.ProjectileEnd e -> {
+                        out.writeByte(FxKind.PROJECTILE_END.ordinal());
+                        out.writeInt(e.id());
+                        writePoint(out, e.x(), e.y(), e.z());
+                        out.writeBoolean(e.hit());
+                    }
+                    case FxMessage.Hit e -> {
+                        out.writeByte(FxKind.HIT.ordinal());
+                        out.writeInt(e.entityId());
+                        writeString(out, e.classId());
+                        out.writeBoolean(e.crit());
+                    }
+                    case FxMessage.Trail e -> {
+                        out.writeByte(FxKind.TRAIL.ordinal());
+                        writeString(out, e.fx());
+                        writeString(out, e.classId());
+                        writePoint(out, e.fromX(), e.fromY(), e.fromZ());
+                        writePoint(out, e.toX(), e.toY(), e.toZ());
+                    }
+                }
+            }
+        });
+    }
+
+    public static List<FxMessage.Event> readFx(byte[] bytes) {
+        return read(bytes, in -> {
+            int version = in.readUnsignedByte();
+            if (version != Protocol.VERSION) {
+                throw new IllegalArgumentException("версия формата " + version
+                        + ", поддерживается " + Protocol.VERSION);
+            }
+            int count = in.readUnsignedByte();
+            List<FxMessage.Event> out = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                int code = in.readUnsignedByte();
+                FxKind[] kinds = FxKind.values();
+                if (code >= kinds.length) {
+                    // Длины неизвестного вида не знаем: читать дальше — значит
+                    // читать мусор. Остаток пачки отбрасывается целиком.
+                    throw new IllegalArgumentException("неизвестный вид события " + code);
+                }
+                out.add(switch (kinds[code]) {
+                    case BURST -> new FxMessage.Burst(readString(in), readString(in),
+                            FxMessage.Shape.of(in.readUnsignedByte()),
+                            in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readFloat(), in.readFloat(), in.readFloat(), in.readFloat());
+                    case ZONE_ON -> new FxMessage.ZoneOn(in.readInt(), readString(in),
+                            readString(in), in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readFloat(), in.readInt(), in.readInt(), in.readBoolean());
+                    case ZONE_OFF -> new FxMessage.ZoneOff(in.readInt(),
+                            FxMessage.ZoneEnd.of(in.readUnsignedByte()),
+                            in.readDouble(), in.readDouble(), in.readDouble());
+                    case PROJECTILE -> new FxMessage.Projectile(in.readInt(), readString(in),
+                            readString(in), in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readFloat(), in.readFloat(), in.readFloat(),
+                            in.readFloat(), in.readFloat(), in.readFloat());
+                    case PROJECTILE_END -> new FxMessage.ProjectileEnd(in.readInt(),
+                            in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readBoolean());
+                    case HIT -> new FxMessage.Hit(in.readInt(), readString(in),
+                            in.readBoolean());
+                    case TRAIL -> new FxMessage.Trail(readString(in), readString(in),
+                            in.readDouble(), in.readDouble(), in.readDouble(),
+                            in.readDouble(), in.readDouble(), in.readDouble());
+                });
+            }
+            return out;
+        });
+    }
+
+    /** Байт вида события. Порядок — часть формата, переставлять нельзя. */
+    private enum FxKind { BURST, ZONE_ON, ZONE_OFF, PROJECTILE, PROJECTILE_END, HIT, TRAIL }
+
+    private static void writePoint(DataOutputStream out, double x, double y, double z)
+            throws IOException {
+        out.writeDouble(x);
+        out.writeDouble(y);
+        out.writeDouble(z);
+    }
+
     /** Больше двухсот пятидесяти пяти строк в списке не бывает и не нужно. */
     private static <T> List<T> limit(List<T> source) {
         return source.size() <= 255 ? source : source.subList(0, 255);

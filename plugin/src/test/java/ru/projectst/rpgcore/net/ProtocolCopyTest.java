@@ -34,7 +34,7 @@ class ProtocolCopyTest {
 
     private static final List<String> COPIED =
             List.of("Protocol.java", "ClientState.java", "StateCodec.java",
-                    "MenuData.java");
+                    "MenuData.java", "FxMessage.java");
 
     @Test
     @DisplayName("файлы протокола в моде совпадают с плагином до строки")

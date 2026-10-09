@@ -18,8 +18,4 @@ steps:
         value: $slow
         status: slowed
       - { action: particles, particle: crit, shape: point, count: 6, size: 0.3 }
-
-  - target: { type: self }
-    do:
-      - { action: particles, particle: crit, shape: ring, count: 40, size: $radius,
-          at-origin: true }
+      - { action: particles, particle: crit, shape: ring, count: 40, size: radius }

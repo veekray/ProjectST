@@ -216,4 +216,48 @@ class StateCodecTest {
         assertTrue(back.resourceName().length() < huge.length(),
                 "обрезано, но сообщение прочиталось целиком");
     }
+
+    // ------------------------------------------------------------------ эффекты
+
+    @Test
+    @DisplayName("пачка эффектов возвращается такой же, все виды по порядку")
+    void fxRoundTrip() {
+        List<FxMessage.Event> events = List.of(
+                new FxMessage.Burst("mage_flow_wave", "mage", FxMessage.Shape.CONE,
+                        29_999_000.25, 64.5, -12.75, 9f, 60f, -1f, 0f),
+                new FxMessage.ZoneOn(7, "mage_seal", "mage", 1.5, 70, 2.5, 2.5f, 200, 150, true),
+                new FxMessage.ZoneOff(7, FxMessage.ZoneEnd.CONSUMED, 10, 64, 0),
+                new FxMessage.Projectile(3, "mage_bolt", "mage", 0, 65.6, 0,
+                        0f, 0f, 1f, 2.75f, 28f, 0f),
+                new FxMessage.ProjectileEnd(3, 0, 65.6, 20.5, true),
+                new FxMessage.Hit(4242, "mage", true),
+                new FxMessage.Trail("mage_void_trail", "mage", 0, 64, 0, 6, 64, 0));
+
+        List<FxMessage.Event> back = StateCodec.readFx(StateCodec.writeFx(events));
+
+        // Координата на краю мира: во float она съехала бы на целые блоки.
+        assertEquals(events, back);
+    }
+
+    @Test
+    @DisplayName("пачка больше предела режется, а не ломает формат")
+    void fxBatchIsCapped() {
+        List<FxMessage.Event> many = new java.util.ArrayList<>();
+        for (int i = 0; i < StateCodec.FX_PER_MESSAGE + 40; i++) {
+            many.add(new FxMessage.Hit(i, "", false));
+        }
+
+        assertEquals(StateCodec.FX_PER_MESSAGE, StateCodec.readFx(StateCodec.writeFx(many)).size());
+    }
+
+    @Test
+    @DisplayName("чужая версия эффектов отвергается словами")
+    void fxWrongVersionRefused() {
+        byte[] bytes = StateCodec.writeFx(List.of(new FxMessage.Hit(1, "", false)));
+        bytes[0] = (byte) (Protocol.VERSION - 1);
+
+        IllegalArgumentException e = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class, () -> StateCodec.readFx(bytes));
+        assertTrue(e.getMessage().contains("версия"), e.getMessage());
+    }
 }

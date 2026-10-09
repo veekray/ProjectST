@@ -1312,4 +1312,13 @@ public final class SkillIcons {
         String prefix = underscore < 0 ? skillId : skillId.substring(0, underscore);
         return CLASS_COLOURS.getOrDefault(prefix, RpgStyle.EDGE);
     }
+
+    /**
+     * Цвет класса по его идентификатору: им же красятся эффекты навыков, у
+     * которых в каталоге нет своего вида. Один цвет класса на значок и на
+     * эффект — иначе класс узнавался бы в меню и не узнавался в бою.
+     */
+    static int colourOfClass(String classId) {
+        return CLASS_COLOURS.getOrDefault(classId == null ? "" : classId, RpgStyle.EDGE);
+    }
 }
