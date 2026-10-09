@@ -25,11 +25,11 @@ steps:
 
   - target: { type: self }
     do:
-      - { action: sound, sound: entity_wither_shoot, volume: 0.8, pitch: 1.5 }
+      - { action: sound, sound: entity_wither_shoot, volume: 0.8, pitch: 1.5, fx: warlock.bolt.cast }
       - action: projectile
         speed: $speed
         range: $range
         hit-radius: 1.0
         particle: squid_ink
-        fx: warlock_bolt
+        fx: warlock_skull
         on-hit: warlock_bolt_hit

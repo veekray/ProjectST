@@ -266,6 +266,71 @@ final class FxDraw {
         }
     }
 
+    /**
+     * Кольцо в воздухе в любой плоскости: печать стоймя, нимб, сфера из печатей.
+     *
+     * <p>Не прижато к земле, в отличие от {@link #ring}: плоскость задаёт
+     * нормаль {@code (nx, ny, nz)}. Текстура идёт вдоль окружности, как у ring.
+     */
+    void halo(Tex tex, double cx, double cy, double cz, double radius, double width,
+              double nx, double ny, double nz, int argb, float alpha, float uPerBlock,
+              float uOffset) {
+        if (alpha <= 0.004f || radius <= 0) {
+            return;
+        }
+        double nl = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        if (nl < 1e-9) {
+            return;
+        }
+        nx /= nl;
+        ny /= nl;
+        nz /= nl;
+        // Два единичных вектора в плоскости кольца.
+        double rx;
+        double ry;
+        double rz;
+        if (Math.abs(ny) < 0.9) {
+            rx = nz;
+            ry = 0;
+            rz = -nx;
+        } else {
+            rx = 0;
+            ry = -nz;
+            rz = ny;
+        }
+        double rl = Math.sqrt(rx * rx + ry * ry + rz * rz);
+        rx /= rl;
+        ry /= rl;
+        rz /= rl;
+        double ux = ny * rz - nz * ry;
+        double uy = nz * rx - nx * rz;
+        double uz = nx * ry - ny * rx;
+        int colour = withAlpha(argb, alpha);
+        double inner = Math.max(0, radius - width / 2);
+        double outer = radius + width / 2;
+        int segments = segmentsFor(Math.PI * 2 * outer, 12, 160);
+        for (int i = 0; i < segments; i++) {
+            double a0 = Math.PI * 2 * i / segments;
+            double a1 = Math.PI * 2 * (i + 1) / segments;
+            double c0 = Math.cos(a0);
+            double s0 = Math.sin(a0);
+            double c1 = Math.cos(a1);
+            double s1 = Math.sin(a1);
+            float u0 = uOffset + (float) (a0 * radius) * uPerBlock;
+            float u1 = uOffset + (float) (a1 * radius) * uPerBlock;
+            double dx0 = rx * c0 + ux * s0;
+            double dy0 = ry * c0 + uy * s0;
+            double dz0 = rz * c0 + uz * s0;
+            double dx1 = rx * c1 + ux * s1;
+            double dy1 = ry * c1 + uy * s1;
+            double dz1 = rz * c1 + uz * s1;
+            vertex(tex, cx + dx0 * inner, cy + dy0 * inner, cz + dz0 * inner, u0, 0, colour);
+            vertex(tex, cx + dx0 * outer, cy + dy0 * outer, cz + dz0 * outer, u0, 1, colour);
+            vertex(tex, cx + dx1 * outer, cy + dy1 * outer, cz + dz1 * outer, u1, 1, colour);
+            vertex(tex, cx + dx1 * inner, cy + dy1 * inner, cz + dz1 * inner, u1, 0, colour);
+        }
+    }
+
     /** Полная окружность. */
     void circle(Tex tex, double cx, double cy, double cz, double radius, double width,
                 int argb, float alpha, float uPerBlock, float uOffset, float lift) {

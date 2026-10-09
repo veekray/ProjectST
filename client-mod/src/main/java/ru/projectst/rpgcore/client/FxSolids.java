@@ -427,6 +427,8 @@ final class FxSolids {
         float yawSpeed;
         float pitchSpeed;
         float rollSpeed;
+        /** Покачивание вокруг своего крена, градусы: серп над головой, знамя на ветру. */
+        float sway;
         private float prevYaw;
         private float prevPitch;
         private float prevRoll;
@@ -497,6 +499,9 @@ final class FxSolids {
             yaw += yawSpeed;
             pitch += pitchSpeed;
             roll += rollSpeed;
+            if (sway != 0) {
+                roll += sway * (float) (Math.sin(age * 0.12) - Math.sin((age - 1) * 0.12));
+            }
             if (follow >= 0) {
                 net.minecraft.world.entity.Entity entity = level.getEntity(follow);
                 if (entity == null) {

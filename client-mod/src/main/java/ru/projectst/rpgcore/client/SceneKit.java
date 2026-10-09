@@ -24,7 +24,32 @@ final class SceneKit {
 
     static final Random RANDOM = new Random();
 
+    /**
+     * Чей класс у существа — по последнему его навыку: событие каста, вспышка
+     * с источником, зона с хозяином. Статус не несёт класса, а облик ему
+     * нужен свой: корни мага — кольца рун, а не корни друида.
+     */
+    private static final java.util.Map<Integer, String> CLASSES = new java.util.HashMap<>();
+
     private SceneKit() {
+    }
+
+    static void noteClass(int entityId, String classId) {
+        if (entityId != 0 && classId != null && !classId.isEmpty()) {
+            if (CLASSES.size() > 4096) {
+                CLASSES.clear();
+            }
+            CLASSES.put(entityId, classId);
+        }
+    }
+
+    /** Класс существа; пустая строка — не видели его навыков. */
+    static String classOf(int entityId) {
+        return CLASSES.getOrDefault(entityId, "");
+    }
+
+    static void forgetClasses() {
+        CLASSES.clear();
     }
 
     // ------------------------------------------------------------------ мир
@@ -155,6 +180,110 @@ final class SceneKit {
 
     static void sound(String event, double x, double y, double z, float volume, float pitch) {
         FxSounds.play(event, x, y, z, volume, pitch);
+    }
+
+    /** Стиль из каталога по {@code fx} этого события: сцена кладёт его и добавляет своё. */
+    static void styled(FxMessage.Burst e, FxStyle.Kind fallback) {
+        FxEffects.addEffect(new FxKinds.Burst(FxStyle.of(e.fx(), fallback), e));
+    }
+
+    // ------------------------------------------------------------------ живое
+
+    /**
+     * Короткий эффект с рисованием лямбдой: сфера печатей, струя дымки, разрыв.
+     *
+     * <p>Чтобы сцена навыка не заводила класс на каждую мелочь: срок, рамка
+     * для отсечения и кадр. Цвета класса — в {@link #primary} и {@link #accent}.
+     */
+    static final class Live extends FxKinds.Effect {
+        interface Frame {
+            void draw(Live self, FxDraw draw, float t, FxKinds.Detail detail);
+        }
+
+        interface Step {
+            void tick(Live self, Level level, FxMotes motes, float emit);
+        }
+
+        final int life;
+        final double x;
+        final double y;
+        final double z;
+        final double reach;
+        private final Frame frame;
+        Step step;
+        /** Держаться, пока верно, сколько бы ни прошло; срок — потом на угасание. */
+        java.util.function.BooleanSupplier holding;
+        private int releasedAt = -1;
+        boolean important;
+
+        Live(String classId, double x, double y, double z, double reach, int life, Frame frame) {
+            super(new FxStyle(FxStyle.Kind.FLASH, 0, 0, 0, 0, life, false, 1f, 0), classId);
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.reach = reach;
+            this.life = Math.max(1, life);
+            this.frame = frame;
+        }
+
+        int primary() {
+            return primary;
+        }
+
+        int accent() {
+            return accent;
+        }
+
+        /** Доля пройденного срока 0..1 (у держащегося — с отпуска). */
+        float progress(float t) {
+            if (holding != null) {
+                return releasedAt < 0 ? 0f : Math.clamp((t - releasedAt) / life, 0f, 1f);
+            }
+            return Math.clamp(t / life, 0f, 1f);
+        }
+
+        @Override
+        boolean decor() {
+            return !important;
+        }
+
+        @Override
+        void tick(Level level, FxMotes motes, float emit) {
+            super.tick(level, motes, emit);
+            if (holding != null) {
+                if (releasedAt < 0 && !holding.getAsBoolean()) {
+                    releasedAt = age;
+                }
+                if (releasedAt >= 0 && age - releasedAt >= life) {
+                    dead = true;
+                    return;
+                }
+            } else if (age >= life) {
+                dead = true;
+                return;
+            }
+            if (step != null) {
+                step.tick(this, level, motes, emit);
+            }
+        }
+
+        @Override
+        AABB bounds() {
+            return new AABB(x - reach, y - reach, z - reach, x + reach, y + reach, z + reach);
+        }
+
+        @Override
+        void draw(FxDraw draw, float partial, FxKinds.Detail detail) {
+            frame.draw(this, draw, age + partial, detail);
+        }
+    }
+
+    /** Добавить живой эффект и вернуть его — сцена донастроит шаг или удержание. */
+    static Live live(String classId, double x, double y, double z, double reach, int life,
+                     Live.Frame frame) {
+        Live live = new Live(classId, x, y, z, reach, life, frame);
+        FxEffects.addEffect(live);
+        return live;
     }
 
     // ------------------------------------------------------------------ предупреждение

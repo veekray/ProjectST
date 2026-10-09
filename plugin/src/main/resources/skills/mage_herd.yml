@@ -34,7 +34,7 @@ steps:
   - target: { type: self }
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
-      - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 0.8, pitch: 1.3 }
+      - { action: sound, sound: entity_illusioner_prepare_blindness, volume: 0.8, pitch: 1.3, fx: mage.herd.pull }
 
   # Обычный: сначала печать в точке сбора, потом конус от неё.
   - target: { type: self }

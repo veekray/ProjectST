@@ -30,7 +30,7 @@ steps:
   - target: { type: self }
     do:
       - { action: count, counter: souls, status: soul }
-      - { action: sound, sound: entity_wither_spawn, volume: 0.7, pitch: 1.4 }
+      - { action: sound, sound: entity_wither_spawn, volume: 0.7, pitch: 1.4, fx: warlock.cocoon.cast }
 
   - target: { type: enemies_in_radius, radius: $range, limit: 1 }
     do:
@@ -38,8 +38,8 @@ steps:
       - { action: damage, amount: $damage_per_soul * @souls, school: magic }
       - { action: status, id: banish, duration: $duration }
       - { action: status, id: banish, duration: $duration_per_soul * @souls }
-      - { action: particles, particle: soul, shape: sphere, count: 60, size: 1.2, fx: warlock_flash }
-      - { action: sound, sound: entity_wither_hurt, pitch: 0.5 }
+      - { action: particles, particle: soul, shape: sphere, count: 60, size: 1.2, fx: warlock_cocoon_close }
+      - { action: sound, sound: entity_wither_hurt, pitch: 0.5, fx: warlock.cocoon.close }
 
   - target: { type: self }
     do:

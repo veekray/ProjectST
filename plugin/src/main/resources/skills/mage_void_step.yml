@@ -26,7 +26,7 @@ steps:
   - target: { type: self }
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
-      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.4 }
+      - { action: sound, sound: entity_enderman_teleport, volume: 0.8, pitch: 1.4, fx: mage.void.step }
 
   # Печать кладём ДО рывка: она должна остаться там, откуда ушли.
   - target: { type: self }
@@ -51,7 +51,7 @@ steps:
       - { action: particles, particle: portal, shape: sphere, count: 70, size: 0.6, fx: none }
       - { action: teleport, forward: $empowered_distance, particle: reverse_portal, fx: mage_void_trail_strong }
       - { action: particles, particle: reverse_portal, shape: sphere, count: 70, size: 0.6, fx: none }
-      - { action: sound, sound: entity_generic_explode, volume: 0.7, pitch: 1.6 }
+      - { action: sound, sound: entity_generic_explode, volume: 0.7, pitch: 1.6, fx: mage.void.blast }
 
   # Ударная волна считается после рывка, то есть от новой позиции.
   - target: { type: enemies_in_radius, radius: $wave_radius }

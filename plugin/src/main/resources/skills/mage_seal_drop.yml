@@ -23,4 +23,4 @@ steps:
         particle: witch
         fx: mage_seal
         at-origin: true
-      - { action: sound, sound: block_amethyst_block_chime, volume: 0.7, pitch: 1.6, at-origin: true }
+      - { action: sound, sound: block_amethyst_block_chime, volume: 0.7, pitch: 1.6, at-origin: true, fx: mage.seal.chime }

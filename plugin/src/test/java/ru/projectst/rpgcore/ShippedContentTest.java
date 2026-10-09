@@ -623,6 +623,33 @@ class ShippedContentTest {
         assertTrue(bare.isEmpty(), "звуки друида без fx: " + bare);
     }
 
+    @Test
+    @DisplayName("каждый звук мода в контенте объявлен в sounds.json мода")
+    void everySoundFxIsDeclaredByTheMod() throws IOException {
+        Path sounds = MOD_CATALOG.getParent().resolve(Path.of("..", "..", "..", "..", "..",
+                "resources", "assets", "rpgcore", "sounds.json")).normalize();
+        if (!Files.isRegularFile(sounds)) {
+            return; // мода рядом нет — проверять нечего
+        }
+        // Неизвестное событие менеджер звука молча пропустит, и игрок с модом
+        // не услышит ничего — ванильный ему тоже не уходит.
+        String declared = Files.readString(sounds, StandardCharsets.UTF_8);
+        java.util.Set<String> missing = new java.util.TreeSet<>();
+        for (SkillDef skill : load().skills()) {
+            for (var step : skill.steps()) {
+                for (var action : step.actions()) {
+                    if (action instanceof ru.projectst.rpgcore.skill.Action.Sound sound
+                            && sound.fx() != null
+                            && !ru.projectst.rpgcore.skill.FxEvent.NONE.equals(sound.fx())
+                            && !declared.contains("\"" + sound.fx() + "\": {")) {
+                        missing.add(skill.id() + ": " + sound.fx());
+                    }
+                }
+            }
+        }
+        assertTrue(missing.isEmpty(), "звуков нет в sounds.json мода: " + missing);
+    }
+
     private static String fxOf(ru.projectst.rpgcore.skill.Action action) {
         return switch (action) {
             case ru.projectst.rpgcore.skill.Action.Particles a -> a.fx();

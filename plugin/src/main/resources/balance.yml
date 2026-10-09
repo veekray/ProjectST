@@ -38,7 +38,7 @@ balance:
     min_gap: 2.5
 
   mage_flow_loop:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -53,7 +53,7 @@ balance:
     empowered_damage: 7
 
   mage_mana_bolt:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     mana:
       base: 8.0
       per-level: 0.5
@@ -90,7 +90,7 @@ balance:
     wave_push: 0.8
 
   mage_herd:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 18   # подготовка, тиков
     mana:
       base: 16.0
       per-level: 0.5
@@ -109,7 +109,7 @@ balance:
     root_duration: 30
 
   mage_scatter:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 14   # подготовка, тиков
     mana:
       base: 20.0
       per-level: 0.5
@@ -122,7 +122,7 @@ balance:
     empowered_range: 18
 
   mage_collapse:
-    cast_time: 12   # подготовка, тиков
+    cast_time: 30   # подготовка, тиков
     mana:
       base: 42.0
       per-level: 0.5
@@ -258,7 +258,7 @@ balance:
     duration: 600
 
   warlock_cursed_bolt:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 12   # подготовка, тиков
     mana:
       base: 10.0
       per-level: 0.5
@@ -280,7 +280,7 @@ balance:
     damage: 2
 
   warlock_reap_mark:
-    cast_time: 6   # подготовка, тиков
+    cast_time: 10   # подготовка, тиков
     mana:
       base: 8.0
       per-level: 0.5
@@ -292,7 +292,7 @@ balance:
     duration: 300
 
   warlock_dark_veil:
-    cast_time: 10   # подготовка, тиков
+    cast_time: 20   # подготовка, тиков
     mana:
       base: 16.0
       per-level: 0.5
@@ -311,7 +311,7 @@ balance:
     weaken: -15
 
   warlock_despair_chains:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 16   # подготовка, тиков
     mana:
       base: 14.0
       per-level: 0.5
@@ -329,7 +329,7 @@ balance:
     slow_duration: 20
 
   warlock_transfusion:
-    cast_time: 8   # подготовка, тиков
+    cast_time: 20   # подготовка, тиков
     mana:
       base: 20.0
       per-level: 0.5
@@ -345,7 +345,7 @@ balance:
     heal_per: 3
 
   warlock_agony_cocoon:
-    cast_time: 16   # подготовка, тиков
+    cast_time: 30   # подготовка, тиков
     mana:
       base: 38.0
       per-level: 0.5

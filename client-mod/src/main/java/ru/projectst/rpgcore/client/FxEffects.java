@@ -82,6 +82,7 @@ public final class FxEffects {
     }
 
     private static void take(FxMessage.Event event) {
+        noteClass(event);
         switch (event) {
             case FxMessage.Burst burst -> {
                 // Своя сцена навыка — корни, лозы, щепа; нет — роль класса.
@@ -147,6 +148,19 @@ public final class FxEffects {
         }
     }
 
+    /** Запомнить, чей класс у источника события: статусам нужен облик по классу. */
+    private static void noteClass(FxMessage.Event event) {
+        switch (event) {
+            case FxMessage.CastStart start -> SceneKit.noteClass(start.entityId(), start.classId());
+            case FxMessage.Burst burst -> SceneKit.noteClass(burst.source(), burst.classId());
+            case FxMessage.ZoneOn on -> SceneKit.noteClass(on.owner(), on.classId());
+            case FxMessage.Telegraph mark -> SceneKit.noteClass(mark.caster(), mark.classId());
+            case FxMessage.Hit hit -> SceneKit.noteClass(hit.attacker(), hit.classId());
+            default -> {
+            }
+        }
+    }
+
     /**
      * Общий вид для формы, если своего эффекта у мода нет.
      *
@@ -194,6 +208,7 @@ public final class FxEffects {
         FxStatuses.clear();
         FxCasts.clear();
         FxScreen.clear();
+        SceneKit.forgetClasses();
     }
 
     // ------------------------------------------------------------------ настройка

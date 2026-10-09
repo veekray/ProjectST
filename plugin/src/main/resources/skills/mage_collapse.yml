@@ -28,5 +28,5 @@ steps:
   - target: { type: self }
     origin: forward $gather_distance
     do:
-      - { action: sound, sound: entity_illusioner_prepare_mirror, pitch: 0.6 }
+      - { action: sound, sound: entity_illusioner_prepare_mirror, pitch: 0.6, fx: mage.collapse.gather }
       - { action: cast, skill: mage_collapse_do, at-targets: true }

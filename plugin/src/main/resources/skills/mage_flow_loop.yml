@@ -31,7 +31,7 @@ steps:
   - target: { type: self }
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
-      - { action: sound, sound: block_beacon_activate, volume: 0.8, pitch: 1.8 }
+      - { action: sound, sound: block_beacon_activate, volume: 0.8, pitch: 1.8, fx: mage.flow.burst }
 
   # Обычный: только расшвыривает.
   - target: { type: enemies_in_radius, radius: $radius }

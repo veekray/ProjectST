@@ -24,13 +24,13 @@ steps:
   - target: { type: self }
     origin: forward $distance
     do:
-      - { action: sound, sound: entity_wither_ambient, volume: 0.9, pitch: 0.6 }
+      - { action: sound, sound: entity_wither_ambient, volume: 0.9, pitch: 0.6, fx: warlock.veil.rise }
       - action: zone
         tag: veil
         radius: $radius
         duration: $duration
         particle: squid_ink
-        fx: warlock_zone
+        fx: warlock_veil
         at-origin: true
         on-tick: warlock_veil_tick
         tick-interval: 20

@@ -384,5 +384,419 @@
         "pitch": 1.2
       }
     ]
+  },
+  "mage.bolt.hit": {
+    "sounds": [
+      {
+        "name": "minecraft:block.glass.break",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.07
+      },
+      {
+        "name": "minecraft:block.amethyst_cluster.hit",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 0.87
+      }
+    ]
+  },
+  "mage.collapse.gather": {
+    "sounds": [
+      {
+        "name": "minecraft:block.portal.trigger",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 2.0
+      },
+      {
+        "name": "minecraft:block.beacon.ambient",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.collapse.blast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.warden.sonic_boom",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.71
+      },
+      {
+        "name": "minecraft:entity.generic.explode",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 0.86
+      }
+    ]
+  },
+  "mage.flow.burst": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.breeze.wind_burst",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 0.67
+      },
+      {
+        "name": "minecraft:block.beacon.activate",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.herd.pull": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.warden.sonic_charge",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.23
+      },
+      {
+        "name": "minecraft:entity.illusioner.prepare_blindness",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.bolt.fly": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.illusioner.cast_spell",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.amethyst_block.resonate",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.87
+      }
+    ]
+  },
+  "mage.scatter.cast": {
+    "sounds": [
+      {
+        "name": "minecraft:block.amethyst_cluster.break",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.amethyst_block.break",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.22
+      }
+    ]
+  },
+  "mage.seal.eat": {
+    "sounds": [
+      {
+        "name": "minecraft:block.enchantment_table.use",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.respawn_anchor.charge",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.seal.chime": {
+    "sounds": [
+      {
+        "name": "minecraft:block.amethyst_block.chime",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.void.step": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.enderman.teleport",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.player.teleport",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.86
+      }
+    ]
+  },
+  "mage.void.blast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.breeze.wind_burst",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.56
+      },
+      {
+        "name": "minecraft:entity.generic.explode",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "mage.herd.chains": {
+    "sounds": [
+      {
+        "name": "minecraft:block.chain.place",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.5
+      },
+      {
+        "name": "minecraft:block.amethyst_block.hit",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 1.6
+      }
+    ]
+  },
+  "warlock.bolt.cast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wither.shoot",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.vex.charge",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.53
+      }
+    ]
+  },
+  "warlock.bolt.hit": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wither.hurt",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.soul_sand.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.5
+      }
+    ]
+  },
+  "warlock.reap.harvest": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.5
+      },
+      {
+        "name": "minecraft:block.chain.break",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.82
+      }
+    ]
+  },
+  "warlock.chains.bind": {
+    "sounds": [
+      {
+        "name": "minecraft:block.chain.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.chain.break",
+        "type": "event",
+        "volume": 0.9,
+        "pitch": 0.83
+      }
+    ]
+  },
+  "warlock.reap.mark": {
+    "sounds": [
+      {
+        "name": "minecraft:particle.soul_escape",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.player.attack.sweep",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.75
+      }
+    ]
+  },
+  "warlock.veil.rise": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wither.ambient",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.evoker.prepare_summon",
+        "type": "event",
+        "volume": 0.7,
+        "pitch": 1.17
+      }
+    ]
+  },
+  "warlock.transfusion": {
+    "sounds": [
+      {
+        "name": "minecraft:block.respawn_anchor.charge",
+        "type": "event",
+        "volume": 0.8,
+        "pitch": 0.5
+      },
+      {
+        "name": "minecraft:entity.wither.ambient",
+        "type": "event",
+        "volume": 0.5,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "warlock.shield.hum": {
+    "sounds": [
+      {
+        "name": "minecraft:block.conduit.ambient",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.33
+      },
+      {
+        "name": "minecraft:block.respawn_anchor.set_spawn",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.33
+      }
+    ]
+  },
+  "warlock.soul.gain": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.vex.ambient",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:particle.soul_escape",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.71
+      }
+    ]
+  },
+  "warlock.cocoon.cast": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.wither.spawn",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:entity.elder_guardian.curse",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 0.86
+      }
+    ]
+  },
+  "warlock.cocoon.close": {
+    "sounds": [
+      {
+        "name": "minecraft:block.glass.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      },
+      {
+        "name": "minecraft:block.chain.place",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.0
+      }
+    ]
+  },
+  "warlock.cocoon.break": {
+    "sounds": [
+      {
+        "name": "minecraft:block.glass.break",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.8
+      }
+    ]
+  },
+  "warlock.soul.return": {
+    "sounds": [
+      {
+        "name": "minecraft:particle.soul_escape",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 1.4
+      }
+    ]
+  },
+  "warlock.chains.tug": {
+    "sounds": [
+      {
+        "name": "minecraft:block.chain.hit",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.7
+      },
+      {
+        "name": "minecraft:block.chain.step",
+        "type": "event",
+        "volume": 1.0,
+        "pitch": 0.6
+      }
+    ]
+  },
+  "warlock.veil.whisper": {
+    "sounds": [
+      {
+        "name": "minecraft:entity.vex.ambient",
+        "type": "event",
+        "volume": 0.4,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:ambient.soul_sand_valley.additions",
+        "type": "event",
+        "volume": 0.6,
+        "pitch": 1.0
+      }
+    ]
   }
 }

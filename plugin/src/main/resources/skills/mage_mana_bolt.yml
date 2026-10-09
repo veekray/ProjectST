@@ -23,7 +23,7 @@ steps:
   - target: { type: self }
     do:
       - { action: cast, skill: mage_seal_core, at-targets: true }
-      - { action: sound, sound: entity_illusioner_cast_spell, volume: 0.8, pitch: 1.6 }
+      - { action: sound, sound: entity_illusioner_cast_spell, volume: 0.8, pitch: 1.6, fx: mage.bolt.fly }
       - { action: particles, particle: enchant, shape: sphere, count: 14, size: 0.4, fx: mage_puff }
 
   # Обычный: останавливается о первую цель, печать остаётся там, где он кончился.

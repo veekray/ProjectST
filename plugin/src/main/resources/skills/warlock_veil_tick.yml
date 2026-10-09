@@ -17,4 +17,4 @@ steps:
         op: percent
         value: $weaken
         status: weakened
-      - { action: particles, particle: squid_ink, shape: point, count: 6, fx: warlock_sink }
+      - { action: particles, particle: squid_ink, shape: point, count: 6, fx: warlock_veil_blink }

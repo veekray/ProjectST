@@ -23,8 +23,8 @@ steps:
         op: percent
         value: $weaken
         status: curse
-      - { action: particles, particle: squid_ink, shape: point, count: 10, fx: warlock_flash }
-      - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.6 }
+      - { action: particles, particle: squid_ink, shape: point, count: 10, fx: warlock_skull_burst }
+      - { action: sound, sound: entity_wither_hurt, volume: 0.5, pitch: 1.6, fx: warlock.bolt.hit }
 
   # Проклятие отработало срок — колдун получает душу.
   - target: { type: self }
@@ -40,4 +40,4 @@ steps:
     do:
       - { action: remove-status, id: reaper_mark }
       - { action: cast, skill: warlock_soul_gain, at-targets: false }
-      - { action: sound, sound: entity_wither_hurt, volume: 0.6, pitch: 1.7 }
+      - { action: sound, sound: entity_wither_hurt, volume: 0.6, pitch: 1.7, fx: warlock.reap.harvest }

@@ -16,4 +16,4 @@ steps:
       - { action: damage, amount: $damage, school: magic }
       - { action: particles, particle: witch, shape: sphere, count: 25, size: 0.35, fx: none }
       - { action: particles, particle: witch, shape: ring, count: 12, size: radius, fx: mage_bolt_hit_strong }
-      - { action: sound, sound: entity_illusioner_mirror_move, pitch: 1.1 }
+      - { action: sound, sound: entity_illusioner_mirror_move, pitch: 1.1, fx: mage.bolt.hit }

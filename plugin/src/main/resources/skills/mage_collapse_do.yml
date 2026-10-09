@@ -44,4 +44,4 @@ steps:
   - target: { type: self }
     delay: 20
     do:
-      - { action: sound, sound: entity_generic_explode, pitch: 0.7, at-origin: true }
+      - { action: sound, sound: entity_generic_explode, pitch: 0.7, at-origin: true, fx: mage.collapse.blast }

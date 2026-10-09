@@ -32,8 +32,13 @@ public final class FxScreen {
     private static int shakeLife;
     private static long clock;
 
-    /** Вспышка или рамка по краям. */
-    private record Edge(int argb, int life, boolean pulse) {
+    /**
+     * Вспышка или рамка по краям.
+     *
+     * @param steady не гаснет к концу срока: рамка, которую держат каждый тик
+     *               (стоишь в пелене — темно, вышел — через тик светло)
+     */
+    private record Edge(int argb, int life, boolean pulse, float strength, boolean steady) {
     }
 
     private static final List<Edge> EDGES = new ArrayList<>();
@@ -77,7 +82,16 @@ public final class FxScreen {
 
     /** Вспышка цветом по краям экрана. */
     static void flash(int argb, int ticks) {
-        EDGES.add(new Edge(argb, Math.max(1, ticks), false));
+        EDGES.add(new Edge(argb, Math.max(1, ticks), false, 0.45f, false));
+        EDGE_AGES.add(0);
+    }
+
+    /**
+     * Рамка, пока её просят: сцена зовёт каждый тик, пока игрок в пелене или
+     * в коконе. Перестала звать — рамки нет через два тика.
+     */
+    static void tint(int argb, float alpha) {
+        EDGES.add(new Edge(argb, 2, false, Math.clamp(alpha, 0f, 0.7f), true));
         EDGE_AGES.add(0);
     }
 
@@ -136,24 +150,27 @@ public final class FxScreen {
         int self = client.player.getId();
 
         // Состояния на себе: корни держат — тень корней снизу; яд — зелёные края.
-        if (FxStatuses.has(self, "root")) {
-            bottom(g, w, h, 0xFF2B1A0C, 0.55f);
+        FxStatuses.State root = FxStatuses.get(self, "root");
+        if (root != null) {
+            boolean runes = SceneKit.classOf(root.source).equals("mage");
+            bottom(g, w, h, runes ? 0xFF3A1A6A : 0xFF2B1A0C, 0.55f);
         }
         if (FxStatuses.has(self, "potion:poison")) {
             float pulse = 0.55f + 0.2f * (float) Math.sin((clock + partial) * 0.25);
             edges(g, w, h, 0xFF4FB33A, 0.32f * pulse);
         }
+        FxStatuses.screen(self, g, w, h, clock + partial);
         for (int i = 0; i < EDGES.size(); i++) {
             Edge edge = EDGES.get(i);
             float k = (EDGE_AGES.get(i) + partial) / edge.life();
-            float alpha = (1f - k) * (edge.pulse() ? 0.6f : 0.45f);
+            float alpha = (edge.steady() ? 1f : 1f - k) * edge.strength();
             edges(g, w, h, edge.argb(), alpha);
         }
         FxCasts.drawBar(g, w, h, partial);
     }
 
     /** Мягкая рамка: от края к середине прозрачнее, середина чистая. */
-    private static void edges(GuiGraphics g, int w, int h, int argb, float alpha) {
+    static void edges(GuiGraphics g, int w, int h, int argb, float alpha) {
         int band = Math.max(12, Math.min(w, h) / 7);
         int solid = FxDraw.withAlpha(argb, alpha);
         int clear = FxDraw.withAlpha(argb, 0f);
@@ -173,7 +190,7 @@ public final class FxScreen {
     }
 
     /** Тень снизу экрана: на ногах что-то держит. */
-    private static void bottom(GuiGraphics g, int w, int h, int argb, float alpha) {
+    static void bottom(GuiGraphics g, int w, int h, int argb, float alpha) {
         int band = h / 4;
         g.fillGradient(0, h - band, w, h, FxDraw.withAlpha(argb, 0f),
                 FxDraw.withAlpha(argb, alpha));

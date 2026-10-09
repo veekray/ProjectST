@@ -33,6 +33,8 @@ final class FxStatuses {
         long endsAt;
         int stacks;
         final List<FxSolids.Solid> solids = new ArrayList<>();
+        /** Рунные оковы уже стоят: второй раз при новом стаке не ставить. */
+        boolean shackled;
 
         State(int entity, String id) {
             this.entity = entity;
@@ -64,6 +66,29 @@ final class FxStatuses {
 
         /** Кадр: знаки над головой, нити, свечение. */
         default void draw(State state, FxDraw draw, Entity entity, Vec3 at, float time) {
+        }
+
+        /** Экран того, на ком статус: рамка, тень. Видит только он сам. */
+        default void screen(State state, net.minecraft.client.gui.GuiGraphics g, int w, int h,
+                            float time) {
+        }
+    }
+
+    /** Экранные рамки статусов на мне. */
+    static void screen(int self, net.minecraft.client.gui.GuiGraphics g, int w, int h, float time) {
+        Map<String, State> mine = BY_ENTITY.get(self);
+        if (mine == null) {
+            return;
+        }
+        for (State state : mine.values()) {
+            Look look = FxScenes.status(state.id);
+            if (look != null) {
+                try {
+                    look.screen(state, g, w, h, time);
+                } catch (RuntimeException e) {
+                    // Рамка — украшение.
+                }
+            }
         }
     }
 
@@ -147,7 +172,9 @@ final class FxStatuses {
             }
         }
         if (entity != null && off.statusId().equals("root")) {
-            FxSounds.play("druid.roots.snap", entity.getX(), entity.getY(), entity.getZ(), 0.9f, 1f);
+            boolean runes = SceneKit.classOf(state.source).equals("mage");
+            FxSounds.play(runes ? "mage.herd.chains" : "druid.roots.snap", entity.getX(),
+                    entity.getY(), entity.getZ(), 0.9f, runes ? 0.8f : 1f);
         }
     }
 
@@ -196,6 +223,14 @@ final class FxStatuses {
         }
         switch (status) {
             case "root" -> {
+                // Корни от мага — рунные оковы, а не корни: облик по классу наложившего.
+                if (SceneKit.classOf(state.source).equals("mage")) {
+                    if (state.solids.isEmpty() && !state.shackled) {
+                        state.shackled = true;
+                        ScenesMage.runeShackles(state, entity);
+                    }
+                    return;
+                }
                 // Корни на Росте держат дольше — и толще, с шипами. Мод видит это
                 // по сроку статуса: решение владельца, отдельной пометки нет.
                 boolean thick = state.total >= 50;

@@ -31,16 +31,16 @@ steps:
       - { caster: has-status, value: soul }
     do:
       - { action: remove-status, id: soul, stacks: 1 }
-      - { action: sound, sound: entity_wither_ambient, volume: 0.8, pitch: 1.7 }
+      - { action: sound, sound: entity_wither_ambient, volume: 0.8, pitch: 1.7, fx: warlock.transfusion }
 
   - target: { type: enemies_in_radius, radius: $radius }
     if:
       - { caster: has-status, value: soul }
       - { target: has-status, value: curse }
     do:
-      - { action: particles, particle: soul, shape: ring, count: 50, size: radius, fx: warlock_wave }
+      - { action: particles, particle: soul, shape: ring, count: 50, size: radius, fx: warlock_transfusion_wave }
       - { action: count, counter: cursed }
-      - { action: particles, particle: soul, shape: point, count: 12, fx: warlock_flash }
+      - { action: particles, particle: soul, shape: point, count: 12, fx: warlock_soul_drain }
 
   - target: { type: self }
     if:
@@ -55,4 +55,4 @@ steps:
     do:
       - { action: status, id: shield, duration: $shield_duration, amount: $shield_per * @cursed }
       - { action: heal, amount: $heal_per * @cursed }
-      - { action: sound, sound: entity_vex_hurt, volume: 0.4, pitch: 0.9 }
+      - { action: sound, sound: entity_vex_hurt, volume: 0.4, pitch: 0.9, fx: warlock.shield.hum }

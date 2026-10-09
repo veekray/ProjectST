@@ -180,6 +180,9 @@ public record FxStyle(Kind kind, int primary, int accent, int grow, int hold, in
             Map.entry("warlock_sink", new FxStyle(Kind.SINK, 0, 0, 4, 10, 14, false, 1.1f, 0)),
             Map.entry("warlock_wave", new FxStyle(Kind.WAVE, 0, 0, 7, 8, 9, true, 1.32f, 0)),
             Map.entry("warlock_zone", new FxStyle(Kind.ZONE, 0, 0, 0, 0, 8, true, 1.1f, 0)),
+            // Череп: дымный хвост за моделью черепа; пелена — граница мглы без рун.
+            Map.entry("warlock_skull", new FxStyle(Kind.BOLT, 0, 0, 0, 0, 8, false, 1.2f, 0.4f)),
+            Map.entry("warlock_veil", new FxStyle(Kind.ZONE, 0, 0, 0, 0, 10, false, 0.6f, 0)),
             // Природа: без рун, листьев много — поле живое.
             Map.entry("druid_aura", new FxStyle(Kind.WAVE, 0, 0, 5, 6, 9, false, 1.82f, 0)),
             Map.entry("druid_flash", new FxStyle(Kind.FLASH, 0, 0, 2, 2, 6, false, 1.3f, 0.8f)),
