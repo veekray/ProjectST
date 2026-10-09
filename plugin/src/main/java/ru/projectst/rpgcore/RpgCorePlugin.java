@@ -169,7 +169,7 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         if (command != null) {
             RpgCommand executor = new RpgCommand(content, stats, statuses, runtime,
                     classService, casts, menus, rpgItems, equipment, recipes,
-                    mobService, clientLink, forgeMenus, getDataFolder().toPath());
+                    mobService, clientLink, forgeMenus, getDataFolder().toPath(), contentFiles);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -347,42 +347,32 @@ public final class RpgCorePlugin extends JavaPlugin implements Listener {
         minions.forgetOwner(uuid).forEach(world::despawn);
     }
 
+    /** Файлы контента в папке плагина: см. {@link ru.projectst.rpgcore.platform.ContentFiles}. */
+    private ru.projectst.rpgcore.platform.ContentFiles contentFiles;
+
     private void saveDefaultContent() {
-        for (String name : new String[] {
-                "stats.yml", "statuses.yml", "balance.yml", "rarities.yml", "spawn.yml",
-                "skills/dash.yml",
-                "skills/druid_abyss_bloom.yml", "skills/druid_bark_guard.yml",
-                "skills/druid_bark_react.yml", "skills/druid_beast_call.yml",
-                "skills/druid_beast_ward_tick.yml", "skills/druid_bloom_tick.yml",
-                "skills/druid_grasping_roots.yml", "skills/druid_life_spores.yml",
-                "skills/druid_poison_ivy.yml", "skills/item_arcane_pulse.yml",
-                "skills/item_arcane_pulse_hit.yml", "skills/item_shadow_nick.yml",
-                "skills/item_soul_drain.yml", "skills/mage_bolt_hit.yml",
-                "skills/mage_bolt_hit_strong.yml", "skills/mage_collapse.yml",
-                "skills/mage_collapse_do.yml", "skills/mage_flow_loop.yml",
-                "skills/mage_herd.yml", "skills/mage_mana_bolt.yml", "skills/mage_scatter.yml",
-                "skills/mage_seal_core.yml", "skills/mage_seal_drop.yml",
-                "skills/mage_void_step.yml", "skills/mob_sand_burst.yml",
-                "skills/mob_venom_sting.yml", "skills/rogue_dash.yml",
-                "skills/rogue_fan_of_knives.yml", "skills/rogue_ghost_step.yml",
-                "skills/rogue_ghost_strike.yml", "skills/rogue_mark_of_death.yml",
-                "skills/rogue_mark_stack.yml", "skills/rogue_mark_tally.yml",
-                "skills/rogue_mirror_burst.yml", "skills/rogue_mirror_image.yml",
-                "skills/rogue_shadow_strike.yml", "skills/warlock_agony_cocoon.yml",
-                "skills/warlock_bolt_hit.yml", "skills/warlock_chains_tick.yml",
-                "skills/warlock_curse_tick.yml", "skills/warlock_cursed_bolt.yml",
-                "skills/warlock_dark_veil.yml", "skills/warlock_despair_chains.yml",
-                "skills/warlock_reap_mark.yml", "skills/warlock_soul_gain.yml",
-                "skills/warlock_transfusion.yml", "skills/warlock_veil_tick.yml",
-                "classes/druid.yml", "classes/mage.yml", "classes/rogue.yml",
-                "classes/warlock.yml", "items/arcane_focus.yml", "items/druid_oaken_charm.yml",
-                "items/mage_apprentice_staff.yml", "items/rogue_shadow_dagger.yml",
-                "items/warlock_soul_lantern.yml", "recipes/arcane_focus.yml",
-                "recipes/druid_oaken_charm.yml", "recipes/mage_apprentice_staff.yml",
-                "mobs/desert_scorpion.yml", "mobs/sand_revenant.yml"}) {
-            if (!getDataFolder().toPath().resolve(name).toFile().isFile()) {
-                saveResource(name, false);
+        try {
+            contentFiles = new ru.projectst.rpgcore.platform.ContentFiles(
+                    getDataFolder().toPath(),
+                    ru.projectst.rpgcore.platform.ContentFiles.readJar(getFile().toPath()));
+            var report = contentFiles.sync();
+            if (!report.added().isEmpty()) {
+                getLogger().info("контент: положено новых файлов — " + report.added().size());
             }
+            if (!report.updated().isEmpty()) {
+                getLogger().info("контент: обновлено до версии плагина — "
+                        + report.updated().size() + ": " + report.updated());
+            }
+            if (!report.kept().isEmpty()) {
+                // Громко: сервер работает со старыми навыками при новом коде, и
+                // снаружи это выглядит как ошибка в коде.
+                getLogger().warning("контент: " + report.kept().size() + " файлов отличаются"
+                        + " от версии в плагине и оставлены как есть (правлены руками или"
+                        + " лежали до учёта версий). Сравнить и обновить: /rpg content,"
+                        + " /rpg content update. Файлы: " + report.kept());
+            }
+        } catch (java.io.IOException e) {
+            getLogger().severe("контент не сверен с версией плагина: " + e.getMessage());
         }
     }
 

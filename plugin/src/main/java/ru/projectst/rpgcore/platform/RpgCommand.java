@@ -32,11 +32,12 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
             "resource",
             "progress", "xp", "give", "items", "forge", "mobs", "spawn",
-            "convert", "client", "area", "reset");
+            "convert", "client", "area", "content", "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
             Set.of("validate", "reload", "debug", "why", "xp", "give", "forge", "spawn", "area",
+                    "content",
                     "convert", "reset");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
@@ -55,6 +56,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
     private final ClientLink clientLink;
     private final java.nio.file.Path dataFolder;
     private final ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus;
+    /** Файлы контента и их версии из jar; {@code null}, если сверка не удалась. */
+    private final ContentFiles contentFiles;
 
     public RpgCommand(ContentService content, StatService stats, StatusService statuses,
                       ru.projectst.rpgcore.skill.SkillRuntime runtime,
@@ -64,7 +67,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                       RpgItems rpgItems, EquipmentWatcher equipment,
                       RecipeRegistrar recipes, MobService mobs, ClientLink clientLink,
                       ru.projectst.rpgcore.platform.gui.ForgeContext forgeMenus,
-                      java.nio.file.Path dataFolder) {
+                      java.nio.file.Path dataFolder, ContentFiles contentFiles) {
         this.content = content;
         this.stats = stats;
         this.statuses = statuses;
@@ -78,6 +81,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
         this.mobs = mobs;
         this.clientLink = clientLink;
         this.forgeMenus = forgeMenus;
+        this.contentFiles = contentFiles;
         this.dataFolder = dataFolder;
     }
 
@@ -118,6 +122,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
             sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
             sender.sendMessage("§e/rpg client §7— у кого стоит клиентский мод");
+            sender.sendMessage("§e/rpg content [update] §7— какие файлы контента отличаются"
+                    + " от версии в плагине; update — заменить их, прежние в backup");
             sender.sendMessage("§e/rpg area §7— показывать в чате радиус каждой области"
                     + " своих навыков: база, стат, итог и сколько задето");
             sender.sendMessage("§e/rpg reset <игрок> <что> §7— обнулить игрока целиком"
@@ -152,6 +158,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "convert" -> convert(sender);
             case "client" -> clientStatus(sender);
             case "area" -> areaTrace(sender);
+            case "content" -> contentFiles(sender, args);
             case "reset" -> reset(sender, args);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
@@ -162,6 +169,42 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                 yield true;
             }
         };
+    }
+
+    private boolean contentFiles(CommandSender sender, String[] args) {
+        if (contentFiles == null) {
+            sender.sendMessage("§cСверка контента с плагином не удалась при запуске: см. журнал.");
+            return true;
+        }
+        try {
+            if (args.length > 1 && args[1].equalsIgnoreCase("update")) {
+                java.nio.file.Path backup = dataFolder.resolve("backup").resolve(
+                        java.time.LocalDateTime.now().format(
+                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")));
+                ContentFiles.Report report = contentFiles.forceUpdate(backup);
+                sender.sendMessage("§aКонтент приведён к версии плагина: обновлено §f"
+                        + report.updated().size() + "§a, добавлено §f" + report.added().size()
+                        + (report.updated().isEmpty() ? ""
+                                : "§a. Прежние файлы: §f" + dataFolder.relativize(backup)));
+                // Перечитать сразу: иначе новые файлы лежали бы на диске, а
+                // играли бы старые до перезапуска.
+                return reload(sender);
+            }
+            List<String> outdated = contentFiles.outdated();
+            if (outdated.isEmpty()) {
+                sender.sendMessage("§aВесь поставляемый контент совпадает с версией плагина.");
+            } else {
+                sender.sendMessage("§eОтличаются от версии в плагине: §f" + outdated.size()
+                        + "§e. Заменить: §f/rpg content update §7(прежние уйдут в backup)");
+                outdated.stream().limit(15).forEach(name -> sender.sendMessage("§7  " + name));
+                if (outdated.size() > 15) {
+                    sender.sendMessage("§7  … и ещё " + (outdated.size() - 15));
+                }
+            }
+        } catch (java.io.IOException e) {
+            sender.sendMessage("§cФайлы контента не читаются: " + e.getMessage());
+        }
+        return true;
     }
 
     private boolean areaTrace(CommandSender sender) {
