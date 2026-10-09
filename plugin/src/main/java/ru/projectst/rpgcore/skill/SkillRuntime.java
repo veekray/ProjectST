@@ -36,6 +36,16 @@ public final class SkillRuntime {
     private final MinionService minions;
     private final DoubleSupplier random;
 
+    /**
+     * Кому показывать в чате радиус каждой области его навыков.
+     *
+     * <p>Граница на экране и выборка целей берут одно число, но со стороны
+     * этого не видно: «кольцо меньше удара» могло бы значить и ошибку, и
+     * старую сборку на сервере. Строка в чате называет само число — базу из
+     * баланса, множитель стата и итог, — и спорить становится не о чем.
+     */
+    private final java.util.Set<UUID> areaTrace = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     /** Надбавки, привязанные к статусам: {@code modify-stat} со {@code status}. */
     private final ru.projectst.rpgcore.status.StatusStats statusStats;
 
@@ -98,6 +108,15 @@ public final class SkillRuntime {
         cast(CastContext.of(caster, level), skill, 0);
     }
 
+    /** Включает или выключает строку о радиусе областей; возвращает новое состояние. */
+    public boolean toggleAreaTrace(UUID player) {
+        if (areaTrace.remove(player)) {
+            return false;
+        }
+        areaTrace.add(player);
+        return true;
+    }
+
     public void cast(CastContext context, SkillDef skill, int depth) {
         if (depth > MAX_DEPTH) {
             // Молча прекращаем: это ошибка контента, и её ловит связывание,
@@ -134,8 +153,9 @@ public final class SkillRuntime {
         // стат читается здесь и больше нигде: зоны и взрывы выбирают цели тем
         // же шагом. Угол не трогаем — «шире по кругу» и «шире по дуге» это
         // разные вещи, и общий множитель испортил бы конусы.
-        double radius = resolve(step.target().radius(), table, context, 0)
-                * radiusScale(context.caster());
+        double baseRadius = resolve(step.target().radius(), table, context, 0);
+        double scale = radiusScale(context.caster());
+        double radius = baseRadius * scale;
         double angle = resolve(step.target().angle(), table, context, 0);
 
         // Единственное место, где определяются цели шага.
@@ -160,6 +180,12 @@ public final class SkillRuntime {
         // частицы и звук в точке действия, луч — обязаны отработать всё равно.
         // Ровно этим мучил старый стек: метаскилл без подходящих целей не
         // выполнял даже партиклы, и промах выглядел как сломанный навык.
+        if (baseRadius > 0 && areaTrace.contains(context.caster())) {
+            world.message(context.caster(), String.format(java.util.Locale.ROOT,
+                    "§8[область] §f%s §7шаг %d: радиус §f%.2f §7= %.2f × %.2f от стата,"
+                            + " целей §f%d", skill.id(), skill.steps().indexOf(step) + 1,
+                    radius, baseRadius, scale, kept.size()));
+        }
         StepArea area = new StepArea(step.target(), radius, angle);
         for (Action action : step.actions()) {
             perform(context, skill, action, kept, table, depth, area);
@@ -578,7 +604,13 @@ public final class SkillRuntime {
                 // Промежуток между зонами растёт вместе с ними, иначе крупные
                 // печати ложились бы друг на друга.
                 double scale = radiusScale(context.caster());
-                double radius = resolve(a.radius(), table, context, 1) * scale;
+                double zoneBase = resolve(a.radius(), table, context, 1);
+                double radius = zoneBase * scale;
+                if (areaTrace.contains(context.caster())) {
+                    world.message(context.caster(), String.format(java.util.Locale.ROOT,
+                            "§8[область] §f%s §7зона %s: радиус §f%.2f §7= %.2f × %.2f от стата",
+                            skill.id(), a.tag(), radius, zoneBase, scale));
+                }
                 int ticks = (int) resolve(a.duration(), table, context, 20);
                 double gap = resolve(a.minGap(), table, context, 0) * scale;
                 java.util.function.Consumer<Position> place = p -> zones.place(a.tag(),

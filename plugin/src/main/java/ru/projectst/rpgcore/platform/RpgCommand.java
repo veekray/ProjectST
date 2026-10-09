@@ -32,11 +32,11 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             "menu", "cast", "slot", "dash", "class", "skills", "unlock", "upgrade", "bind",
             "resource",
             "progress", "xp", "give", "items", "forge", "mobs", "spawn",
-            "convert", "client", "reset");
+            "convert", "client", "area", "reset");
 
     /** Подкоманды, которые меняют мир или смотрят чужие данные. */
     private static final Set<String> ADMIN_ONLY =
-            Set.of("validate", "reload", "debug", "why", "xp", "give", "forge", "spawn",
+            Set.of("validate", "reload", "debug", "why", "xp", "give", "forge", "spawn", "area",
                     "convert", "reset");
 
     private static final String PERMISSION_ADMIN = "rpgcore.admin";
@@ -118,6 +118,8 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/rpg spawn <моб> §7— поставить моба перед собой");
             sender.sendMessage("§e/rpg convert §7— перенести мобов из convert-in");
             sender.sendMessage("§e/rpg client §7— у кого стоит клиентский мод");
+            sender.sendMessage("§e/rpg area §7— показывать в чате радиус каждой области"
+                    + " своих навыков: база, стат, итог и сколько задето");
             sender.sendMessage("§e/rpg reset <игрок> <что> §7— обнулить игрока целиком"
                     + " или частью");
             sender.sendMessage("§e/rpg class <класс> §7— выбрать класс");
@@ -149,6 +151,7 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
             case "spawn" -> spawnMob(sender, args);
             case "convert" -> convert(sender);
             case "client" -> clientStatus(sender);
+            case "area" -> areaTrace(sender);
             case "reset" -> reset(sender, args);
             case "class" -> chooseClass(sender, args);
             case "unlock" -> unlock(sender, args);
@@ -159,6 +162,19 @@ public final class RpgCommand implements CommandExecutor, TabCompleter {
                 yield true;
             }
         };
+    }
+
+    private boolean areaTrace(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cТолько для игрока: радиус считается от него.");
+            return true;
+        }
+        boolean on = runtime.toggleAreaTrace(player.getUniqueId());
+        sender.sendMessage(on
+                ? "§aРадиус областей: показывается. §7Каждый шаг с областью пишет в чат"
+                        + " базу из баланса, множитель стата и итог — им же рисуется граница."
+                : "§7Радиус областей: скрыт.");
+        return true;
     }
 
     private boolean validate(CommandSender sender) {

@@ -1766,6 +1766,37 @@ class SkillRuntimeTest {
     }
 
     @Test
+    @DisplayName("/rpg area называет радиус области тем же числом, что у выборки")
+    void areaTraceNamesTheRealRadius() {
+        SkillDef skill = parse("test_skill", """
+                id: test_skill
+                class: berserker
+                steps:
+                  - target: { type: enemies_in_radius, radius: 6 }
+                    do:
+                      - { action: particles, particle: cloud, shape: ring, size: radius, fx: berserker_wave }
+                """);
+        Fixture f = fixture(skill);
+        f.stats.setSource(CASTER, "gear",
+                List.of(new StatModifier("skill_radius", StatOp.FLAT, 50, "gear")));
+
+        f.runtime.cast(CASTER, skill, 1);
+        assertTrue(f.world.calls.stream().noneMatch(c -> c.startsWith("message")),
+                "без включения строки в чате нет");
+
+        assertTrue(f.runtime.toggleAreaTrace(CASTER));
+        f.world.calls.clear();
+        f.runtime.cast(CASTER, skill, 1);
+
+        String line = f.world.calls.stream().filter(c -> c.startsWith("message"))
+                .findFirst().orElseThrow();
+        assertTrue(line.contains("радиус §f9.00 §7= 6.00 × 1.50"), line);
+        assertTrue(f.world.calls.contains("burst cloud RING r=9.0 @0.0")
+                        || f.world.calls.stream().anyMatch(c -> c.startsWith("burst cloud RING r=9.0")),
+                "граница — то же число: " + f.world.calls);
+    }
+
+    @Test
     @DisplayName("зона растёт от стата радиуса вместе со своим тиком: 6 → 9 при +50%")
     void zoneRadiusFollowsSkillRadius() {
         SkillDef skill = parse("test_skill", """
